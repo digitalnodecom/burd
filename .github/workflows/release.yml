@@ -1,0 +1,260 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+jobs:
+  # Extract version from tag
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+  # Build the Tauri app for macOS
+  build-tauri:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            arch: aarch64
+          - platform: macos-13
+            target: x86_64-apple-darwin
+            arch: x64
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'Burd v__VERSION__'
+          releaseBody: 'See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.'
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ matrix.target }}
+
+  # Build CLI binary separately
+  build-cli:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            name: burd-darwin-aarch64
+          - platform: macos-13
+            target: x86_64-apple-darwin
+            name: burd-darwin-x64
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Build CLI
+        run: |
+          cd src-tauri
+          cargo build --release --bin burd --target ${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/burd ../${{ matrix.name }}
+
+      - name: Generate checksum
+        run: shasum -a 256 ${{ matrix.name }} | cut -d ' ' -f 1 > ${{ matrix.name }}.sha256
+
+      - name: Upload CLI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.name }}
+          path: |
+            ${{ matrix.name }}
+            ${{ matrix.name }}.sha256
+
+  # Generate update manifests and upload to R2
+  publish-updates:
+    needs: [prepare, build-tauri, build-cli]
+    runs-on: ubuntu-latest
+    if: ${{ !contains(needs.prepare.outputs.version, '-') }} # Skip for pre-releases
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download CLI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cli-*
+          merge-multiple: true
+
+      - name: Get release info
+        id: release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const release = releases.find(r => r.tag_name === 'v${{ needs.prepare.outputs.version }}');
+            if (!release) {
+              throw new Error('Release not found');
+            }
+            return release;
+
+      - name: Generate update manifests
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+
+          # Read checksums
+          AARCH64_SHA256=$(cat burd-darwin-aarch64.sha256)
+          X64_SHA256=$(cat burd-darwin-x64.sha256)
+
+          # Generate CLI manifest
+          mkdir -p cli
+          cat > cli/latest.json << EOF
+          {
+            "version": "$VERSION",
+            "notes": "See https://github.com/${{ github.repository }}/releases/tag/v$VERSION for details.",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "darwin-aarch64": {
+                "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/burd-darwin-aarch64",
+                "sha256": "$AARCH64_SHA256"
+              },
+              "darwin-x64": {
+                "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/burd-darwin-x64",
+                "sha256": "$X64_SHA256"
+              }
+            }
+          }
+          EOF
+
+          cat cli/latest.json
+
+      - name: Upload CLI binaries to release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const release = releases.find(r => r.tag_name === 'v${{ needs.prepare.outputs.version }}');
+
+            const files = ['burd-darwin-aarch64', 'burd-darwin-x64'];
+            for (const file of files) {
+              const content = fs.readFileSync(file);
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id,
+                name: file,
+                data: content,
+              });
+            }
+
+      - name: Upload to Scaleway Object Storage
+        if: ${{ secrets.SCW_ACCESS_KEY_ID != '' }}
+        run: |
+          # Install AWS CLI (S3-compatible)
+          pip install awscli
+
+          # Configure for Scaleway
+          export AWS_ACCESS_KEY_ID="${{ secrets.SCW_ACCESS_KEY_ID }}"
+          export AWS_SECRET_ACCESS_KEY="${{ secrets.SCW_SECRET_ACCESS_KEY }}"
+          SCW_ENDPOINT="https://s3.${{ secrets.SCW_REGION }}.scw.cloud"
+
+          # Upload CLI manifest
+          aws s3 cp cli/latest.json s3://burd-updates/cli/latest.json \
+            --endpoint-url "$SCW_ENDPOINT"
+
+          # Upload CLI binaries
+          aws s3 cp burd-darwin-aarch64 s3://burd-updates/releases/${{ needs.prepare.outputs.version }}/burd-darwin-aarch64 \
+            --endpoint-url "$SCW_ENDPOINT"
+          aws s3 cp burd-darwin-x64 s3://burd-updates/releases/${{ needs.prepare.outputs.version }}/burd-darwin-x64 \
+            --endpoint-url "$SCW_ENDPOINT"
+
+          echo "Uploaded to Scaleway Object Storage"
+
+  # Publish the GitHub release (remove draft status)
+  publish-release:
+    needs: [prepare, build-tauri, build-cli, publish-updates]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Publish release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const release = releases.find(r => r.tag_name === 'v${{ needs.prepare.outputs.version }}');
+            if (release && release.draft) {
+              await github.rest.repos.updateRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id,
+                draft: false
+              });
+              console.log('Release published!');
+            }

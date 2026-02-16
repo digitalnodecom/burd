@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burd Documentation</title>
+    <meta name="description" content="Complete documentation for Burd - The Ultimate Local Dev Environment for PHP Developers.">
+    <link rel="icon" href="images/burd.png" type="image/png">
+
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-php.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-toml.min.js"></script>
+
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a24;
+            --text-primary: #e4e4e7;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent: #8b5cf6;
+            --accent-hover: #a78bfa;
+            --border: #27272a;
+            --code-bg: #1e1e2e;
+            --sidebar-width: 280px;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --accent: #7c3aed;
+            --accent-hover: #6d28d9;
+            --border: #e2e8f0;
+            --code-bg: #f8fafc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 80px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            z-index: 100;
+            gap: 16px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+        }
+
+        .header-spacer {
+            flex: 1;
+        }
+
+        .theme-toggle {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 18px;
+        }
+
+        .theme-toggle:hover {
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        .menu-toggle {
+            display: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 20px;
+        }
+
+        /* Layout */
+        .container {
+            display: flex;
+            margin-top: 60px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: var(--sidebar-width);
+            height: calc(100vh - 60px);
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 20px 0;
+            transition: transform 0.3s;
+        }
+
+        .sidebar-section {
+            padding: 0 16px;
+            margin-bottom: 24px;
+        }
+
+        .sidebar-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            padding: 0 8px;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 6px 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+
+        .sidebar a:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .sidebar a.active {
+            color: var(--accent);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .sidebar a.h2-link {
+            padding-left: 24px;
+            font-size: 13px;
+        }
+
+        /* Content */
+        .content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            max-width: 900px;
+            padding: 40px 60px;
+            min-height: calc(100vh - 60px);
+        }
+
+        /* Typography */
+        .content h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 48px 0 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .content h1:first-child {
+            margin-top: 0;
+        }
+
+        .content h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 40px 0 16px;
+            color: var(--text-primary);
+        }
+
+        .content h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 32px 0 12px;
+            color: var(--text-primary);
+        }
+
+        .content p {
+            margin: 16px 0;
+            color: var(--text-secondary);
+        }
+
+        .content a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .content a:hover {
+            text-decoration: underline;
+        }
+
+        .content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .content ul, .content ol {
+            margin: 16px 0;
+            padding-left: 24px;
+            color: var(--text-secondary);
+        }
+
+        .content li {
+            margin: 8px 0;
+        }
+
+        .content hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 48px 0;
+        }
+
+        /* Code */
+        .content code {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+        }
+
+        .content :not(pre) > code {
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--accent);
+        }
+
+        .content pre {
+            background: var(--code-bg) !important;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+
+        .content pre code {
+            background: none !important;
+            padding: 0;
+            color: inherit;
+        }
+
+        /* Tables */
+        .content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .content th, .content td {
+            padding: 12px 16px;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        .content th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .content td {
+            color: var(--text-secondary);
+        }
+
+        /* Blockquotes */
+        .content blockquote {
+            border-left: 3px solid var(--accent);
+            padding: 12px 20px;
+            margin: 16px 0;
+            background: var(--bg-tertiary);
+            border-radius: 0 8px 8px 0;
+            color: var(--text-secondary);
+        }
+
+        .content blockquote p {
+            margin: 0;
+        }
+
+        /* Mobile */
+        @media (max-width: 900px) {
+            .sidebar {
+                transform: translateX(-100%);
+                z-index: 99;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .content {
+                margin-left: 0;
+                padding: 24px;
+            }
+
+            .menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 60px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 98;
+            }
+
+            .overlay.open {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <button class="menu-toggle" id="menuToggle">&#9776;</button>
+        <a href="../index.html" class="logo">
+            <img src="images/burd.png" alt="Burd">
+            Burd Docs
+        </a>
+        <div class="header-spacer"></div>
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">&#9790;</button>
+    </header>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="container">
+        <nav class="sidebar" id="sidebar"></nav>
+        <main class="content" id="content"></main>
+    </div>
+
+    <script id="markdown-content" type="text/markdown">
+# Burd Documentation
+
+Welcome to Burd, the ultimate local development environment for PHP developers. This documentation covers everything you need to know to get started and make the most of Burd's powerful features.
+
+---
+
+# Getting Started
+
+## What is Burd?
+
+Burd is a native macOS application that provides a complete local development environment for PHP developers. It bundles 18+ integrated services including databases, caching, search, email testing, and more - all without Docker or complex configuration.
+
+**Key Features:**
+- **18+ Integrated Services** - MariaDB, PostgreSQL, MongoDB, Redis, Meilisearch, Mailpit, and more
+- **Zero Docker Complexity** - Native binaries for maximum performance
+- **Park Directories** - Automatic project detection like Laravel Valet
+- **Built-in Tunneling** - Share local sites publicly in seconds
+- **Powerful CLI** - Full feature parity from the command line
+- **21+ Project Types** - Automatic detection for Laravel, WordPress, Symfony, and more
+
+## System Requirements
+
+- **Operating System:** macOS 12.0 (Monterey) or later
+- **Architecture:** Apple Silicon (M1/M2/M3) or Intel
+- **Disk Space:** 2GB minimum for app and services
+- **Memory:** 8GB RAM recommended
+
+> Windows and Linux versions are coming soon. Lifetime license holders will get access to all platforms at no extra cost.
+
+## Installation
+
+### Download Burd
+
+1. Visit [burd.dev](https://burd.dev) to download the latest version
+2. Open the `.dmg` file and drag Burd to your Applications folder
+3. Launch Burd from Applications
+
+### Install the CLI
+
+The Burd CLI provides command-line access to all features. Install it by running:
+
+```bash
+# The CLI is bundled with the app
+# Add to your PATH:
+export PATH="$PATH:/Applications/Burd.app/Contents/MacOS"
+
+# Or create a symlink:
+sudo ln -s /Applications/Burd.app/Contents/MacOS/burd /usr/local/bin/burd
+```
+
+Verify the installation:
+
+```bash
+burd --version
+```
+
+## Quick Start
+
+### 1. Create Your First Project
+
+```bash
+# Create a new Laravel project
+burd new laravel myapp
+
+# Or WordPress
+burd new wordpress myblog
+
+# Or Bedrock (modern WordPress)
+burd new bedrock mysite
+```
+
+### 2. Link to a Domain
+
+```bash
+cd myapp
+burd link
+# Your site is now available at http://myapp.burd
+```
+
+### 3. Open in Browser
+
+```bash
+burd open
+# Opens http://myapp.burd in your default browser
+```
+
+### 4. Full Project Setup (Recommended)
+
+For a complete setup with database, cache, and mail:
+
+```bash
+cd myapp
+burd setup
+```
+
+This interactive wizard will:
+- Create a FrankenPHP instance and domain
+- Set up a database
+- Configure Redis for caching/sessions
+- Configure Mailpit for email testing
+- Run database migrations (Laravel)
+
+---
+
+# Core Concepts
+
+## Instances & Services
+
+Burd manages **instances** of various **services**. Each instance is an independent copy of a service that you can start, stop, and configure.
+
+**Services** are the underlying software:
+- MariaDB, PostgreSQL, MongoDB (databases)
+- Redis, Valkey, Memcached (caching)
+- Meilisearch, Typesense (search)
+- And more...
+
+**Instances** are running copies you create:
+- "My MariaDB" on port 3330
+- "Project Redis" on port 6379
+- Multiple instances of the same service on different ports
+
+## Domains & TLD
+
+Burd uses a custom top-level domain (TLD) for local development. By default, this is `.burd`.
+
+When you link a project, it becomes accessible at `projectname.burd`:
+
+```bash
+cd ~/Projects/myapp
+burd link
+# Available at: http://myapp.burd
+```
+
+You can also specify a custom subdomain:
+
+```bash
+burd link api
+# Available at: http://api.burd
+```
+
+### HTTPS Support
+
+Enable HTTPS for any domain:
+
+```bash
+burd secure myapp
+# Now available at: https://myapp.burd
+```
+
+Burd uses mkcert to generate locally-trusted certificates. Your browser will show a valid certificate without warnings.
+
+## Park Directories
+
+Park directories provide automatic project discovery, similar to Laravel Valet. Simply "park" a folder, and all subdirectories automatically become accessible domains.
+
+```bash
+cd ~/Projects
+burd park
+
+# Now any folder in ~/Projects is accessible:
+# ~/Projects/blog    -> http://blog.burd
+# ~/Projects/api     -> http://api.burd
+# ~/Projects/shop    -> http://shop.burd
+```
+
+Burd automatically detects the project type and configures the correct document root.
+
+## Project Detection
+
+Burd recognizes 21+ project types automatically:
+
+**Frameworks:**
+- Laravel, Symfony, CakePHP, Slim
+
+**CMS Platforms:**
+- WordPress, Bedrock, Statamic, Craft CMS
+- Drupal, Magento, Joomla, Kirby
+- OctoberCMS, ConcreteCMS, Contao, ExpressionEngine
+
+**Static Site Generators:**
+- Jigsaw, Sculpin, Katana
+
+**Generic:**
+- PHP projects with index.php
+- Static HTML sites
+
+Each project type maps to the correct document root:
+- Laravel/Symfony: `public/`
+- Bedrock/Craft: `web/`
+- WordPress: project root
+- And more...
+
+---
+
+# Services Reference
+
+## Databases
+
+### MariaDB
+
+MySQL-compatible database server.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 3330 |
+| Username | root |
+| Password | (empty) |
+
+**Connection Example (Laravel .env):**
+
+```bash
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3330
+DB_DATABASE=myapp
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### PostgreSQL
+
+Advanced open-source relational database.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 5432 |
+| Username | your system username |
+| Password | (none required locally) |
+
+### MongoDB
+
+NoSQL document database.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 27017 |
+| Versions | 8.0, 7.0, 6.0 |
+
+## Cache & Sessions
+
+### Redis
+
+In-memory data store for caching, sessions, and queues.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 6379 |
+| Password | Optional |
+
+**Laravel Configuration:**
+
+```bash
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+```
+
+### Valkey
+
+Open-source Redis fork with full compatibility.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 6380 |
+
+### Memcached
+
+High-performance distributed memory caching.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 11211 |
+| Memory | 64MB (default) |
+
+## Search Engines
+
+### Meilisearch
+
+Lightning-fast search engine perfect for Laravel Scout.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 7700 |
+| Master Key | Configurable |
+
+**Laravel Scout Configuration:**
+
+```bash
+SCOUT_DRIVER=meilisearch
+MEILISEARCH_HOST=http://127.0.0.1:7700
+MEILISEARCH_KEY=your-master-key
+```
+
+### Typesense
+
+Fast, typo-tolerant search engine with vector search support.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 8108 |
+| API Key | xyz (default) |
+
+## Queue & Real-time
+
+### Beanstalkd
+
+Simple, fast work queue.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 11300 |
+
+### Centrifugo
+
+Real-time messaging server for WebSocket connections.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 8000 |
+
+## Storage
+
+### MinIO
+
+S3-compatible object storage for local development.
+
+| Setting | Value |
+|---------|-------|
+| API Port | 9000 |
+| Console Port | 9001 |
+| Root User | minioadmin |
+| Root Password | minioadmin |
+
+## Email
+
+### Mailpit
+
+Email testing tool that captures all outgoing mail.
+
+| Setting | Value |
+|---------|-------|
+| Web UI Port | 8025 |
+| SMTP Port | 1025 |
+
+**Laravel Configuration:**
+
+```bash
+MAIL_MAILER=smtp
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025
+```
+
+Access the Mailpit inbox at `http://127.0.0.1:8025`
+
+## PHP
+
+### FrankenPHP
+
+Modern PHP application server built on Caddy.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 8000+ |
+| PHP Versions | 7.4 - 8.4 |
+
+**Configurable Settings:**
+- `php_memory_limit` - Memory limit (default: 256M)
+- `php_upload_max_filesize` - Upload limit (default: 64M)
+- `php_post_max_size` - POST limit (default: 64M)
+- `php_max_execution_time` - Timeout (default: 30s)
+
+### FrankenPHP Park
+
+Special singleton instance that serves all parked directories.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 8888 |
+
+## Automation
+
+### Node-RED
+
+Visual flow-based programming for automation.
+
+| Setting | Value |
+|---------|-------|
+| Default Port | 1880 |
+
+Access the Node-RED editor at `http://127.0.0.1:1880`
+
+---
+
+# CLI Reference
+
+The Burd CLI provides complete access to all features from your terminal.
+
+## Project Commands
+
+### burd new
+
+Create a new project from a template.
+
+```bash
+burd new <type> <name>
+```
+
+**Types:** `laravel`, `wordpress`, `bedrock`
+
+### burd init
+
+Initialize the current directory with a FrankenPHP instance and domain.
+
+```bash
+burd init
+```
+
+### burd setup
+
+Full interactive project setup wizard.
+
+```bash
+burd setup
+```
+
+### burd analyze
+
+Analyze the current project to detect type and issues.
+
+```bash
+burd analyze
+```
+
+### burd doctor
+
+Run a health check on all Burd services.
+
+```bash
+burd doctor
+```
+
+## Domain Commands
+
+### burd link
+
+Link the current directory to a custom domain.
+
+```bash
+burd link [name]
+```
+
+**Examples:**
+
+```bash
+burd link           # Uses directory name
+burd link myapi     # Creates myapi.burd
+```
+
+### burd unlink
+
+Remove the link for the current directory.
+
+```bash
+burd unlink
+```
+
+### burd links
+
+List all linked sites.
+
+```bash
+burd links
+```
+
+### burd secure / unsecure
+
+Enable or disable HTTPS for a domain.
+
+```bash
+burd secure [name]
+burd unsecure [name]
+```
+
+### burd open
+
+Open a site in your default browser.
+
+```bash
+burd open [name]
+```
+
+## Proxy Commands
+
+### burd proxy
+
+Create a domain that proxies to a local port.
+
+```bash
+burd proxy <name> <port>
+```
+
+**Example:**
+
+```bash
+burd proxy myapi 3000
+# Proxy myapi.burd to localhost:3000
+```
+
+### burd unproxy
+
+Remove a proxied domain.
+
+```bash
+burd unproxy <name>
+```
+
+### burd proxies
+
+List all proxied domains.
+
+```bash
+burd proxies
+```
+
+## Park Commands
+
+### burd park
+
+Park the current directory.
+
+```bash
+burd park
+```
+
+### burd forget
+
+Unpark the current directory.
+
+```bash
+burd forget
+```
+
+### burd parked
+
+List all parked directories.
+
+```bash
+burd parked
+```
+
+### burd refresh
+
+Rescan parked directories.
+
+```bash
+burd refresh
+```
+
+### burd status
+
+Show park/link status for the current directory.
+
+```bash
+burd status
+```
+
+## Database Commands
+
+### burd db list
+
+List all databases.
+
+```bash
+burd db list
+```
+
+### burd db create
+
+Create a new database.
+
+```bash
+burd db create <name>
+```
+
+### burd db drop
+
+Drop a database.
+
+```bash
+burd db drop <name> [--force]
+```
+
+### burd db import
+
+Import a SQL file.
+
+```bash
+burd db import <name> <file>
+```
+
+### burd db export
+
+Export a database.
+
+```bash
+burd db export <name> [--output <file>]
+```
+
+### burd db shell
+
+Open an interactive database shell.
+
+```bash
+burd db shell [name]
+```
+
+## Environment Commands
+
+### burd env check
+
+Validate .env file against Burd services.
+
+```bash
+burd env check
+```
+
+### burd env fix
+
+Interactively fix .env issues.
+
+```bash
+burd env fix
+```
+
+### burd env show
+
+Display relevant .env values.
+
+```bash
+burd env show
+```
+
+## Sharing Commands
+
+### burd share
+
+Share a local site via tunnel.
+
+```bash
+burd share [--subdomain <name>]
+```
+
+## Maintenance Commands
+
+### burd upgrade
+
+Update the Burd CLI.
+
+```bash
+burd upgrade [--check]
+```
+
+---
+
+# Features Guide
+
+## Park Directories
+
+Park directories provide automatic project discovery and domain routing.
+
+### How It Works
+
+1. **Park a folder** containing your projects
+2. **Burd scans** for project subdirectories
+3. **Each project** gets a domain automatically
+4. **Access any project** at `projectname.burd`
+
+### Setting Up Parks
+
+```bash
+cd ~/Projects
+burd park
+```
+
+Now every folder in `~/Projects` is accessible.
+
+### Project Detection
+
+| Project Type | Detection | Document Root |
+|--------------|-----------|---------------|
+| Laravel | `artisan` file | `public/` |
+| WordPress | `wp-config.php` | root |
+| Bedrock | `web/wp/` structure | `web/` |
+| Symfony | `bin/console` | `public/` |
+| Craft CMS | `craft` executable | `web/` |
+| Static HTML | `index.html` | root or `public/` |
+
+## Custom Drivers
+
+Extend project detection with custom TOML-based drivers.
+
+### Driver Locations
+
+1. **Local Driver:** `{project}/.burd/driver.toml`
+2. **Global Drivers:** `~/.config/burd/drivers/*.toml`
+
+### TOML Format
+
+```toml
+[driver]
+name = "My Framework"
+priority = 50
+requires_php = true
+
+[detection]
+files_exist = ["artisan", "composer.json"]
+dirs_exist = ["app", "config"]
+
+[document_root]
+path = "public"
+fallbacks = ["www", "."]
+```
+
+## Tinker Console
+
+Interactive PHP REPL with framework integration.
+
+### Supported Frameworks
+
+- **Laravel**: Uses `php artisan tinker`
+- **WordPress**: Loads `wp-load.php` context
+- **Bedrock**: Loads Bedrock's WordPress context
+- **Generic PHP**: Executes PHP directly
+
+### Laravel Example
+
+```php
+// Access Eloquent models
+User::where('email', 'like', '%@example.com')->count()
+
+// Use helpers
+route('home')
+
+// Query the database
+DB::table('users')->get()
+```
+
+## Tunneling & Sharing
+
+Share local sites publicly using built-in frp tunneling.
+
+### Sharing a Site
+
+```bash
+cd ~/Projects/myapp
+burd share
+```
+
+This creates a public URL like `https://abc123.tunnel.example.com`
+
+### Custom Subdomain
+
+```bash
+burd share --subdomain myproject
+```
+
+---
+
+# Framework Guides
+
+## Laravel
+
+### Quick Setup
+
+```bash
+burd new laravel myapp
+cd myapp
+burd setup
+```
+
+### Environment Configuration
+
+```bash
+APP_URL=http://myapp.burd
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3330
+DB_DATABASE=myapp
+DB_USERNAME=root
+DB_PASSWORD=
+
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+
+MAIL_MAILER=smtp
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025
+```
+
+## WordPress
+
+### Quick Setup
+
+```bash
+burd new wordpress myblog
+cd myblog
+burd link
+burd db create myblog
+```
+
+Then visit `http://myblog.burd` to complete installation.
+
+## Bedrock
+
+### Quick Setup
+
+```bash
+burd new bedrock mysite
+cd mysite
+burd link
+```
+
+### Environment Configuration
+
+```bash
+WP_ENV=development
+WP_HOME=http://mysite.burd
+WP_SITEURL=${WP_HOME}/wp
+
+DB_NAME=mysite
+DB_USER=root
+DB_PASSWORD=
+DB_HOST=127.0.0.1:3330
+```
+
+## Symfony
+
+### Setup
+
+```bash
+composer create-project symfony/skeleton myapp
+cd myapp
+burd link
+```
+
+---
+
+# Troubleshooting
+
+## Common Issues
+
+### Port Conflicts
+
+```bash
+# Find what's using the port
+lsof -i :3330
+
+# Kill the process or change the Burd instance port
+```
+
+### Service Not Starting
+
+1. Check the instance logs in Burd app
+2. Verify requirements are installed:
+   ```bash
+   brew install mariadb
+   brew install postgresql@17
+   ```
+3. Run `burd doctor` to check service status
+
+### Database Connection Issues
+
+```bash
+# Verify Burd database port
+burd doctor
+
+# Check your .env
+burd env check
+
+# Fix automatically
+burd env fix
+```
+
+**Common fix:** Change `DB_PORT` from `3306` to `3330`
+
+### HTTPS Not Working
+
+1. Ensure Caddy proxy is installed
+2. Trust the local CA:
+   ```bash
+   mkcert -install
+   ```
+3. Re-enable HTTPS:
+   ```bash
+   burd unsecure myapp
+   burd secure myapp
+   ```
+
+## Diagnostics
+
+### Using burd doctor
+
+```bash
+burd doctor
+```
+
+**Example output:**
+
+```
+Services
+--------
+[OK]  MariaDB (port 3330)
+[OK]  Redis (port 6379)
+[ERR] Meilisearch - not responding
+
+Current Project: /Users/you/myapp
+---------------------------------
+Type: Laravel
+[OK]  Linked to myapp.burd
+[OK]  Database 'myapp' exists
+```
+
+---
+
+# Advanced
+
+## MCP Integration
+
+Add to your Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "burd": {
+      "command": "/usr/local/bin/burd",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+## Multiple PHP Versions
+
+PHP 7.4 through 8.4 are supported via FrankenPHP. Configure different PHP versions for different instances in the Burd app.
+
+## SSL/HTTPS
+
+### How It Works
+
+1. **mkcert** generates locally-trusted certificates
+2. **Caddy proxy** handles HTTPS termination
+3. **FrankenPHP** receives plain HTTP internally
+
+Enable HTTPS:
+
+```bash
+burd secure myapp
+```
+
+Your Laravel app will automatically detect HTTPS via the `X-Forwarded-Proto` header.
+
+---
+
+# Support
+
+- **Documentation**: You're reading it!
+- **GitHub Issues**: Report bugs and request features
+- **Discord**: Community support and discussion
+
+When reporting issues, include:
+1. Burd version (`burd --version`)
+2. macOS version
+3. Output of `burd doctor`
+4. Relevant error messages
+
+---
+
+*Burd - The Ultimate Local Dev Environment for PHP Developers*
+    </script>
+
+    <script>
+        // Get markdown content from script tag
+        const markdownContent = document.getElementById('markdown-content').textContent;
+
+        // Configure marked
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (Prism.languages[lang]) {
+                    return Prism.highlight(code, Prism.languages[lang], lang);
+                }
+                return code;
+            },
+            breaks: false,
+            gfm: true
+        });
+
+        // Render markdown
+        const html = marked.parse(markdownContent);
+        document.getElementById('content').innerHTML = html;
+
+        // Build sidebar navigation
+        const content = document.getElementById('content');
+        const sidebar = document.getElementById('sidebar');
+        const headings = content.querySelectorAll('h1, h2');
+
+        let currentSection = null;
+        let sectionHtml = '';
+
+        headings.forEach((heading, index) => {
+            const id = heading.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            heading.id = id;
+
+            if (heading.tagName === 'H1') {
+                if (currentSection) {
+                    sectionHtml += '</div>';
+                }
+                currentSection = heading.textContent;
+                sectionHtml += `<div class="sidebar-section"><div class="sidebar-title">${currentSection}</div>`;
+            } else if (heading.tagName === 'H2') {
+                sectionHtml += `<a href="#${id}" class="h2-link">${heading.textContent}</a>`;
+            }
+        });
+
+        if (currentSection) {
+            sectionHtml += '</div>';
+        }
+
+        sidebar.innerHTML = sectionHtml;
+
+        // Highlight active section on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+                    const link = document.querySelector(`.sidebar a[href="#${entry.target.id}"]`);
+                    if (link) link.classList.add('active');
+                }
+            });
+        }, { rootMargin: '-80px 0px -80% 0px' });
+
+        content.querySelectorAll('h1, h2').forEach(h => observer.observe(h));
+
+        // Theme toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+
+        function setTheme(theme) {
+            if (theme === 'light') {
+                html.setAttribute('data-theme', 'light');
+                themeToggle.textContent = '☀';
+            } else {
+                html.removeAttribute('data-theme');
+                themeToggle.textContent = '☾';
+            }
+            localStorage.setItem('docs-theme', theme);
+        }
+
+        // Load saved theme or default to dark
+        const savedTheme = localStorage.getItem('docs-theme') || 'dark';
+        setTheme(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            setTheme(current === 'light' ? 'dark' : 'light');
+        });
+
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebarEl = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+
+        menuToggle.addEventListener('click', () => {
+            sidebarEl.classList.toggle('open');
+            overlay.classList.toggle('open');
+        });
+
+        overlay.addEventListener('click', () => {
+            sidebarEl.classList.remove('open');
+            overlay.classList.remove('open');
+        });
+
+        // Close sidebar on link click (mobile)
+        sidebar.addEventListener('click', (e) => {
+            if (e.target.tagName === 'A') {
+                sidebarEl.classList.remove('open');
+                overlay.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>
