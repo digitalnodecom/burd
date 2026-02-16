@@ -188,7 +188,7 @@ jobs:
 
           cat cli/latest.json
 
-      - name: Upload CLI binaries to release
+      - name: Upload CLI assets to release
         uses: actions/github-script@v7
         with:
           script: |
@@ -199,40 +199,24 @@ jobs:
             });
             const release = releases.find(r => r.tag_name === 'v${{ needs.prepare.outputs.version }}');
 
-            const files = ['burd-darwin-aarch64', 'burd-darwin-x64'];
+            const files = [
+              'burd-darwin-aarch64',
+              'burd-darwin-aarch64.sha256',
+              'burd-darwin-x64',
+              'burd-darwin-x64.sha256',
+              'cli/latest.json',
+            ];
             for (const file of files) {
               const content = fs.readFileSync(file);
+              const name = file.includes('/') ? file.split('/').pop() : file;
               await github.rest.repos.uploadReleaseAsset({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 release_id: release.id,
-                name: file,
+                name: name,
                 data: content,
               });
             }
-
-      - name: Upload to Scaleway Object Storage
-        if: ${{ secrets.SCW_ACCESS_KEY_ID != '' }}
-        run: |
-          # Install AWS CLI (S3-compatible)
-          pip install awscli
-
-          # Configure for Scaleway
-          export AWS_ACCESS_KEY_ID="${{ secrets.SCW_ACCESS_KEY_ID }}"
-          export AWS_SECRET_ACCESS_KEY="${{ secrets.SCW_SECRET_ACCESS_KEY }}"
-          SCW_ENDPOINT="https://s3.${{ secrets.SCW_REGION }}.scw.cloud"
-
-          # Upload CLI manifest
-          aws s3 cp cli/latest.json s3://burd-updates/cli/latest.json \
-            --endpoint-url "$SCW_ENDPOINT"
-
-          # Upload CLI binaries
-          aws s3 cp burd-darwin-aarch64 s3://burd-updates/releases/${{ needs.prepare.outputs.version }}/burd-darwin-aarch64 \
-            --endpoint-url "$SCW_ENDPOINT"
-          aws s3 cp burd-darwin-x64 s3://burd-updates/releases/${{ needs.prepare.outputs.version }}/burd-darwin-x64 \
-            --endpoint-url "$SCW_ENDPOINT"
-
-          echo "Uploaded to Scaleway Object Storage"
 
   # Publish the GitHub release (remove draft status)
   publish-release:

@@ -7,14 +7,7 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 
-/// Update manifest URL
-/// Options:
-/// - Custom domain: https://updates.burd.dev/cli/latest.json
-/// - Scaleway direct: https://burd-updates.s3.fr-par.scw.cloud/cli/latest.json
-const UPDATE_URL: &str = "https://burd-updates.s3.fr-par.scw.cloud/cli/latest.json";
-
-/// Fallback to GitHub releases API
-/// TODO: Update with your actual GitHub repository
+/// GitHub releases API URL for update checks
 const GITHUB_RELEASES_URL: &str =
     "https://api.github.com/repos/digitalnodecom/burd/releases/latest";
 
@@ -190,7 +183,7 @@ pub fn run_upgrade(check_only: bool) -> Result<(), String> {
     Ok(())
 }
 
-/// Fetch the update manifest from the server
+/// Fetch the update manifest from GitHub releases
 fn fetch_update_manifest() -> Result<UpdateManifest, String> {
     let client = reqwest::blocking::Client::builder()
         .user_agent("burd-cli")
@@ -198,26 +191,6 @@ fn fetch_update_manifest() -> Result<UpdateManifest, String> {
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
-    // Try primary update URL first
-    match client.get(UPDATE_URL).send() {
-        Ok(response) if response.status().is_success() => {
-            return response
-                .json::<UpdateManifest>()
-                .map_err(|e| format!("Failed to parse update manifest: {}", e));
-        }
-        Ok(response) => {
-            eprintln!(
-                "Warning: Update server returned HTTP {}, trying fallback...",
-                response.status()
-            );
-        }
-        Err(e) => {
-            eprintln!("Warning: Could not reach update server: {}", e);
-            eprintln!("Trying GitHub releases...");
-        }
-    }
-
-    // Fallback to GitHub releases
     fetch_from_github(&client)
 }
 
