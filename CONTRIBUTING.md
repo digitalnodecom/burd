@@ -15,7 +15,7 @@ Thank you for your interest in contributing to Burd! This document provides guid
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/burd.git
+   git clone https://github.com/digitalnodecom/burd.git
    cd burd
    ```
 

@@ -16,7 +16,7 @@ const UPDATE_URL: &str = "https://burd-updates.s3.fr-par.scw.cloud/cli/latest.js
 /// Fallback to GitHub releases API
 /// TODO: Update with your actual GitHub repository
 const GITHUB_RELEASES_URL: &str =
-    "https://api.github.com/repos/yourusername/burd/releases/latest";
+    "https://api.github.com/repos/digitalnodecom/burd/releases/latest";
 
 /// Update manifest structure
 #[derive(serde::Deserialize, Debug)]
@@ -301,7 +301,7 @@ fn fetch_from_github(client: &reqwest::blocking::Client) -> Result<UpdateManifes
     if platforms.is_empty() {
         return Err(
             "No CLI binaries found in the latest release.\n\
-             Please check https://github.com/yourusername/burd/releases"
+             Please check https://github.com/digitalnodecom/burd/releases"
                 .to_string(),
         );
     }
