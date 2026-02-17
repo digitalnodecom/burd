@@ -80,18 +80,26 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: |
           APP="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Burd.app"
+          MACOS_DIR="$APP/Contents/MacOS"
 
-          # Sign all binaries inside the bundle with the Developer ID
-          for bin in "$APP/Contents/MacOS/"*; do
-            if [ -f "$bin" ] && file "$bin" | grep -q Mach-O; then
+          # Sign all non-main binaries first (burd-app must be last since
+          # codesign validates all bundle subcomponents when signing the
+          # main executable)
+          for bin in "$MACOS_DIR/"*; do
+            name=$(basename "$bin")
+            if [ -f "$bin" ] && [ "$name" != "burd-app" ] && file "$bin" | grep -q Mach-O; then
               codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp --options runtime "$bin"
-              echo "Signed: $bin"
+              echo "Signed: $name"
             fi
           done
 
+          # Sign the main executable last
+          codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp --options runtime "$MACOS_DIR/burd-app"
+          echo "Signed: burd-app"
+
           # Sign the app bundle itself
           codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp --options runtime "$APP"
-          echo "Signed: $APP"
+          echo "Signed: Burd.app"
 
           # Verify
           codesign --verify --deep --strict "$APP"
