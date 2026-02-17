@@ -43,7 +43,7 @@
     applyTheme(theme);
   }
 
-  onMount(async () => {
+  onMount(() => {
     const stored = localStorage.getItem('burd-theme') as Theme | null;
     if (stored && ['system', 'light', 'dark'].includes(stored)) {
       theme = stored;
@@ -51,11 +51,11 @@
     applyTheme(theme);
 
     // Get app version
-    try {
-      appVersion = await getVersion();
-    } catch {
+    getVersion().then((v) => {
+      appVersion = v;
+    }).catch(() => {
       appVersion = '';
-    }
+    });
 
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');

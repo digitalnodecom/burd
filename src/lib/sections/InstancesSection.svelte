@@ -293,8 +293,41 @@
     }
   }
 
-  // Old HTML5 drag-and-drop handlers removed - now using mouse events
-  // Mouse-based drag-and-drop works reliably in Tauri WebView
+  // HTML5 drag-and-drop handlers (fallback, used in template ondragover/ondragleave/ondrop)
+  function handleDragOver(e: DragEvent, target: string) {
+    e.preventDefault();
+    dragOverTarget = target;
+  }
+
+  function handleDragLeave(_e: DragEvent) {
+    dragOverTarget = null;
+  }
+
+  async function handleDrop(e: DragEvent, targetType: string, stackId?: string) {
+    e.preventDefault();
+    dragOverTarget = null;
+
+    if (!draggedInstanceId) return;
+
+    try {
+      if (targetType === 'standalone') {
+        await invoke('remove_instances_from_stack', {
+          instanceIds: [draggedInstanceId],
+        });
+        onRefresh();
+      } else if (targetType === 'stack' && stackId) {
+        await invoke('move_instance_to_stack', {
+          instanceId: draggedInstanceId,
+          stackId: stackId,
+        });
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Drag-drop operation error:', error);
+      errorMessage = `Failed to move instance: ${error}`;
+      setTimeout(() => { errorMessage = null; }, 5000);
+    }
+  }
 
   // Service icons from simple-icons (hardcoded for ESM compatibility)
   const serviceStyles: Record<string, { color: string; icon: string }> = {
@@ -1333,7 +1366,7 @@
   }
 
   .grid-body {
-    /* Container for grid rows */
+    display: contents;
   }
 
   .grid-row {

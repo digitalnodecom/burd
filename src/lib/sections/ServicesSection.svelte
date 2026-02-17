@@ -19,6 +19,7 @@
     downloaded: number;
     total: number;
     percentage: number;
+    phase: string;
   }
 
   let {

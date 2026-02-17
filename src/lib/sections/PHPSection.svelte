@@ -75,7 +75,7 @@
       shellStatus = await invoke<ShellIntegrationStatus>("get_php_shell_integration_status");
     } catch (e) {
       console.error("Failed to get shell status:", e);
-      shellStatus = { configured: false, profile_path: null };
+      shellStatus = { configured: false, profile_path: null, conflict: null };
     }
   }
 

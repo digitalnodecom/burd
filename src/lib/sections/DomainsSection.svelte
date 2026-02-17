@@ -245,9 +245,8 @@
         sslEnabled: !domain.ssl_enabled
       });
       await loadDomains();
-      toast.success(`SSL ${domain.ssl_enabled ? 'disabled' : 'enabled'} for ${domain.subdomain}`);
     } catch (e) {
-      toast.error(`Failed to toggle SSL: ${e}`);
+      error = `Failed to toggle SSL: ${e}`;
     }
   }
 
