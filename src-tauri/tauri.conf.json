@@ -8,7 +8,7 @@
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../build",
-    "beforeBundleCommand": "sh -c 'for bin in target/x86_64-apple-darwin/release/burd-app target/x86_64-apple-darwin/release/burd; do [ -f \"$bin\" ] && codesign --force --sign - \"$bin\" 2>/dev/null; done; true'"
+    "beforeBundleCommand": "sh -c 'for bin in target/x86_64-apple-darwin/release/bundle/macos/Burd.app/Contents/MacOS/burd-app target/x86_64-apple-darwin/release/bundle/macos/Burd.app/Contents/MacOS/burd; do [ -f \"$bin\" ] && codesign --force --sign - \"$bin\" && echo \"Ad-hoc signed: $bin\"; done; true'"
   },
   "mainBinaryName": "burd-app",
   "app": {
