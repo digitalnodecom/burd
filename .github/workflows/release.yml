@@ -23,21 +23,19 @@ jobs:
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-  # Build the Tauri app for macOS
+  # Build the Tauri app for macOS (both architectures via cross-compilation)
   build-tauri:
     needs: prepare
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
-            target: aarch64-apple-darwin
+          - target: aarch64-apple-darwin
             arch: aarch64
-          - platform: macos-13
-            target: x86_64-apple-darwin
+          - target: x86_64-apple-darwin
             arch: x64
 
-    runs-on: ${{ matrix.platform }}
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
@@ -80,21 +78,19 @@ jobs:
           prerelease: false
           args: --target ${{ matrix.target }}
 
-  # Build CLI binary separately
+  # Build CLI binary separately (both architectures via cross-compilation)
   build-cli:
     needs: prepare
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
-            target: aarch64-apple-darwin
+          - target: aarch64-apple-darwin
             name: burd-darwin-aarch64
-          - platform: macos-13
-            target: x86_64-apple-darwin
+          - target: x86_64-apple-darwin
             name: burd-darwin-x64
 
-    runs-on: ${{ matrix.platform }}
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
@@ -127,11 +123,11 @@ jobs:
             ${{ matrix.name }}
             ${{ matrix.name }}.sha256
 
-  # Generate update manifests and upload to R2
+  # Generate update manifests and upload to GitHub release
   publish-updates:
-    needs: [prepare, build-tauri, build-cli]
+    needs: [prepare, build-cli]
     runs-on: ubuntu-latest
-    if: ${{ !contains(needs.prepare.outputs.version, '-') }} # Skip for pre-releases
+    if: ${{ !contains(needs.prepare.outputs.version, '-') }}
 
     steps:
       - name: Checkout
@@ -143,20 +139,25 @@ jobs:
           pattern: cli-*
           merge-multiple: true
 
-      - name: Get release info
-        id: release
+      - name: Wait for release to exist
         uses: actions/github-script@v7
         with:
           script: |
-            const { data: releases } = await github.rest.repos.listReleases({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
-            const release = releases.find(r => r.tag_name === 'v${{ needs.prepare.outputs.version }}');
-            if (!release) {
-              throw new Error('Release not found');
+            const tag = 'v${{ needs.prepare.outputs.version }}';
+            for (let i = 0; i < 30; i++) {
+              const { data: releases } = await github.rest.repos.listReleases({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              const release = releases.find(r => r.tag_name === tag);
+              if (release) {
+                console.log(`Found release ${tag} (id: ${release.id})`);
+                return;
+              }
+              console.log(`Release ${tag} not found yet, waiting 10s... (attempt ${i + 1}/30)`);
+              await new Promise(r => setTimeout(r, 10000));
             }
-            return release;
+            throw new Error(`Release ${tag} not found after 5 minutes`);
 
       - name: Generate update manifests
         run: |
@@ -221,6 +222,7 @@ jobs:
   # Publish the GitHub release (remove draft status)
   publish-release:
     needs: [prepare, build-tauri, build-cli, publish-updates]
+    if: ${{ always() && needs.build-cli.result == 'success' && needs.publish-updates.result == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
