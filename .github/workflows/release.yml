@@ -56,20 +56,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build frontend
-        run: npm run build
-
-      - name: Pre-build Rust binary
-        run: |
-          cd src-tauri
-          cargo build --release --target ${{ matrix.target }}
-
-      - name: Ad-hoc sign cross-compiled binary
-        if: matrix.target == 'x86_64-apple-darwin'
-        run: |
-          codesign --force --sign - src-tauri/target/${{ matrix.target }}/release/burd-app
-          codesign --force --sign - src-tauri/target/${{ matrix.target }}/release/burd
-
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
