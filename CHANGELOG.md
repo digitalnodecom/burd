@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.2.5] - 2026-02-17
+
+### Fixed
+- CI pipeline: apply cargo fmt, resolve all clippy warnings, fix doc tests
+- Svelte type errors: missing toast references, async onMount return type,
+  drag-and-drop handlers, missing type properties
+
+### Changed
+- CLI update system now uses GitHub Releases directly (removed Scaleway dependency)
+- Updated all repository references to digitalnodecom/burd
+
 ### Added
 - `burd upgrade` command for CLI self-update
 
@@ -83,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/digitalnodecom/burd/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/digitalnodecom/burd/compare/v1.2.5...HEAD
+[1.2.5]: https://github.com/digitalnodecom/burd/compare/v0.2.0...v1.2.5
 [0.2.0]: https://github.com/digitalnodecom/burd/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/digitalnodecom/burd/releases/tag/v0.1.0
