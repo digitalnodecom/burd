@@ -19,10 +19,19 @@ jobs:
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-  # Build the Tauri app for macOS aarch64 (native build, signed via tauri-action)
-  build-tauri-aarch64:
+  # Build the Tauri app for macOS (native builds on matching hardware)
+  build-tauri:
     needs: prepare
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+          - target: x86_64-apple-darwin
+            runner: macos-13
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout
@@ -61,116 +70,9 @@ jobs:
           releaseBody: 'See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.'
           releaseDraft: true
           prerelease: false
-          args: --target aarch64-apple-darwin
+          args: --target ${{ matrix.target }}
 
-  # Build the Tauri app for macOS x86_64 (cross-compiled, manually signed)
-  build-tauri-x64:
-    needs: prepare
-    runs-on: macos-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-apple-darwin
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Tauri app (unsigned)
-        run: npm run tauri build -- --target x86_64-apple-darwin
-
-      - name: Import signing certificate
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          KEYCHAIN_PASSWORD=$(openssl rand -hex 12)
-
-          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERTIFICATE_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain
-
-      - name: Sign x86_64 app bundle
-        env:
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: |
-          APP="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Burd.app"
-
-          # Ad-hoc sign cross-compiled binaries first (required on ARM macOS)
-          codesign --force --sign - "$APP/Contents/MacOS/burd-app"
-          echo "Ad-hoc signed burd-app"
-
-          # Now sign everything with the real identity
-          codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp --options runtime "$APP/Contents/MacOS/mkcert"
-          echo "Signed mkcert"
-          codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp --options runtime "$APP/Contents/MacOS/burd-app"
-          echo "Signed burd-app"
-          codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp --options runtime "$APP"
-          echo "Signed Burd.app"
-
-          # Verify
-          codesign --verify --deep --strict "$APP"
-          echo "Verification passed"
-
-      - name: Create DMG
-        run: |
-          DMG_NAME="Burd_${{ needs.prepare.outputs.version }}_x64.dmg"
-          APP="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Burd.app"
-          hdiutil create -volname "Burd" -srcfolder "$APP" -ov -format UDZO "$DMG_NAME"
-          echo "DMG_NAME=$DMG_NAME" >> $GITHUB_ENV
-
-      - name: Notarize DMG
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          xcrun notarytool submit "$DMG_NAME" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait
-          xcrun stapler staple "$DMG_NAME"
-
-      - name: Upload DMG to release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Wait for the draft release to exist (created by aarch64 build)
-          TAG="v${{ needs.prepare.outputs.version }}"
-          for i in $(seq 1 30); do
-            if gh release view "$TAG" > /dev/null 2>&1; then
-              echo "Found release $TAG"
-              break
-            fi
-            echo "Waiting for release $TAG... (attempt $i/30)"
-            sleep 10
-          done
-          gh release upload "$TAG" "$DMG_NAME" --clobber
-
-  # Build CLI binary separately (both architectures via cross-compilation)
+  # Build CLI binary separately (native builds on matching hardware)
   build-cli:
     needs: prepare
     strategy:
@@ -179,10 +81,12 @@ jobs:
         include:
           - target: aarch64-apple-darwin
             name: burd-darwin-aarch64
+            runner: macos-latest
           - target: x86_64-apple-darwin
             name: burd-darwin-x64
+            runner: macos-13
 
-    runs-on: macos-latest
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout
@@ -190,8 +94,6 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -201,8 +103,8 @@ jobs:
       - name: Build CLI
         run: |
           cd src-tauri
-          cargo build --release --bin burd --target ${{ matrix.target }}
-          cp target/${{ matrix.target }}/release/burd ../${{ matrix.name }}
+          cargo build --release --bin burd
+          cp target/release/burd ../${{ matrix.name }}
 
       - name: Generate checksum
         run: shasum -a 256 ${{ matrix.name }} | cut -d ' ' -f 1 > ${{ matrix.name }}.sha256
@@ -313,7 +215,7 @@ jobs:
 
   # Publish the GitHub release (remove draft status)
   publish-release:
-    needs: [prepare, build-tauri-aarch64, build-tauri-x64, build-cli, publish-updates]
+    needs: [prepare, build-tauri, build-cli, publish-updates]
     if: ${{ always() && needs.build-cli.result == 'success' && needs.publish-updates.result == 'success' }}
     runs-on: ubuntu-latest
 
