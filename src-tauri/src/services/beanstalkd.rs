@@ -33,7 +33,7 @@ impl ServiceDefinition for BeanstalkdService {
                     version, version
                 ),
                 is_archive: true,
-                    checksum: None, // TODO: Add SHA256 checksums for binary verification
+                checksum: None, // TODO: Add SHA256 checksums for binary verification
             }
         } else {
             // Fallback to source
@@ -43,7 +43,7 @@ impl ServiceDefinition for BeanstalkdService {
                     version
                 ),
                 is_archive: true,
-                    checksum: None, // TODO: Add SHA256 checksums for binary verification
+                checksum: None, // TODO: Add SHA256 checksums for binary verification
             }
         }
     }

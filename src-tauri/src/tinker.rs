@@ -5,7 +5,7 @@
 //! from FrankenPHP instances with document_root configured.
 
 use crate::config::get_app_dir;
-use crate::pvm::{get_default_link, get_current_php};
+use crate::pvm::{get_current_php, get_default_link};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -171,8 +171,8 @@ fn create_temp_script(content: &str) -> Result<PathBuf, String> {
     let filename = format!("tinker_{}.php", Uuid::new_v4());
     let path = temp_dir.join(filename);
 
-    let mut file = fs::File::create(&path)
-        .map_err(|e| format!("Failed to create temp script: {}", e))?;
+    let mut file =
+        fs::File::create(&path).map_err(|e| format!("Failed to create temp script: {}", e))?;
     file.write_all(content.as_bytes())
         .map_err(|e| format!("Failed to write temp script: {}", e))?;
 
@@ -208,7 +208,11 @@ pub fn cleanup_temp_files() -> Result<(), String> {
 // === Code Execution ===
 
 /// Execute PHP code for a Laravel project using artisan tinker
-fn execute_laravel(php: &Path, project_path: &str, code: &str) -> Result<(String, Option<String>), String> {
+fn execute_laravel(
+    php: &Path,
+    project_path: &str,
+    code: &str,
+) -> Result<(String, Option<String>), String> {
     // Laravel artisan tinker --execute expects the code as an argument
     // We need to escape the code properly for shell
     let output = Command::new(php)
@@ -221,7 +225,14 @@ fn execute_laravel(php: &Path, project_path: &str, code: &str) -> Result<(String
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
     if output.status.success() {
-        Ok((stdout, if stderr.is_empty() { None } else { Some(stderr) }))
+        Ok((
+            stdout,
+            if stderr.is_empty() {
+                None
+            } else {
+                Some(stderr)
+            },
+        ))
     } else {
         // Include both stdout and stderr in error case
         let error_msg = if stderr.is_empty() {
@@ -234,7 +245,11 @@ fn execute_laravel(php: &Path, project_path: &str, code: &str) -> Result<(String
 }
 
 /// Execute PHP code for a WordPress project
-fn execute_wordpress(php: &Path, project_path: &str, code: &str) -> Result<(String, Option<String>), String> {
+fn execute_wordpress(
+    php: &Path,
+    project_path: &str,
+    code: &str,
+) -> Result<(String, Option<String>), String> {
     // Create a wrapper script that loads WordPress
     let script = format!(
         r#"<?php
@@ -266,7 +281,14 @@ require_once '{}';
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
     if output.status.success() {
-        Ok((stdout, if stderr.is_empty() { None } else { Some(stderr) }))
+        Ok((
+            stdout,
+            if stderr.is_empty() {
+                None
+            } else {
+                Some(stderr)
+            },
+        ))
     } else {
         let error_msg = if stderr.is_empty() {
             stdout.clone()
@@ -278,7 +300,11 @@ require_once '{}';
 }
 
 /// Execute PHP code for a Bedrock WordPress project
-fn execute_bedrock(php: &Path, project_path: &str, code: &str) -> Result<(String, Option<String>), String> {
+fn execute_bedrock(
+    php: &Path,
+    project_path: &str,
+    code: &str,
+) -> Result<(String, Option<String>), String> {
     let path = Path::new(project_path);
 
     // Determine the correct paths based on whether we're at project root or web/
@@ -341,7 +367,14 @@ require_once '{}';
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
     if output.status.success() {
-        Ok((stdout, if stderr.is_empty() { None } else { Some(stderr) }))
+        Ok((
+            stdout,
+            if stderr.is_empty() {
+                None
+            } else {
+                Some(stderr)
+            },
+        ))
     } else {
         let error_msg = if stderr.is_empty() {
             stdout.clone()
@@ -353,7 +386,11 @@ require_once '{}';
 }
 
 /// Execute generic PHP code
-fn execute_generic(php: &Path, project_path: &str, code: &str) -> Result<(String, Option<String>), String> {
+fn execute_generic(
+    php: &Path,
+    project_path: &str,
+    code: &str,
+) -> Result<(String, Option<String>), String> {
     // Check if code starts with <?php, if not wrap it
     let script_content = if code.trim().starts_with("<?php") || code.trim().starts_with("<?") {
         code.to_string()
@@ -379,7 +416,14 @@ fn execute_generic(php: &Path, project_path: &str, code: &str) -> Result<(String
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
     if output.status.success() {
-        Ok((stdout, if stderr.is_empty() { None } else { Some(stderr) }))
+        Ok((
+            stdout,
+            if stderr.is_empty() {
+                None
+            } else {
+                Some(stderr)
+            },
+        ))
     } else {
         let error_msg = if stderr.is_empty() {
             stdout.clone()
@@ -455,8 +499,8 @@ pub fn load_history() -> Result<Vec<TinkerExecution>, String> {
         return Ok(Vec::new());
     }
 
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read history file: {}", e))?;
+    let content =
+        fs::read_to_string(&path).map_err(|e| format!("Failed to read history file: {}", e))?;
 
     let history: TinkerHistory = serde_json::from_str(&content)
         .map_err(|e| format!("Failed to parse history file: {}", e))?;
@@ -486,8 +530,7 @@ fn save_to_history(execution: &TinkerExecution) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&history)
         .map_err(|e| format!("Failed to serialize history: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write history file: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write history file: {}", e))?;
 
     Ok(())
 }
@@ -497,8 +540,7 @@ pub fn clear_history() -> Result<(), String> {
     let path = get_history_path()?;
 
     if path.exists() {
-        fs::remove_file(&path)
-            .map_err(|e| format!("Failed to delete history file: {}", e))?;
+        fs::remove_file(&path).map_err(|e| format!("Failed to delete history file: {}", e))?;
     }
 
     Ok(())
@@ -512,8 +554,8 @@ pub fn delete_history_item(id: &str) -> Result<(), String> {
         return Ok(());
     }
 
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read history file: {}", e))?;
+    let content =
+        fs::read_to_string(&path).map_err(|e| format!("Failed to read history file: {}", e))?;
 
     let mut history: TinkerHistory = serde_json::from_str(&content)
         .map_err(|e| format!("Failed to parse history file: {}", e))?;
@@ -524,8 +566,7 @@ pub fn delete_history_item(id: &str) -> Result<(), String> {
     let content = serde_json::to_string_pretty(&history)
         .map_err(|e| format!("Failed to serialize history: {}", e))?;
 
-    fs::write(&path, content)
-        .map_err(|e| format!("Failed to write history file: {}", e))?;
+    fs::write(&path, content).map_err(|e| format!("Failed to write history file: {}", e))?;
 
     Ok(())
 }

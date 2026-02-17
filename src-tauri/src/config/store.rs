@@ -9,9 +9,8 @@ use std::path::PathBuf;
 use uuid::Uuid;
 
 use super::{
-    get_instance_dir,
-    BinaryInfo, Config, Domain, DomainTarget, Instance, ParkedDirectory, ServiceType,
-    FrpServer, Tunnel, TunnelTarget, SubdomainConfig, Stack,
+    get_instance_dir, BinaryInfo, Config, Domain, DomainTarget, FrpServer, Instance,
+    ParkedDirectory, ServiceType, Stack, SubdomainConfig, Tunnel, TunnelTarget,
 };
 
 pub struct ConfigStore {
@@ -21,7 +20,8 @@ pub struct ConfigStore {
 impl ConfigStore {
     pub fn new() -> Result<Self, String> {
         let app_dir = super::get_app_dir()?;
-        fs::create_dir_all(&app_dir).map_err(|e| format!("Failed to create app directory: {}", e))?;
+        fs::create_dir_all(&app_dir)
+            .map_err(|e| format!("Failed to create app directory: {}", e))?;
 
         Ok(Self {
             config_path: app_dir.join("config.json"),
@@ -36,8 +36,8 @@ impl ConfigStore {
         let content = fs::read_to_string(&self.config_path)
             .map_err(|e| format!("Failed to read config: {}", e))?;
 
-        let mut config: Config = serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse config: {}", e))?;
+        let mut config: Config =
+            serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
 
         // Migrate legacy instance fields
         let mut needs_save = false;
@@ -141,7 +141,10 @@ impl ConfigStore {
     pub fn delete_instance(&self, id: Uuid) -> Result<(), String> {
         let mut config = self.load()?;
 
-        let idx = config.instances.iter().position(|i| i.id == id)
+        let idx = config
+            .instances
+            .iter()
+            .position(|i| i.id == id)
             .ok_or_else(|| format!("Instance {} not found", id))?;
 
         config.instances.remove(idx);
@@ -156,7 +159,9 @@ impl ConfigStore {
 
     pub fn get_instance(&self, id: Uuid) -> Result<Instance, String> {
         let config = self.load()?;
-        config.instances.into_iter()
+        config
+            .instances
+            .into_iter()
             .find(|i| i.id == id)
             .ok_or_else(|| format!("Instance {} not found", id))
     }
@@ -170,7 +175,9 @@ impl ConfigStore {
     ) -> Result<Instance, String> {
         let mut config = self.load()?;
 
-        let instance = config.instances.iter_mut()
+        let instance = config
+            .instances
+            .iter_mut()
             .find(|i| i.id == id)
             .ok_or_else(|| format!("Instance {} not found", id))?;
 
@@ -191,7 +198,9 @@ impl ConfigStore {
     ) -> Result<Instance, String> {
         let mut config = self.load()?;
 
-        let instance = config.instances.iter_mut()
+        let instance = config
+            .instances
+            .iter_mut()
             .find(|i| i.id == id)
             .ok_or_else(|| format!("Instance {} not found", id))?;
 
@@ -211,7 +220,9 @@ impl ConfigStore {
     ) -> Result<Instance, String> {
         let mut config = self.load()?;
 
-        let instance = config.instances.iter_mut()
+        let instance = config
+            .instances
+            .iter_mut()
             .find(|i| i.id == id)
             .ok_or_else(|| format!("Instance {} not found", id))?;
 
@@ -228,10 +239,15 @@ impl ConfigStore {
     // ========================================================================
 
     /// Update binary info for a specific service and version
-    pub fn update_binary_info(&self, service_type: ServiceType, info: BinaryInfo) -> Result<(), String> {
+    pub fn update_binary_info(
+        &self,
+        service_type: ServiceType,
+        info: BinaryInfo,
+    ) -> Result<(), String> {
         let mut config = self.load()?;
         let version = info.version.clone();
-        config.binaries
+        config
+            .binaries
             .entry(service_type)
             .or_insert_with(HashMap::new)
             .insert(version, info);
@@ -239,7 +255,11 @@ impl ConfigStore {
     }
 
     /// Get binary info for a specific version (or latest if version not found)
-    pub fn get_binary_info(&self, service_type: ServiceType, version: Option<&str>) -> Result<Option<BinaryInfo>, String> {
+    pub fn get_binary_info(
+        &self,
+        service_type: ServiceType,
+        version: Option<&str>,
+    ) -> Result<Option<BinaryInfo>, String> {
         let config = self.load()?;
         let versions = match config.binaries.get(&service_type) {
             Some(v) => v,
@@ -258,23 +278,32 @@ impl ConfigStore {
     /// Get all installed versions for a service type
     pub fn get_installed_versions(&self, service_type: ServiceType) -> Result<Vec<String>, String> {
         let config = self.load()?;
-        Ok(config.binaries
+        Ok(config
+            .binaries
             .get(&service_type)
             .map(|v| v.keys().cloned().collect())
             .unwrap_or_default())
     }
 
     /// Get all binary info for a service type (all versions)
-    pub fn get_all_binary_info(&self, service_type: ServiceType) -> Result<HashMap<String, BinaryInfo>, String> {
+    pub fn get_all_binary_info(
+        &self,
+        service_type: ServiceType,
+    ) -> Result<HashMap<String, BinaryInfo>, String> {
         let config = self.load()?;
-        Ok(config.binaries
+        Ok(config
+            .binaries
             .get(&service_type)
             .cloned()
             .unwrap_or_default())
     }
 
     /// Remove a specific version of a binary
-    pub fn remove_binary_version(&self, service_type: ServiceType, version: &str) -> Result<(), String> {
+    pub fn remove_binary_version(
+        &self,
+        service_type: ServiceType,
+        version: &str,
+    ) -> Result<(), String> {
         let mut config = self.load()?;
         if let Some(versions) = config.binaries.get_mut(&service_type) {
             versions.remove(version);
@@ -317,7 +346,9 @@ impl ConfigStore {
     /// Get a specific domain by ID
     pub fn get_domain(&self, id: Uuid) -> Result<Domain, String> {
         let config = self.load()?;
-        config.domains.into_iter()
+        config
+            .domains
+            .into_iter()
             .find(|d| d.id == id)
             .ok_or_else(|| format!("Domain {} not found", id))
     }
@@ -413,7 +444,9 @@ impl ConfigStore {
         let mut config = self.load()?;
 
         // First, find the domain index and current subdomain
-        let domain_idx = config.domains.iter()
+        let domain_idx = config
+            .domains
+            .iter()
             .position(|d| d.id == id)
             .ok_or_else(|| format!("Domain {} not found", id))?;
 
@@ -422,9 +455,13 @@ impl ConfigStore {
         // Check for duplicate subdomain if changing (before mutable borrow)
         if let Some(ref new_subdomain) = subdomain {
             if new_subdomain != &current_subdomain
-                && config.domains.iter().any(|d| d.id != id && d.subdomain == *new_subdomain) {
-                    return Err(format!("Domain '{}' already exists", new_subdomain));
-                }
+                && config
+                    .domains
+                    .iter()
+                    .any(|d| d.id != id && d.subdomain == *new_subdomain)
+            {
+                return Err(format!("Domain '{}' already exists", new_subdomain));
+            }
         }
 
         // Validate instance target if changing
@@ -454,7 +491,10 @@ impl ConfigStore {
     pub fn delete_domain(&self, id: Uuid) -> Result<(), String> {
         let mut config = self.load()?;
 
-        let idx = config.domains.iter().position(|d| d.id == id)
+        let idx = config
+            .domains
+            .iter()
+            .position(|d| d.id == id)
             .ok_or_else(|| format!("Domain {} not found", id))?;
 
         // Get the domain before removing it so we can clear instance.domain if needed
@@ -481,7 +521,9 @@ impl ConfigStore {
     pub fn update_domain_ssl(&self, id: Uuid, ssl_enabled: bool) -> Result<Domain, String> {
         let mut config = self.load()?;
 
-        let domain = config.domains.iter_mut()
+        let domain = config
+            .domains
+            .iter_mut()
             .find(|d| d.id == id)
             .ok_or_else(|| format!("Domain {} not found", id))?;
 
@@ -497,7 +539,8 @@ impl ConfigStore {
     pub fn delete_domains_for_instance(&self, instance_id: Uuid) -> Result<Vec<Domain>, String> {
         let mut config = self.load()?;
 
-        let (removed, remaining): (Vec<_>, Vec<_>) = config.domains
+        let (removed, remaining): (Vec<_>, Vec<_>) = config
+            .domains
             .into_iter()
             .partition(|d| d.routes_to_instance(&instance_id));
 
@@ -510,7 +553,10 @@ impl ConfigStore {
     /// Find domain by subdomain
     pub fn find_domain_by_subdomain(&self, subdomain: &str) -> Result<Option<Domain>, String> {
         let config = self.load()?;
-        Ok(config.domains.into_iter().find(|d| d.subdomain == subdomain))
+        Ok(config
+            .domains
+            .into_iter()
+            .find(|d| d.subdomain == subdomain))
     }
 
     /// Migrate existing instance domain settings to Domain entities
@@ -524,9 +570,10 @@ impl ConfigStore {
             if instance.domain_enabled {
                 // Check if a domain already exists for this specific instance (by instance ID)
                 // This prevents recreating domains that were manually deleted
-                let has_domain = config.domains.iter().any(|d| {
-                    matches!(&d.target, DomainTarget::Instance(id) if id == &instance.id)
-                });
+                let has_domain = config
+                    .domains
+                    .iter()
+                    .any(|d| matches!(&d.target, DomainTarget::Instance(id) if id == &instance.id));
 
                 if !has_domain {
                     let subdomain = instance.effective_domain_slug();
@@ -560,7 +607,9 @@ impl ConfigStore {
     /// Get a specific parked directory by ID
     pub fn get_parked_directory(&self, id: Uuid) -> Result<ParkedDirectory, String> {
         let config = self.load()?;
-        config.parked_directories.into_iter()
+        config
+            .parked_directories
+            .into_iter()
             .find(|p| p.id == id)
             .ok_or_else(|| format!("Parked directory {} not found", id))
     }
@@ -599,7 +648,10 @@ impl ConfigStore {
     pub fn delete_parked_directory(&self, id: Uuid) -> Result<(), String> {
         let mut config = self.load()?;
 
-        let idx = config.parked_directories.iter().position(|p| p.id == id)
+        let idx = config
+            .parked_directories
+            .iter()
+            .position(|p| p.id == id)
             .ok_or_else(|| format!("Parked directory {} not found", id))?;
 
         config.parked_directories.remove(idx);
@@ -609,10 +661,16 @@ impl ConfigStore {
     }
 
     /// Update SSL enabled status for a parked directory
-    pub fn update_parked_directory_ssl(&self, id: Uuid, ssl_enabled: bool) -> Result<ParkedDirectory, String> {
+    pub fn update_parked_directory_ssl(
+        &self,
+        id: Uuid,
+        ssl_enabled: bool,
+    ) -> Result<ParkedDirectory, String> {
         let mut config = self.load()?;
 
-        let parked_dir = config.parked_directories.iter_mut()
+        let parked_dir = config
+            .parked_directories
+            .iter_mut()
             .find(|p| p.id == id)
             .ok_or_else(|| format!("Parked directory {} not found", id))?;
 
@@ -625,18 +683,27 @@ impl ConfigStore {
     }
 
     /// Get all domains associated with a parked directory
-    pub fn get_domains_for_parked_directory(&self, parked_dir_id: Uuid) -> Result<Vec<Domain>, String> {
+    pub fn get_domains_for_parked_directory(
+        &self,
+        parked_dir_id: Uuid,
+    ) -> Result<Vec<Domain>, String> {
         let config = self.load()?;
-        Ok(config.domains.into_iter()
+        Ok(config
+            .domains
+            .into_iter()
             .filter(|d| d.parked_dir_id() == Some(parked_dir_id))
             .collect())
     }
 
     /// Delete all domains associated with a parked directory
-    pub fn delete_domains_for_parked_directory(&self, parked_dir_id: Uuid) -> Result<Vec<Domain>, String> {
+    pub fn delete_domains_for_parked_directory(
+        &self,
+        parked_dir_id: Uuid,
+    ) -> Result<Vec<Domain>, String> {
         let mut config = self.load()?;
 
-        let (removed, remaining): (Vec<_>, Vec<_>) = config.domains
+        let (removed, remaining): (Vec<_>, Vec<_>) = config
+            .domains
             .into_iter()
             .partition(|d| d.parked_dir_id() == Some(parked_dir_id));
 
@@ -649,20 +716,31 @@ impl ConfigStore {
     /// Check if a FrankenPHP Park instance exists (park feature is enabled)
     pub fn is_park_enabled(&self) -> Result<bool, String> {
         let config = self.load()?;
-        Ok(config.instances.iter().any(|i| i.service_type == ServiceType::FrankenPhpPark))
+        Ok(config
+            .instances
+            .iter()
+            .any(|i| i.service_type == ServiceType::FrankenPhpPark))
     }
 
     /// Get the FrankenPHP Park instance if it exists
     pub fn get_park_instance(&self) -> Result<Option<Instance>, String> {
         let config = self.load()?;
-        Ok(config.instances.into_iter()
+        Ok(config
+            .instances
+            .into_iter()
             .find(|i| i.service_type == ServiceType::FrankenPhpPark))
     }
 
     /// Find parked directory by path
-    pub fn find_parked_directory_by_path(&self, path: &str) -> Result<Option<ParkedDirectory>, String> {
+    pub fn find_parked_directory_by_path(
+        &self,
+        path: &str,
+    ) -> Result<Option<ParkedDirectory>, String> {
         let config = self.load()?;
-        Ok(config.parked_directories.into_iter().find(|p| p.path == path))
+        Ok(config
+            .parked_directories
+            .into_iter()
+            .find(|p| p.path == path))
     }
 
     // ========================================================================
@@ -678,7 +756,9 @@ impl ConfigStore {
     /// Get a specific stack by ID
     pub fn get_stack(&self, id: Uuid) -> Result<Stack, String> {
         let config = self.load()?;
-        config.stacks.into_iter()
+        config
+            .stacks
+            .into_iter()
             .find(|s| s.id == id)
             .ok_or_else(|| format!("Stack {} not found", id))
     }
@@ -723,7 +803,9 @@ impl ConfigStore {
     ) -> Result<Stack, String> {
         let mut config = self.load()?;
 
-        let stack = config.stacks.iter_mut()
+        let stack = config
+            .stacks
+            .iter_mut()
             .find(|s| s.id == id)
             .ok_or_else(|| format!("Stack {} not found", id))?;
 
@@ -748,11 +830,16 @@ impl ConfigStore {
         let mut config = self.load()?;
 
         // Find the stack
-        let stack_idx = config.stacks.iter().position(|s| s.id == id)
+        let stack_idx = config
+            .stacks
+            .iter()
+            .position(|s| s.id == id)
             .ok_or_else(|| format!("Stack {} not found", id))?;
 
         // Get instance IDs in this stack
-        let instance_ids: Vec<Uuid> = config.instances.iter()
+        let instance_ids: Vec<Uuid> = config
+            .instances
+            .iter()
             .filter(|i| i.stack_id == Some(id))
             .map(|i| i.id)
             .collect();
@@ -845,7 +932,9 @@ impl ConfigStore {
     /// Get all instances in a stack
     pub fn get_instances_in_stack(&self, stack_id: Uuid) -> Result<Vec<Instance>, String> {
         let config = self.load()?;
-        Ok(config.instances.into_iter()
+        Ok(config
+            .instances
+            .into_iter()
             .filter(|i| i.stack_id == Some(stack_id))
             .collect())
     }
@@ -853,7 +942,9 @@ impl ConfigStore {
     /// Get all standalone instances (not in any stack)
     pub fn get_standalone_instances(&self) -> Result<Vec<Instance>, String> {
         let config = self.load()?;
-        Ok(config.instances.into_iter()
+        Ok(config
+            .instances
+            .into_iter()
             .filter(|i| i.stack_id.is_none())
             .collect())
     }
@@ -871,14 +962,14 @@ impl ConfigStore {
 
         // Sort instances: first by whether they're in the position map and their position,
         // then by existing order for instances not in the map
-        config.instances.sort_by(|a, b| {
-            match (position_map.get(&a.id), position_map.get(&b.id)) {
+        config.instances.sort_by(
+            |a, b| match (position_map.get(&a.id), position_map.get(&b.id)) {
                 (Some(pos_a), Some(pos_b)) => pos_a.cmp(pos_b),
                 (Some(_), None) => std::cmp::Ordering::Less,
                 (None, Some(_)) => std::cmp::Ordering::Greater,
                 (None, None) => std::cmp::Ordering::Equal,
-            }
-        });
+            },
+        );
 
         self.save(&config)?;
         Ok(())
@@ -900,13 +991,17 @@ impl ConfigStore {
         }
 
         // Track old and new stacks for updating timestamps
-        let instance = config.instances.iter()
+        let instance = config
+            .instances
+            .iter()
             .find(|i| i.id == instance_id)
             .ok_or_else(|| format!("Instance {} not found", instance_id))?;
         let old_stack_id = instance.stack_id;
 
         // Update instance
-        let instance = config.instances.iter_mut()
+        let instance = config
+            .instances
+            .iter_mut()
             .find(|i| i.id == instance_id)
             .ok_or_else(|| format!("Instance {} not found", instance_id))?;
 
@@ -938,7 +1033,9 @@ impl ConfigStore {
     /// Get a specific frp server by ID
     pub fn get_frp_server(&self, id: Uuid) -> Result<FrpServer, String> {
         let config = self.load()?;
-        config.frp_servers.into_iter()
+        config
+            .frp_servers
+            .into_iter()
             .find(|s| s.id == id)
             .ok_or_else(|| format!("frp server {} not found", id))
     }
@@ -981,6 +1078,7 @@ impl ConfigStore {
     }
 
     /// Update an frp server
+    #[allow(clippy::too_many_arguments)]
     pub fn update_frp_server(
         &self,
         id: Uuid,
@@ -994,7 +1092,10 @@ impl ConfigStore {
         let mut config = self.load()?;
 
         // Find index first to avoid borrow checker issues
-        let idx = config.frp_servers.iter().position(|s| s.id == id)
+        let idx = config
+            .frp_servers
+            .iter()
+            .position(|s| s.id == id)
             .ok_or_else(|| format!("frp server {} not found", id))?;
 
         // Handle is_default first if needed (clear others)
@@ -1037,9 +1138,7 @@ impl ConfigStore {
         let mut config = self.load()?;
 
         // Check if any tunnels use this server
-        let tunnels_using_server = config.tunnels.iter()
-            .filter(|t| t.server_id == id)
-            .count();
+        let tunnels_using_server = config.tunnels.iter().filter(|t| t.server_id == id).count();
 
         if tunnels_using_server > 0 {
             return Err(format!(
@@ -1048,7 +1147,10 @@ impl ConfigStore {
             ));
         }
 
-        let idx = config.frp_servers.iter().position(|s| s.id == id)
+        let idx = config
+            .frp_servers
+            .iter()
+            .position(|s| s.id == id)
             .ok_or_else(|| format!("frp server {} not found", id))?;
 
         config.frp_servers.remove(idx);
@@ -1070,7 +1172,9 @@ impl ConfigStore {
     /// Get a specific tunnel by ID
     pub fn get_tunnel(&self, id: Uuid) -> Result<Tunnel, String> {
         let config = self.load()?;
-        config.tunnels.into_iter()
+        config
+            .tunnels
+            .into_iter()
             .find(|t| t.id == id)
             .ok_or_else(|| format!("Tunnel {} not found", id))
     }
@@ -1101,11 +1205,9 @@ impl ConfigStore {
 
         // Generate random subdomain immediately if needed
         let subdomain = match subdomain {
-            SubdomainConfig::Random { generated: None } => {
-                SubdomainConfig::Random {
-                    generated: Some(crate::tunnel::generate_random_subdomain()),
-                }
-            }
+            SubdomainConfig::Random { generated: None } => SubdomainConfig::Random {
+                generated: Some(crate::tunnel::generate_random_subdomain()),
+            },
             other => other,
         };
 
@@ -1127,6 +1229,7 @@ impl ConfigStore {
     }
 
     /// Update a tunnel
+    #[allow(clippy::too_many_arguments)]
     pub fn update_tunnel(
         &self,
         id: Uuid,
@@ -1153,7 +1256,9 @@ impl ConfigStore {
             }
         }
 
-        let tunnel = config.tunnels.iter_mut()
+        let tunnel = config
+            .tunnels
+            .iter_mut()
             .find(|t| t.id == id)
             .ok_or_else(|| format!("Tunnel {} not found", id))?;
 
@@ -1186,7 +1291,10 @@ impl ConfigStore {
     pub fn delete_tunnel(&self, id: Uuid) -> Result<(), String> {
         let mut config = self.load()?;
 
-        let idx = config.tunnels.iter().position(|t| t.id == id)
+        let idx = config
+            .tunnels
+            .iter()
+            .position(|t| t.id == id)
             .ok_or_else(|| format!("Tunnel {} not found", id))?;
 
         config.tunnels.remove(idx);
@@ -1198,7 +1306,9 @@ impl ConfigStore {
     /// Get tunnels for a specific server
     pub fn get_tunnels_for_server(&self, server_id: Uuid) -> Result<Vec<Tunnel>, String> {
         let config = self.load()?;
-        Ok(config.tunnels.into_iter()
+        Ok(config
+            .tunnels
+            .into_iter()
             .filter(|t| t.server_id == server_id)
             .collect())
     }
@@ -1207,7 +1317,8 @@ impl ConfigStore {
     pub fn delete_tunnels_for_instance(&self, instance_id: Uuid) -> Result<Vec<Tunnel>, String> {
         let mut config = self.load()?;
 
-        let (removed, remaining): (Vec<_>, Vec<_>) = config.tunnels
+        let (removed, remaining): (Vec<_>, Vec<_>) = config
+            .tunnels
             .into_iter()
             .partition(|t| matches!(&t.target, TunnelTarget::Instance(id) if *id == instance_id));
 

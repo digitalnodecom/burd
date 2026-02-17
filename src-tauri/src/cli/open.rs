@@ -63,8 +63,8 @@ pub fn run_open(name: Option<String>) -> Result<(), String> {
 
 /// Find the subdomain for the current directory
 fn find_current_directory_subdomain(config: &crate::config::Config) -> Result<String, String> {
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
     let document_root = current_dir.to_string_lossy().to_string();
 
     // Find instance with matching document_root
@@ -79,10 +79,9 @@ fn find_current_directory_subdomain(config: &crate::config::Config) -> Result<St
                 .unwrap_or(false)
         })
         .ok_or_else(|| {
-            format!(
-                "No linked domain found for current directory.\n\
+            "No linked domain found for current directory.\n\
                  Use 'burd link' first or specify a domain name."
-            )
+                .to_string()
         })?;
 
     // Find domain for this instance

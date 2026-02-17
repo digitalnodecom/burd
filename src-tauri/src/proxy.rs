@@ -101,8 +101,7 @@ impl ProxyServer {
         let addr = SocketAddr::from(([127, 0, 0, 1], self.port));
 
         // Create HTTP client for proxying
-        let client: HttpClient = Client::builder(TokioExecutor::new())
-            .build_http();
+        let client: HttpClient = Client::builder(TokioExecutor::new()).build_http();
 
         let state = ProxyState {
             routes: Arc::clone(&self.routes),
@@ -156,7 +155,13 @@ impl ProxyServer {
     }
 
     /// Register a reverse proxy route from domain to port
-    pub fn register_route(&self, domain: &str, port: u16, instance_id: &str, ssl_enabled: bool) -> Result<(), String> {
+    pub fn register_route(
+        &self,
+        domain: &str,
+        port: u16,
+        instance_id: &str,
+        ssl_enabled: bool,
+    ) -> Result<(), String> {
         // Extract just the subdomain part (without TLD)
         let subdomain = domain
             .strip_suffix(&format!(".{}", self.tld))
@@ -164,15 +169,20 @@ impl ProxyServer {
             .to_string();
 
         {
-            let mut routes = self.routes.write()
+            let mut routes = self
+                .routes
+                .write()
                 .map_err(|_| "Failed to acquire routes lock")?;
 
-            routes.insert(subdomain.clone(), RouteEntry {
-                domain: domain.to_string(),
-                route_type: ProxyRouteType::ReverseProxy { port },
-                instance_id: instance_id.to_string(),
-                ssl_enabled,
-            });
+            routes.insert(
+                subdomain.clone(),
+                RouteEntry {
+                    domain: domain.to_string(),
+                    route_type: ProxyRouteType::ReverseProxy { port },
+                    instance_id: instance_id.to_string(),
+                    ssl_enabled,
+                },
+            );
         }
 
         // Sync to daemon (ignore errors - daemon might not be installed)
@@ -182,7 +192,14 @@ impl ProxyServer {
     }
 
     /// Register a static file server route
-    pub fn register_static_route(&self, domain: &str, path: &str, browse: bool, instance_id: &str, ssl_enabled: bool) -> Result<(), String> {
+    pub fn register_static_route(
+        &self,
+        domain: &str,
+        path: &str,
+        browse: bool,
+        instance_id: &str,
+        ssl_enabled: bool,
+    ) -> Result<(), String> {
         // Extract just the subdomain part (without TLD)
         let subdomain = domain
             .strip_suffix(&format!(".{}", self.tld))
@@ -190,18 +207,23 @@ impl ProxyServer {
             .to_string();
 
         {
-            let mut routes = self.routes.write()
+            let mut routes = self
+                .routes
+                .write()
                 .map_err(|_| "Failed to acquire routes lock")?;
 
-            routes.insert(subdomain.clone(), RouteEntry {
-                domain: domain.to_string(),
-                route_type: ProxyRouteType::FileServer {
-                    path: path.to_string(),
-                    browse
+            routes.insert(
+                subdomain.clone(),
+                RouteEntry {
+                    domain: domain.to_string(),
+                    route_type: ProxyRouteType::FileServer {
+                        path: path.to_string(),
+                        browse,
+                    },
+                    instance_id: instance_id.to_string(),
+                    ssl_enabled,
                 },
-                instance_id: instance_id.to_string(),
-                ssl_enabled,
-            });
+            );
         }
 
         // Sync to daemon (ignore errors - daemon might not be installed)
@@ -218,7 +240,9 @@ impl ProxyServer {
             .to_string();
 
         {
-            let mut routes = self.routes.write()
+            let mut routes = self
+                .routes
+                .write()
                 .map_err(|_| "Failed to acquire routes lock")?;
 
             routes.remove(&subdomain);
@@ -248,28 +272,25 @@ impl ProxyServer {
             return Ok(());
         }
 
-        let routes: Vec<caddy::RouteEntry> = self.routes
+        let routes: Vec<caddy::RouteEntry> = self
+            .routes
             .read()
             .map_err(|_| "Failed to read routes")?
             .values()
             .map(|r| match &r.route_type {
-                ProxyRouteType::ReverseProxy { port } => {
-                    caddy::RouteEntry::reverse_proxy(
-                        r.domain.clone(),
-                        *port,
-                        r.instance_id.clone(),
-                        r.ssl_enabled,
-                    )
-                }
-                ProxyRouteType::FileServer { path, browse } => {
-                    caddy::RouteEntry::file_server(
-                        r.domain.clone(),
-                        path.clone(),
-                        *browse,
-                        r.instance_id.clone(),
-                        r.ssl_enabled,
-                    )
-                }
+                ProxyRouteType::ReverseProxy { port } => caddy::RouteEntry::reverse_proxy(
+                    r.domain.clone(),
+                    *port,
+                    r.instance_id.clone(),
+                    r.ssl_enabled,
+                ),
+                ProxyRouteType::FileServer { path, browse } => caddy::RouteEntry::file_server(
+                    r.domain.clone(),
+                    path.clone(),
+                    *browse,
+                    r.instance_id.clone(),
+                    r.ssl_enabled,
+                ),
             })
             .collect();
 
@@ -293,10 +314,7 @@ impl Drop for ProxyServer {
 }
 
 /// Handle incoming proxy requests
-async fn proxy_handler(
-    State(state): State<ProxyState>,
-    req: Request<Body>,
-) -> Response {
+async fn proxy_handler(State(state): State<ProxyState>, req: Request<Body>) -> Response {
     // Extract host from request (clone it since we'll move req later)
     let host = req
         .headers()
@@ -317,17 +335,21 @@ async fn proxy_handler(
     let route = {
         let routes = match state.routes.read() {
             Ok(r) => r,
-            Err(_) => return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Route lookup failed"),
+            Err(_) => {
+                return error_response(StatusCode::INTERNAL_SERVER_ERROR, "Route lookup failed")
+            }
         };
         routes.get(subdomain).cloned()
     };
 
     let route = match route {
         Some(r) => r,
-        None => return error_response(
-            StatusCode::NOT_FOUND,
-            &format!("No service registered for domain: {}", host_without_port)
-        ),
+        None => {
+            return error_response(
+                StatusCode::NOT_FOUND,
+                &format!("No service registered for domain: {}", host_without_port),
+            )
+        }
     };
 
     // Handle based on route type
@@ -344,7 +366,9 @@ async fn proxy_handler(
     };
 
     // Build the proxied request URL
-    let path_and_query = req.uri().path_and_query()
+    let path_and_query = req
+        .uri()
+        .path_and_query()
         .map(|pq| pq.as_str())
         .unwrap_or("/");
 
@@ -361,10 +385,9 @@ async fn proxy_handler(
 
     // Add standard reverse proxy headers so backends know the original request info
     if let Ok(host_value) = HeaderValue::from_str(&host) {
-        parts.headers.insert(
-            HeaderName::from_static("x-forwarded-host"),
-            host_value,
-        );
+        parts
+            .headers
+            .insert(HeaderName::from_static("x-forwarded-host"), host_value);
     }
     parts.headers.insert(
         HeaderName::from_static("x-forwarded-proto"),
@@ -384,7 +407,7 @@ async fn proxy_handler(
         }
         Err(e) => error_response(
             StatusCode::BAD_GATEWAY,
-            &format!("Failed to connect to backend service: {}", e)
+            &format!("Failed to connect to backend service: {}", e),
         ),
     }
 }
@@ -405,7 +428,9 @@ mod tests {
     fn test_route_registration() {
         let proxy = ProxyServer::new(18080, "burd".to_string());
 
-        proxy.register_route("my-api.burd", 7700, "test-id", false).unwrap();
+        proxy
+            .register_route("my-api.burd", 7700, "test-id", false)
+            .unwrap();
 
         let routes = proxy.list_routes();
         assert_eq!(routes.len(), 1);
@@ -420,7 +445,9 @@ mod tests {
     fn test_route_registration_with_ssl() {
         let proxy = ProxyServer::new(18080, "burd".to_string());
 
-        proxy.register_route("my-api.burd", 7700, "test-id", true).unwrap();
+        proxy
+            .register_route("my-api.burd", 7700, "test-id", true)
+            .unwrap();
 
         let routes = proxy.list_routes();
         assert_eq!(routes.len(), 1);
@@ -433,7 +460,9 @@ mod tests {
     fn test_static_route_registration() {
         let proxy = ProxyServer::new(18080, "burd".to_string());
 
-        proxy.register_static_route("static.burd", "/var/www/html", true, "test-static", false).unwrap();
+        proxy
+            .register_static_route("static.burd", "/var/www/html", true, "test-static", false)
+            .unwrap();
 
         let routes = proxy.list_routes();
         assert_eq!(routes.len(), 1);

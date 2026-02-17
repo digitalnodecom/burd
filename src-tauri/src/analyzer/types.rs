@@ -91,7 +91,9 @@ impl DatabaseConfig {
 
     /// Check if this is a PostgreSQL connection
     pub fn is_postgres(&self) -> bool {
-        self.connection == "pgsql" || self.connection == "postgres" || self.connection == "postgresql"
+        self.connection == "pgsql"
+            || self.connection == "postgres"
+            || self.connection == "postgresql"
     }
 
     /// Check if this is a SQLite connection

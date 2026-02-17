@@ -8,10 +8,10 @@ pub mod key_value_service;
 pub mod mailpit;
 pub mod mariadb;
 pub mod meilisearch;
-pub mod mysql;
 pub mod memcached;
 pub mod minio;
 pub mod mongodb;
+pub mod mysql;
 pub mod nodered;
 pub mod postgresql;
 pub mod redis;
@@ -139,7 +139,9 @@ pub fn get_service(service_type: ServiceType) -> Box<dyn ServiceDefinition> {
         ServiceType::Memcached => Box::new(memcached::MemcachedService),
         ServiceType::Frpc => Box::new(frpc::FrpcService),
         ServiceType::NodeRed => Box::new(nodered::NodeRedService),
-        ServiceType::Caddy => panic!("Caddy is an internal service and cannot be instantiated as a user service"),
+        ServiceType::Caddy => {
+            panic!("Caddy is an internal service and cannot be instantiated as a user service")
+        }
         ServiceType::Centrifugo => Box::new(centrifugo::CentrifugoService),
         ServiceType::Gitea => Box::new(gitea::GiteaService),
     }

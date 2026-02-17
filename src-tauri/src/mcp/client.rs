@@ -21,7 +21,7 @@ impl BurdApiClient {
     /// Check if the Burd API is available
     pub fn is_available(&self) -> bool {
         self.client
-            .get(&format!("{}/status", API_BASE))
+            .get(format!("{}/status", API_BASE))
             .send()
             .map(|r| r.status().is_success())
             .unwrap_or(false)
@@ -30,7 +30,7 @@ impl BurdApiClient {
     pub fn get(&self, path: &str) -> Result<String, String> {
         let response = self
             .client
-            .get(&format!("{}{}", API_BASE, path))
+            .get(format!("{}{}", API_BASE, path))
             .send()
             .map_err(|e| format!("Request failed: {}", e))?;
 
@@ -40,7 +40,7 @@ impl BurdApiClient {
     pub fn post(&self, path: &str, body: &Value) -> Result<String, String> {
         let response = self
             .client
-            .post(&format!("{}{}", API_BASE, path))
+            .post(format!("{}{}", API_BASE, path))
             .json(body)
             .send()
             .map_err(|e| format!("Request failed: {}", e))?;
@@ -51,7 +51,7 @@ impl BurdApiClient {
     pub fn put(&self, path: &str, body: &Value) -> Result<String, String> {
         let response = self
             .client
-            .put(&format!("{}{}", API_BASE, path))
+            .put(format!("{}{}", API_BASE, path))
             .json(body)
             .send()
             .map_err(|e| format!("Request failed: {}", e))?;
@@ -62,7 +62,7 @@ impl BurdApiClient {
     pub fn delete(&self, path: &str) -> Result<String, String> {
         let response = self
             .client
-            .delete(&format!("{}{}", API_BASE, path))
+            .delete(format!("{}{}", API_BASE, path))
             .send()
             .map_err(|e| format!("Request failed: {}", e))?;
 

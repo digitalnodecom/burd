@@ -154,9 +154,21 @@ fn print_analysis(info: &ProjectInfo) {
 
     // Summary
     println!();
-    let error_count = info.issues.iter().filter(|i| i.severity == IssueSeverity::Error).count();
-    let warning_count = info.issues.iter().filter(|i| i.severity == IssueSeverity::Warning).count();
-    let info_count = info.issues.iter().filter(|i| i.severity == IssueSeverity::Info).count();
+    let error_count = info
+        .issues
+        .iter()
+        .filter(|i| i.severity == IssueSeverity::Error)
+        .count();
+    let warning_count = info
+        .issues
+        .iter()
+        .filter(|i| i.severity == IssueSeverity::Warning)
+        .count();
+    let info_count = info
+        .issues
+        .iter()
+        .filter(|i| i.severity == IssueSeverity::Info)
+        .count();
 
     if error_count > 0 || warning_count > 0 || info_count > 0 {
         println!(

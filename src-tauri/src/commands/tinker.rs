@@ -87,7 +87,13 @@ pub async fn execute_tinker(
 ) -> Result<TinkerExecution, String> {
     // Execute in a blocking task since it uses std::process::Command
     tokio::task::spawn_blocking(move || {
-        do_execute(&project_path, project_type, &code, timeout_ms, php_version.as_deref())
+        do_execute(
+            &project_path,
+            project_type,
+            &code,
+            timeout_ms,
+            php_version.as_deref(),
+        )
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?

@@ -108,7 +108,12 @@ async fn check_health_for_service(port: u16, service_type: ServiceType) -> bool 
 #[tauri::command]
 pub async fn list_instances(state: State<'_, AppState>) -> Result<Vec<InstanceWithHealth>, String> {
     // Collect instance data while holding lock
-    let (instances_data, tld, domains): (Vec<(Instance, bool, Option<u32>)>, String, Vec<Domain>) = {
+    #[allow(clippy::type_complexity)]
+    let (instances_data, tld, domains): (
+        Vec<(Instance, bool, Option<u32>)>,
+        String,
+        Vec<Domain>,
+    ) = {
         let config_store = lock!(state.config_store)?;
         let process_manager = lock!(state.process_manager)?;
 
@@ -142,7 +147,8 @@ pub async fn list_instances(state: State<'_, AppState>) -> Result<Vec<InstanceWi
                 };
 
                 let service = get_service(instance.service_type);
-                let has_config = !instance.config.is_null() && instance.config != serde_json::json!({});
+                let has_config =
+                    !instance.config.is_null() && instance.config != serde_json::json!({});
 
                 // Find all domains that map to this instance
                 let mapped_domains: Vec<String> = domains_clone
@@ -211,12 +217,10 @@ pub fn create_instance(
         .map_err(|e| format!("Invalid instance name: {}", e))?;
 
     // Validate port
-    validation::validate_port(port)
-        .map_err(|e| format!("Invalid port: {}", e))?;
+    validation::validate_port(port).map_err(|e| format!("Invalid port: {}", e))?;
 
     // Validate version
-    validation::validate_version(&version)
-        .map_err(|e| format!("Invalid version: {}", e))?;
+    validation::validate_version(&version).map_err(|e| format!("Invalid version: {}", e))?;
 
     // Parse service type
     let svc_type = super::parse_service_type(&service_type)?;
@@ -224,16 +228,17 @@ pub fn create_instance(
     let binary_manager = lock!(state.binary_manager)?;
     let installed_versions = binary_manager.get_installed_versions_sync(svc_type)?;
     if !installed_versions.contains(&version) {
-        return Err(format!("Version {} is not installed for {}", version, service_type));
+        return Err(format!(
+            "Version {} is not installed for {}",
+            version, service_type
+        ));
     }
     drop(binary_manager);
 
     // Check if this service type has auto_create_domain enabled
     let registry = ServiceRegistry::load();
     let service_def = registry.get_service(&service_type.to_lowercase());
-    let auto_create_domain = service_def
-        .map(|s| s.auto_create_domain)
-        .unwrap_or(false);
+    let _auto_create_domain = service_def.map(|s| s.auto_create_domain).unwrap_or(false);
 
     let service_config = config.unwrap_or_else(|| serde_json::json!({}));
     let config_store = lock!(state.config_store)?;
@@ -242,20 +247,28 @@ pub fn create_instance(
     // Check max_instances limit
     if let Some(service_def) = service_def {
         if let Some(max) = service_def.max_instances {
-            let existing_count = app_config.instances.iter()
+            let existing_count = app_config
+                .instances
+                .iter()
                 .filter(|i| i.service_type == svc_type)
                 .count();
             if existing_count >= max {
                 return Err(format!(
                     "{} is limited to {} instance(s)",
-                    service_def.display_name,
-                    max
+                    service_def.display_name, max
                 ));
             }
         }
     }
     let tld = app_config.tld.clone();
-    let instance = config_store.create_instance(name, port, svc_type, version.clone(), service_config, custom_domain.clone())?;
+    let instance = config_store.create_instance(
+        name,
+        port,
+        svc_type,
+        version.clone(),
+        service_config,
+        custom_domain.clone(),
+    )?;
 
     // Create domain if custom_domain is provided
     if let Some(ref domain_name) = custom_domain {
@@ -379,7 +392,9 @@ pub async fn start_instance(id: String, state: State<'_, AppState>) -> Result<u3
         }
 
         // Get domains that route to this instance
-        let domains: Vec<Domain> = config.domains.iter()
+        let domains: Vec<Domain> = config
+            .domains
+            .iter()
             .filter(|d| d.routes_to_instance(&uuid))
             .cloned()
             .collect();
@@ -396,7 +411,12 @@ pub async fn start_instance(id: String, state: State<'_, AppState>) -> Result<u3
     {
         let proxy = state.proxy_server.lock().await;
         for domain in &domains {
-            let _ = proxy.register_route(&domain.full_domain(&tld), instance.port, &domain.id.to_string(), domain.ssl_enabled);
+            let _ = proxy.register_route(
+                &domain.full_domain(&tld),
+                instance.port,
+                &domain.id.to_string(),
+                domain.ssl_enabled,
+            );
         }
     }
 
@@ -413,7 +433,9 @@ pub async fn stop_instance(id: String, state: State<'_, AppState>) -> Result<(),
         let config = config_store.load()?;
 
         // Get domains that route to this instance
-        let domains: Vec<Domain> = config.domains.iter()
+        let domains: Vec<Domain> = config
+            .domains
+            .iter()
             .filter(|d| d.routes_to_instance(&uuid))
             .cloned()
             .collect();
@@ -491,7 +513,9 @@ pub async fn delete_instance(id: String, state: State<'_, AppState>) -> Result<(
     let domains_to_remove = {
         let config_store = lock!(state.config_store)?;
         let config = config_store.load()?;
-        config.domains.iter()
+        config
+            .domains
+            .iter()
             .filter(|d| d.routes_to_instance(&uuid))
             .cloned()
             .collect::<Vec<_>>()
@@ -544,7 +568,10 @@ pub fn get_instance_logs(id: String) -> Result<String, String> {
 
 /// Get instance configuration
 #[tauri::command]
-pub fn get_instance_config(id: String, state: State<'_, AppState>) -> Result<InstanceConfig, String> {
+pub fn get_instance_config(
+    id: String,
+    state: State<'_, AppState>,
+) -> Result<InstanceConfig, String> {
     let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid instance ID")?;
 
     let config_store = lock!(state.config_store)?;
@@ -590,7 +617,11 @@ pub fn change_instance_version(
     let binary_manager = lock!(state.binary_manager)?;
     let installed = binary_manager.get_installed_versions_sync(instance.service_type)?;
     if !installed.contains(&new_version) {
-        return Err(format!("Version {} is not installed for {}", new_version, instance.service_type.display_name()));
+        return Err(format!(
+            "Version {} is not installed for {}",
+            new_version,
+            instance.service_type.display_name()
+        ));
     }
 
     // Update the instance version
@@ -629,7 +660,9 @@ pub fn generate_env_for_service(instance: &Instance) -> String {
         ServiceType::MySQL => generate_mysql_env(instance),
         ServiceType::Typesense => generate_typesense_env(instance),
         ServiceType::FrankenPHP => generate_frankenphp_env(instance),
-        ServiceType::FrankenPhpPark => "# FrankenPHP Park serves parked directories - configure via Parks section".to_string(),
+        ServiceType::FrankenPhpPark => {
+            "# FrankenPHP Park serves parked directories - configure via Parks section".to_string()
+        }
         ServiceType::Frpc => "# frpc is a tunneling service - no ENV needed".to_string(),
         ServiceType::NodeRed => generate_nodered_env(instance),
         ServiceType::Caddy => "# Caddy is an internal service - no ENV needed".to_string(),
@@ -639,7 +672,9 @@ pub fn generate_env_for_service(instance: &Instance) -> String {
 }
 
 fn generate_redis_env(instance: &Instance) -> String {
-    let password = instance.config.get("password")
+    let password = instance
+        .config
+        .get("password")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
@@ -671,7 +706,9 @@ fn generate_redis_env(instance: &Instance) -> String {
 }
 
 fn generate_valkey_env(instance: &Instance) -> String {
-    let password = instance.config.get("password")
+    let password = instance
+        .config
+        .get("password")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
@@ -703,7 +740,9 @@ fn generate_valkey_env(instance: &Instance) -> String {
 }
 
 fn generate_meilisearch_env(instance: &Instance) -> String {
-    let master_key = instance.config.get("master_key")
+    let master_key = instance
+        .config
+        .get("master_key")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
@@ -712,8 +751,7 @@ fn generate_meilisearch_env(instance: &Instance) -> String {
          SCOUT_DRIVER=meilisearch\n\
          MEILISEARCH_HOST=http://127.0.0.1:{}\n\
          MEILISEARCH_KEY={}\n",
-        instance.port,
-        master_key
+        instance.port, master_key
     )
 }
 
@@ -728,7 +766,9 @@ fn generate_memcached_env(instance: &Instance) -> String {
 }
 
 fn generate_mailpit_env(instance: &Instance) -> String {
-    let smtp_port = instance.config.get("smtp_port")
+    let smtp_port = instance
+        .config
+        .get("smtp_port")
         .and_then(|v| v.as_str())
         .unwrap_or("1025");
 
@@ -742,16 +782,19 @@ fn generate_mailpit_env(instance: &Instance) -> String {
          MAIL_ENCRYPTION=null\n\
          \n\
          # Mailpit Web UI: http://127.0.0.1:{}\n",
-        smtp_port,
-        instance.port
+        smtp_port, instance.port
     )
 }
 
 fn generate_minio_env(instance: &Instance) -> String {
-    let root_user = instance.config.get("root_user")
+    let root_user = instance
+        .config
+        .get("root_user")
         .and_then(|v| v.as_str())
         .unwrap_or("minioadmin");
-    let root_password = instance.config.get("root_password")
+    let root_password = instance
+        .config
+        .get("root_password")
         .and_then(|v| v.as_str())
         .unwrap_or("minioadmin");
 
@@ -770,8 +813,7 @@ fn generate_minio_env(instance: &Instance) -> String {
          S3_UPLOADS_KEY={}\n\
          S3_UPLOADS_SECRET={}\n\
          S3_UPLOADS_ENDPOINT=http://127.0.0.1:{}\n",
-        root_user, root_password, instance.port,
-        root_user, root_password, instance.port
+        root_user, root_password, instance.port, root_user, root_password, instance.port
     )
 }
 
@@ -856,7 +898,9 @@ fn generate_mysql_env(instance: &Instance) -> String {
 }
 
 fn generate_typesense_env(instance: &Instance) -> String {
-    let api_key = instance.config.get("api_key")
+    let api_key = instance
+        .config
+        .get("api_key")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
@@ -872,7 +916,9 @@ fn generate_typesense_env(instance: &Instance) -> String {
 }
 
 fn generate_frankenphp_env(instance: &Instance) -> String {
-    let document_root = instance.config.get("document_root")
+    let document_root = instance
+        .config
+        .get("document_root")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
@@ -887,7 +933,9 @@ fn generate_frankenphp_env(instance: &Instance) -> String {
 }
 
 fn generate_nodered_env(instance: &Instance) -> String {
-    let flow_file = instance.config.get("flow_file")
+    let flow_file = instance
+        .config
+        .get("flow_file")
         .and_then(|v| v.as_str())
         .unwrap_or("flows.json");
 
@@ -904,11 +952,15 @@ fn generate_nodered_env(instance: &Instance) -> String {
 }
 
 fn generate_centrifugo_env(instance: &Instance) -> String {
-    let api_key = instance.config.get("api_key")
+    let api_key = instance
+        .config
+        .get("api_key")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let token_secret = instance.config.get("token_hmac_secret")
+    let token_secret = instance
+        .config
+        .get("token_hmac_secret")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
@@ -976,13 +1028,20 @@ pub async fn get_instance_info(
     Ok(generate_info_for_service(&instance, running, pid, &tld))
 }
 
-fn generate_info_for_service(instance: &Instance, running: bool, pid: Option<u32>, tld: &str) -> InstanceInfo {
+fn generate_info_for_service(
+    instance: &Instance,
+    running: bool,
+    pid: Option<u32>,
+    tld: &str,
+) -> InstanceInfo {
     let mut categories = vec![create_basic_info_category(instance, running, pid, tld)];
 
     // Add service-specific categories
     match instance.service_type {
         ServiceType::FrankenPHP => categories.push(create_frankenphp_category(instance)),
-        ServiceType::MySQL | ServiceType::MariaDB => categories.push(create_mysql_category(instance)),
+        ServiceType::MySQL | ServiceType::MariaDB => {
+            categories.push(create_mysql_category(instance))
+        }
         ServiceType::PostgreSQL => categories.push(create_postgresql_category(instance)),
         ServiceType::Redis => categories.push(create_redis_category(instance)),
         ServiceType::Valkey => categories.push(create_valkey_category(instance)),
@@ -1009,7 +1068,12 @@ fn generate_info_for_service(instance: &Instance, running: bool, pid: Option<u32
     }
 }
 
-fn create_basic_info_category(instance: &Instance, running: bool, pid: Option<u32>, tld: &str) -> InfoCategory {
+fn create_basic_info_category(
+    instance: &Instance,
+    running: bool,
+    pid: Option<u32>,
+    tld: &str,
+) -> InfoCategory {
     let mut items = vec![
         InfoItem {
             label: "Instance ID".to_string(),
@@ -1033,7 +1097,11 @@ fn create_basic_info_category(instance: &Instance, running: bool, pid: Option<u3
         },
         InfoItem {
             label: "Status".to_string(),
-            value: if running { "Running".to_string() } else { "Stopped".to_string() },
+            value: if running {
+                "Running".to_string()
+            } else {
+                "Stopped".to_string()
+            },
             copyable: false,
         },
     ];
@@ -1064,7 +1132,11 @@ fn create_frankenphp_category(instance: &Instance) -> InfoCategory {
     let mut items = Vec::new();
 
     // Get document root from config
-    if let Some(doc_root) = instance.config.get("document_root").and_then(|v| v.as_str()) {
+    if let Some(doc_root) = instance
+        .config
+        .get("document_root")
+        .and_then(|v| v.as_str())
+    {
         items.push(InfoItem {
             label: "Document Root".to_string(),
             value: doc_root.to_string(),
@@ -1190,7 +1262,6 @@ foreach ($extensions as $ext) {
     Ok(modules)
 }
 
-
 fn create_mysql_category(instance: &Instance) -> InfoCategory {
     let items = vec![
         InfoItem {
@@ -1237,17 +1308,17 @@ fn create_postgresql_category(instance: &Instance) -> InfoCategory {
 }
 
 fn create_redis_category(instance: &Instance) -> InfoCategory {
-    let password = instance.config.get("password")
+    let password = instance
+        .config
+        .get("password")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let mut items = vec![
-        InfoItem {
-            label: "Connection".to_string(),
-            value: format!("127.0.0.1:{}", instance.port),
-            copyable: true,
-        },
-    ];
+    let mut items = vec![InfoItem {
+        label: "Connection".to_string(),
+        value: format!("127.0.0.1:{}", instance.port),
+        copyable: true,
+    }];
 
     if !password.is_empty() {
         items.push(InfoItem {
@@ -1264,17 +1335,17 @@ fn create_redis_category(instance: &Instance) -> InfoCategory {
 }
 
 fn create_valkey_category(instance: &Instance) -> InfoCategory {
-    let password = instance.config.get("password")
+    let password = instance
+        .config
+        .get("password")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let mut items = vec![
-        InfoItem {
-            label: "Connection".to_string(),
-            value: format!("127.0.0.1:{}", instance.port),
-            copyable: true,
-        },
-    ];
+    let mut items = vec![InfoItem {
+        label: "Connection".to_string(),
+        value: format!("127.0.0.1:{}", instance.port),
+        copyable: true,
+    }];
 
     if !password.is_empty() {
         items.push(InfoItem {
@@ -1291,13 +1362,11 @@ fn create_valkey_category(instance: &Instance) -> InfoCategory {
 }
 
 fn create_memcached_category(instance: &Instance) -> InfoCategory {
-    let items = vec![
-        InfoItem {
-            label: "Connection".to_string(),
-            value: format!("127.0.0.1:{}", instance.port),
-            copyable: true,
-        },
-    ];
+    let items = vec![InfoItem {
+        label: "Connection".to_string(),
+        value: format!("127.0.0.1:{}", instance.port),
+        copyable: true,
+    }];
 
     InfoCategory {
         title: "Memcached Configuration".to_string(),
@@ -1306,17 +1375,17 @@ fn create_memcached_category(instance: &Instance) -> InfoCategory {
 }
 
 fn create_meilisearch_category(instance: &Instance) -> InfoCategory {
-    let master_key = instance.config.get("master_key")
+    let master_key = instance
+        .config
+        .get("master_key")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let mut items = vec![
-        InfoItem {
-            label: "API Endpoint".to_string(),
-            value: format!("http://127.0.0.1:{}", instance.port),
-            copyable: true,
-        },
-    ];
+    let mut items = vec![InfoItem {
+        label: "API Endpoint".to_string(),
+        value: format!("http://127.0.0.1:{}", instance.port),
+        copyable: true,
+    }];
 
     if !master_key.is_empty() {
         items.push(InfoItem {
@@ -1333,17 +1402,17 @@ fn create_meilisearch_category(instance: &Instance) -> InfoCategory {
 }
 
 fn create_typesense_category(instance: &Instance) -> InfoCategory {
-    let api_key = instance.config.get("api_key")
+    let api_key = instance
+        .config
+        .get("api_key")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let mut items = vec![
-        InfoItem {
-            label: "API Endpoint".to_string(),
-            value: format!("http://127.0.0.1:{}", instance.port),
-            copyable: true,
-        },
-    ];
+    let mut items = vec![InfoItem {
+        label: "API Endpoint".to_string(),
+        value: format!("http://127.0.0.1:{}", instance.port),
+        copyable: true,
+    }];
 
     if !api_key.is_empty() {
         items.push(InfoItem {
@@ -1360,10 +1429,14 @@ fn create_typesense_category(instance: &Instance) -> InfoCategory {
 }
 
 fn create_minio_category(instance: &Instance) -> InfoCategory {
-    let root_user = instance.config.get("root_user")
+    let root_user = instance
+        .config
+        .get("root_user")
         .and_then(|v| v.as_str())
         .unwrap_or("minioadmin");
-    let root_password = instance.config.get("root_password")
+    let root_password = instance
+        .config
+        .get("root_password")
         .and_then(|v| v.as_str())
         .unwrap_or("minioadmin");
 
@@ -1392,7 +1465,9 @@ fn create_minio_category(instance: &Instance) -> InfoCategory {
 }
 
 fn create_mailpit_category(instance: &Instance) -> InfoCategory {
-    let smtp_port = instance.config.get("smtp_port")
+    let smtp_port = instance
+        .config
+        .get("smtp_port")
         .and_then(|v| v.as_str())
         .unwrap_or("1025");
 
@@ -1416,7 +1491,9 @@ fn create_mailpit_category(instance: &Instance) -> InfoCategory {
 }
 
 fn create_nodered_category(instance: &Instance) -> InfoCategory {
-    let flow_file = instance.config.get("flow_file")
+    let flow_file = instance
+        .config
+        .get("flow_file")
         .and_then(|v| v.as_str())
         .unwrap_or("flows.json");
 
@@ -1440,13 +1517,11 @@ fn create_nodered_category(instance: &Instance) -> InfoCategory {
 }
 
 fn create_gitea_category(instance: &Instance) -> InfoCategory {
-    let items = vec![
-        InfoItem {
-            label: "Web UI".to_string(),
-            value: format!("http://127.0.0.1:{}", instance.port),
-            copyable: true,
-        },
-    ];
+    let items = vec![InfoItem {
+        label: "Web UI".to_string(),
+        value: format!("http://127.0.0.1:{}", instance.port),
+        copyable: true,
+    }];
 
     InfoCategory {
         title: "Gitea Configuration".to_string(),
@@ -1455,11 +1530,15 @@ fn create_gitea_category(instance: &Instance) -> InfoCategory {
 }
 
 fn create_centrifugo_category(instance: &Instance) -> InfoCategory {
-    let api_key = instance.config.get("api_key")
+    let api_key = instance
+        .config
+        .get("api_key")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    let token_secret = instance.config.get("token_hmac_secret")
+    let token_secret = instance
+        .config
+        .get("token_hmac_secret")
         .and_then(|v| v.as_str())
         .unwrap_or("");
 

@@ -24,41 +24,33 @@ pub fn is_nvm_installed() -> bool {
 /// List installed Node versions
 #[tauri::command]
 pub async fn list_installed_node_versions() -> Result<Vec<NodeVersion>, String> {
-    tokio::task::spawn_blocking(|| {
-        nvm::list_installed_versions().map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| format!("Task error: {}", e))?
+    tokio::task::spawn_blocking(|| nvm::list_installed_versions().map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| format!("Task error: {}", e))?
 }
 
 /// List available remote LTS versions
 #[tauri::command]
 pub async fn list_remote_node_versions() -> Result<Vec<NodeVersion>, String> {
-    tokio::task::spawn_blocking(|| {
-        nvm::list_remote_lts_versions().map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| format!("Task error: {}", e))?
+    tokio::task::spawn_blocking(|| nvm::list_remote_lts_versions().map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| format!("Task error: {}", e))?
 }
 
 /// Install a Node version
 #[tauri::command]
 pub async fn install_node_version(version: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        nvm::install_version(&version).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| format!("Task error: {}", e))?
+    tokio::task::spawn_blocking(move || nvm::install_version(&version).map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| format!("Task error: {}", e))?
 }
 
 /// Uninstall a Node version
 #[tauri::command]
 pub async fn uninstall_node_version(version: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        nvm::uninstall_version(&version).map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| format!("Task error: {}", e))?
+    tokio::task::spawn_blocking(move || nvm::uninstall_version(&version).map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| format!("Task error: {}", e))?
 }
 
 /// Set the default Node version
@@ -105,7 +97,12 @@ pub async fn pm2_list() -> Result<Vec<Pm2Process>, String> {
 
 /// Start an application with PM2
 #[tauri::command]
-pub async fn pm2_start(name: String, script: String, args: Option<String>, cwd: Option<String>) -> Result<String, String> {
+pub async fn pm2_start(
+    name: String,
+    script: String,
+    args: Option<String>,
+    cwd: Option<String>,
+) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         pm2::start_app(&name, &script, args.as_deref(), cwd.as_deref())
     })
@@ -194,11 +191,9 @@ pub async fn init_nodered_instance(id: String) -> Result<(), String> {
         .clone();
 
     // Run npm install in a blocking thread
-    tokio::task::spawn_blocking(move || {
-        NodeRedService::init_instance(&data_dir, &instance.version)
-    })
-    .await
-    .map_err(|e| format!("Task error: {}", e))?
+    tokio::task::spawn_blocking(move || NodeRedService::init_instance(&data_dir, &instance.version))
+        .await
+        .map_err(|e| format!("Task error: {}", e))?
 }
 
 /// Check if a Node-RED instance is initialized

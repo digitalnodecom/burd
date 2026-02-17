@@ -29,8 +29,8 @@ pub struct NetworkStatus {
 #[derive(Debug, Serialize)]
 pub struct RouteInfo {
     pub domain: String,
-    pub port: Option<u16>,   // None for static file routes
-    pub route_type: String,  // "reverse_proxy" or "file_server"
+    pub port: Option<u16>,  // None for static file routes
+    pub route_type: String, // "reverse_proxy" or "file_server"
     pub instance_id: String,
 }
 
@@ -55,7 +55,9 @@ pub async fn get_network_status(state: State<'_, AppState>) -> Result<NetworkSta
             .map(|r| {
                 let port = r.port();
                 let route_type = match &r.route_type {
-                    crate::proxy::ProxyRouteType::ReverseProxy { .. } => "reverse_proxy".to_string(),
+                    crate::proxy::ProxyRouteType::ReverseProxy { .. } => {
+                        "reverse_proxy".to_string()
+                    }
                     crate::proxy::ProxyRouteType::FileServer { .. } => "file_server".to_string(),
                 };
                 RouteInfo {
@@ -101,7 +103,11 @@ pub fn get_resolver_status(state: State<'_, AppState>) -> Result<ResolverStatus,
     let installed = resolver::is_installed(&tld);
     let port = resolver::get_current_config(&tld).map(|c| c.port);
 
-    Ok(ResolverStatus { installed, port, tld })
+    Ok(ResolverStatus {
+        installed,
+        port,
+        tld,
+    })
 }
 
 /// Install the macOS resolver file (requires admin privileges)

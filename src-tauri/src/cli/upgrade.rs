@@ -272,11 +272,9 @@ fn fetch_from_github(client: &reqwest::blocking::Client) -> Result<UpdateManifes
     }
 
     if platforms.is_empty() {
-        return Err(
-            "No CLI binaries found in the latest release.\n\
+        return Err("No CLI binaries found in the latest release.\n\
              Please check https://github.com/digitalnodecom/burd/releases"
-                .to_string(),
-        );
+            .to_string());
     }
 
     Ok(UpdateManifest {

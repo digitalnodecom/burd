@@ -3,9 +3,9 @@
 //! Handles stack management for grouping instances and team sharing.
 
 use crate::config::{
-    Stack, StackExport, StackService, StackDomain, StackRequirements,
-    StackImportPreview, MissingVersion, ImportConflict, ConflictResolution, ImportResult,
-    Instance, Domain, DomainTarget,
+    ConflictResolution, Domain, DomainTarget, ImportConflict, ImportResult, Instance,
+    MissingVersion, Stack, StackDomain, StackExport, StackImportPreview, StackRequirements,
+    StackService,
 };
 use crate::error::LockExt;
 use crate::lock;
@@ -71,20 +71,26 @@ pub async fn list_stacks(state: State<'_, AppState>) -> Result<Vec<StackInfo>, S
     let config_store = lock!(state.config_store)?;
     let config = config_store.load()?;
 
-    let stacks = config.stacks.iter().map(|stack| {
-        let instance_count = config.instances.iter()
-            .filter(|i| i.stack_id == Some(stack.id))
-            .count();
+    let stacks = config
+        .stacks
+        .iter()
+        .map(|stack| {
+            let instance_count = config
+                .instances
+                .iter()
+                .filter(|i| i.stack_id == Some(stack.id))
+                .count();
 
-        StackInfo {
-            id: stack.id.to_string(),
-            name: stack.name.clone(),
-            description: stack.description.clone(),
-            instance_count,
-            created_at: stack.created_at.to_rfc3339(),
-            updated_at: stack.updated_at.to_rfc3339(),
-        }
-    }).collect();
+            StackInfo {
+                id: stack.id.to_string(),
+                name: stack.name.clone(),
+                description: stack.description.clone(),
+                instance_count,
+                created_at: stack.created_at.to_rfc3339(),
+                updated_at: stack.updated_at.to_rfc3339(),
+            }
+        })
+        .collect();
 
     Ok(stacks)
 }
@@ -96,11 +102,15 @@ pub async fn get_stack(id: String, state: State<'_, AppState>) -> Result<StackIn
     let config_store = lock!(state.config_store)?;
     let config = config_store.load()?;
 
-    let stack = config.stacks.iter()
+    let stack = config
+        .stacks
+        .iter()
         .find(|s| s.id == uuid)
         .ok_or_else(|| format!("Stack {} not found", id))?;
 
-    let instance_count = config.instances.iter()
+    let instance_count = config
+        .instances
+        .iter()
         .filter(|i| i.stack_id == Some(uuid))
         .count();
 
@@ -120,13 +130,15 @@ pub async fn create_stack(
     request: CreateStackRequest,
     state: State<'_, AppState>,
 ) -> Result<StackInfo, String> {
-    let instance_ids: Vec<Uuid> = request.instance_ids
+    let instance_ids: Vec<Uuid> = request
+        .instance_ids
         .iter()
         .map(|id| Uuid::parse_str(id).map_err(|_| format!("Invalid instance ID: {}", id)))
         .collect::<Result<Vec<_>, _>>()?;
 
     let config_store = lock!(state.config_store)?;
-    let stack = config_store.create_stack(request.name, request.description, instance_ids.clone())?;
+    let stack =
+        config_store.create_stack(request.name, request.description, instance_ids.clone())?;
 
     Ok(StackInfo {
         id: stack.id.to_string(),
@@ -173,7 +185,10 @@ pub async fn delete_stack(
 
     let deleted_instance_ids = config_store.delete_stack(uuid, delete_instances)?;
 
-    Ok(deleted_instance_ids.iter().map(|id| id.to_string()).collect())
+    Ok(deleted_instance_ids
+        .iter()
+        .map(|id| id.to_string())
+        .collect())
 }
 
 /// Add instances to a stack
@@ -267,18 +282,23 @@ pub async fn export_stack(
     let config = config_store.load()?;
 
     // Get the stack
-    let stack = config.stacks.iter()
+    let stack = config
+        .stacks
+        .iter()
         .find(|s| s.id == stack_uuid)
         .ok_or_else(|| format!("Stack {} not found", request.stack_id))?;
 
     // Get instances in the stack
-    let instances: Vec<&Instance> = config.instances.iter()
+    let instances: Vec<&Instance> = config
+        .instances
+        .iter()
         .filter(|i| i.stack_id == Some(stack_uuid))
         .collect();
 
     // Build services list
-    let services: Vec<StackService> = instances.iter().map(|instance| {
-        StackService {
+    let services: Vec<StackService> = instances
+        .iter()
+        .map(|instance| StackService {
             ref_id: instance.id.to_string(),
             service_type: instance.service_type,
             version: instance.version.clone(),
@@ -286,13 +306,15 @@ pub async fn export_stack(
             port: instance.port,
             auto_start: instance.auto_start,
             config: strip_secrets(&instance.config),
-        }
-    }).collect();
+        })
+        .collect();
 
     // Build domains list if requested
     let domains: Vec<StackDomain> = if request.include_domains {
         let instance_ids: Vec<Uuid> = instances.iter().map(|i| i.id).collect();
-        config.domains.iter()
+        config
+            .domains
+            .iter()
             .filter(|d| {
                 if let DomainTarget::Instance(instance_id) = &d.target {
                     instance_ids.contains(instance_id)
@@ -331,8 +353,7 @@ pub async fn export_stack(
         },
     };
 
-    serde_json::to_string_pretty(&export)
-        .map_err(|e| format!("Failed to serialize stack: {}", e))
+    serde_json::to_string_pretty(&export).map_err(|e| format!("Failed to serialize stack: {}", e))
 }
 
 // ============================================================================
@@ -346,21 +367,20 @@ pub async fn preview_stack_import(
     state: State<'_, AppState>,
 ) -> Result<StackImportPreview, String> {
     // Parse the import config
-    let import: StackExport = serde_json::from_str(&config_json)
-        .map_err(|e| format!("Invalid stack config: {}", e))?;
+    let import: StackExport =
+        serde_json::from_str(&config_json).map_err(|e| format!("Invalid stack config: {}", e))?;
 
     let config_store = lock!(state.config_store)?;
     let config = config_store.load()?;
 
     // Check if stack with this ID already exists
-    let existing_stack = config.stacks.iter()
-        .find(|s| s.id == import.id)
-        .cloned();
+    let existing_stack = config.stacks.iter().find(|s| s.id == import.id).cloned();
 
     // Check for missing versions
     let mut missing_versions: Vec<MissingVersion> = Vec::new();
     for service in &import.services {
-        let has_version = config.binaries
+        let has_version = config
+            .binaries
             .get(&service.service_type)
             .map(|versions| versions.contains_key(&service.version))
             .unwrap_or(false);
@@ -421,24 +441,32 @@ pub async fn import_stack(
     state: State<'_, AppState>,
 ) -> Result<ImportResult, String> {
     // Parse the import config
-    let import: StackExport = serde_json::from_str(&config_json)
-        .map_err(|e| format!("Invalid stack config: {}", e))?;
+    let import: StackExport =
+        serde_json::from_str(&config_json).map_err(|e| format!("Invalid stack config: {}", e))?;
 
     let config_store = lock!(state.config_store)?;
     let mut config = config_store.load()?;
 
     // Build resolution maps
-    let mut port_reassignments: std::collections::HashMap<String, u16> = std::collections::HashMap::new();
-    let mut name_reassignments: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    let mut port_reassignments: std::collections::HashMap<String, u16> =
+        std::collections::HashMap::new();
+    let mut name_reassignments: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
     let mut skipped_services: Vec<String> = Vec::new();
     let mut update_existing_stack = false;
 
     for resolution in conflict_resolutions {
         match resolution {
-            ConflictResolution::ReassignPort { service_ref, new_port } => {
+            ConflictResolution::ReassignPort {
+                service_ref,
+                new_port,
+            } => {
                 port_reassignments.insert(service_ref, new_port);
             }
-            ConflictResolution::RenameService { service_ref, new_name } => {
+            ConflictResolution::RenameService {
+                service_ref,
+                new_name,
+            } => {
                 name_reassignments.insert(service_ref, new_name);
             }
             ConflictResolution::Skip { service_ref } => {
@@ -447,7 +475,9 @@ pub async fn import_stack(
             ConflictResolution::ReplaceExisting { service_ref } => {
                 // Remove existing instance with same name
                 if let Some(service) = import.services.iter().find(|s| s.ref_id == service_ref) {
-                    config.instances.retain(|i| i.name != service.name && i.port != service.port);
+                    config
+                        .instances
+                        .retain(|i| i.name != service.name && i.port != service.port);
                 }
             }
             ConflictResolution::UpdateExistingStack => {
@@ -487,7 +517,8 @@ pub async fn import_stack(
     let mut domains_created: Vec<Uuid> = Vec::new();
 
     // Map of ref_id to new instance_id for domain creation
-    let mut ref_to_instance: std::collections::HashMap<String, Uuid> = std::collections::HashMap::new();
+    let mut ref_to_instance: std::collections::HashMap<String, Uuid> =
+        std::collections::HashMap::new();
 
     // Create instances
     for service in &import.services {
@@ -496,13 +527,23 @@ pub async fn import_stack(
             continue;
         }
 
-        let port = port_reassignments.get(&service.ref_id).copied().unwrap_or(service.port);
-        let name = name_reassignments.get(&service.ref_id).cloned().unwrap_or_else(|| service.name.clone());
+        let port = port_reassignments
+            .get(&service.ref_id)
+            .copied()
+            .unwrap_or(service.port);
+        let name = name_reassignments
+            .get(&service.ref_id)
+            .cloned()
+            .unwrap_or_else(|| service.name.clone());
 
         // Check if we're updating an existing instance (same ID in ref_id is valid UUID)
         let existing_instance_id = Uuid::parse_str(&service.ref_id).ok();
-        let existing_instance = existing_instance_id
-            .and_then(|id| config.instances.iter_mut().find(|i| i.id == id && i.stack_id == Some(stack.id)));
+        let existing_instance = existing_instance_id.and_then(|id| {
+            config
+                .instances
+                .iter_mut()
+                .find(|i| i.id == id && i.stack_id == Some(stack.id))
+        });
 
         if let Some(instance) = existing_instance {
             // Update existing instance
@@ -539,12 +580,13 @@ pub async fn import_stack(
     for domain in &import.domains {
         if let Some(&instance_id) = ref_to_instance.get(&domain.target_ref) {
             // Check if domain already exists
-            if !config.domains.iter().any(|d| d.subdomain == domain.subdomain) {
-                let new_domain = Domain::for_instance(
-                    domain.subdomain.clone(),
-                    instance_id,
-                    domain.ssl_enabled,
-                );
+            if !config
+                .domains
+                .iter()
+                .any(|d| d.subdomain == domain.subdomain)
+            {
+                let new_domain =
+                    Domain::for_instance(domain.subdomain.clone(), instance_id, domain.ssl_enabled);
                 domains_created.push(new_domain.id);
                 config.domains.push(new_domain);
             }

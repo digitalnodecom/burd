@@ -8,7 +8,7 @@ pub mod state;
 pub mod types;
 
 use axum::{
-    routing::{get, post, put, delete},
+    routing::{delete, get, post, put},
     Router,
 };
 use std::net::SocketAddr;
@@ -27,7 +27,6 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
     Router::new()
         // Status
         .route("/status", get(handlers::status::get_status))
-
         // Instances
         .route("/instances", get(handlers::instances::list))
         .route("/instances", post(handlers::instances::create))
@@ -35,26 +34,28 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         .route("/instances/{id}", delete(handlers::instances::remove))
         .route("/instances/{id}/start", post(handlers::instances::start))
         .route("/instances/{id}/stop", post(handlers::instances::stop))
-        .route("/instances/{id}/restart", post(handlers::instances::restart))
+        .route(
+            "/instances/{id}/restart",
+            post(handlers::instances::restart),
+        )
         .route("/instances/{id}/logs", get(handlers::instances::logs))
         .route("/instances/{id}/env", get(handlers::instances::env))
-
         // Domains
         .route("/domains", get(handlers::domains::list))
         .route("/domains", post(handlers::domains::create))
         .route("/domains/{id}", put(handlers::domains::update))
         .route("/domains/{id}", delete(handlers::domains::remove))
         .route("/domains/{id}/ssl", post(handlers::domains::toggle_ssl))
-
         // Databases
         .route("/databases", get(handlers::databases::list))
         .route("/databases", post(handlers::databases::create))
         .route("/databases/{name}", delete(handlers::databases::drop))
-
         // Services
         .route("/services", get(handlers::services::list))
-        .route("/services/{service_type}/versions", get(handlers::services::get_versions))
-
+        .route(
+            "/services/{service_type}/versions",
+            get(handlers::services::get_versions),
+        )
         .with_state(api_state)
 }
 

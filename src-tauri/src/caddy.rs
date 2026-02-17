@@ -17,12 +17,16 @@ fn get_data_dir() -> Result<PathBuf, String> {
 
 /// Get the path to the main Caddyfile (in user space)
 pub fn get_caddyfile_path() -> PathBuf {
-    get_data_dir().unwrap_or_else(|_| PathBuf::from("/tmp")).join("Caddyfile")
+    get_data_dir()
+        .unwrap_or_else(|_| PathBuf::from("/tmp"))
+        .join("Caddyfile")
 }
 
 /// Get the path to the domains directory (in user space)
 pub fn get_domains_dir() -> PathBuf {
-    get_data_dir().unwrap_or_else(|_| PathBuf::from("/tmp")).join("domains")
+    get_data_dir()
+        .unwrap_or_else(|_| PathBuf::from("/tmp"))
+        .join("domains")
 }
 
 /// Get the path to the logs directory (in user space)
@@ -34,7 +38,10 @@ pub fn get_logs_dir() -> PathBuf {
 
 /// Get the path where we install Caddy binary for the daemon (in user space)
 pub fn get_caddy_daemon_bin() -> PathBuf {
-    get_data_dir().unwrap_or_else(|_| PathBuf::from("/tmp")).join("bin").join("caddy")
+    get_data_dir()
+        .unwrap_or_else(|_| PathBuf::from("/tmp"))
+        .join("bin")
+        .join("caddy")
 }
 
 /// Type of route for Caddyfile generation
@@ -77,7 +84,8 @@ p{color:#98989d}
 
 /// Generate a styled error page HTML
 fn get_error_html(code: u16, title: &str, body_content: &str) -> String {
-    format!(r#"<!DOCTYPE html>
+    format!(
+        r#"<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -92,7 +100,12 @@ fn get_error_html(code: u16, title: &str, body_content: &str) -> String {
 {body_content}
 </div>
 </body>
-</html>"#, code = code, title = title, styles = ERROR_PAGE_STYLES, body_content = body_content)
+</html>"#,
+        code = code,
+        title = title,
+        styles = ERROR_PAGE_STYLES,
+        body_content = body_content
+    )
 }
 
 /// Generate a styled 502 error page HTML for when the backend service is not running
@@ -103,7 +116,8 @@ fn get_502_error_html(domain: &str, port: u16) -> String {
 <div class="hint">
 <p>Start the instance in <strong>Burd</strong> to access this site.</p>
 </div>"#,
-        domain = domain, port = port
+        domain = domain,
+        port = port
     );
     get_error_html(502, "Service Not Running", &body)
 }
@@ -116,7 +130,8 @@ fn get_503_error_html(domain: &str, port: u16) -> String {
 <div class="hint">
 <p>Please try again in a few moments.</p>
 </div>"#,
-        domain = domain, port = port
+        domain = domain,
+        port = port
     );
     get_error_html(503, "Service Unavailable", &body)
 }
@@ -129,7 +144,8 @@ fn get_504_error_html(domain: &str, port: u16) -> String {
 <div class="hint">
 <p>The server may be processing a heavy request. Try again later.</p>
 </div>"#,
-        domain = domain, port = port
+        domain = domain,
+        port = port
     );
     get_error_html(504, "Gateway Timeout", &body)
 }
@@ -148,7 +164,12 @@ fn get_404_error_html(domain: &str) -> String {
 
 impl RouteEntry {
     /// Create a reverse proxy route entry
-    pub fn reverse_proxy(domain: String, port: u16, instance_id: String, ssl_enabled: bool) -> Self {
+    pub fn reverse_proxy(
+        domain: String,
+        port: u16,
+        instance_id: String,
+        ssl_enabled: bool,
+    ) -> Self {
         Self {
             domain,
             route_type: RouteType::ReverseProxy { port },
@@ -158,7 +179,13 @@ impl RouteEntry {
     }
 
     /// Create a file server route entry
-    pub fn file_server(domain: String, path: String, browse: bool, instance_id: String, ssl_enabled: bool) -> Self {
+    pub fn file_server(
+        domain: String,
+        path: String,
+        browse: bool,
+        instance_id: String,
+        ssl_enabled: bool,
+    ) -> Self {
         Self {
             domain,
             route_type: RouteType::FileServer { path, browse },
@@ -231,7 +258,8 @@ pub fn get_caddy_version() -> Result<String, String> {
 
 /// Generate main Caddyfile content (global config + import + catch-all)
 pub fn generate_main_caddyfile(tld: &str) -> String {
-    format!(r#"{{
+    format!(
+        r#"{{
     # Disable admin API in daemon mode for security
     admin off
     # Configure internal CA with custom name
@@ -259,7 +287,10 @@ import domains/*.caddy
 http://*.{tld} {{
     respond "No service configured for this domain" 404
 }}
-"#, tld = tld, logs_dir = get_logs_dir().display())
+"#,
+        tld = tld,
+        logs_dir = get_logs_dir().display()
+    )
 }
 
 /// Generate content for a single domain config file
@@ -274,7 +305,8 @@ pub fn generate_domain_config(route: &RouteEntry) -> String {
 
             if route.ssl_enabled {
                 // Generate both HTTP and HTTPS blocks
-                format!(r#"# Route: {instance_id}
+                format!(
+                    r#"# Route: {instance_id}
 http://{domain} {{
     reverse_proxy localhost:{port} {{
         header_up X-Forwarded-Proto http
@@ -321,7 +353,8 @@ https://{domain} {{
                 )
             } else {
                 // HTTP only
-                format!(r#"# Route: {instance_id}
+                format!(
+                    r#"# Route: {instance_id}
 http://{domain} {{
     reverse_proxy localhost:{port} {{
         header_up X-Forwarded-Proto http
@@ -355,7 +388,8 @@ http://{domain} {{
 
             if route.ssl_enabled {
                 // Generate both HTTP and HTTPS blocks
-                format!(r#"# Route: {instance_id} (Static Files)
+                format!(
+                    r#"# Route: {instance_id} (Static Files)
 http://{domain} {{
     root * "{path}"
     file_server {{{browse_directive}
@@ -387,7 +421,8 @@ https://{domain} {{
                 )
             } else {
                 // HTTP only
-                format!(r#"# Route: {instance_id} (Static Files)
+                format!(
+                    r#"# Route: {instance_id} (Static Files)
 http://{domain} {{
     root * "{path}"
     file_server {{{browse_directive}
@@ -428,8 +463,7 @@ fn write_file(path: &PathBuf, content: &str) -> Result<(), String> {
             .map_err(|e| format!("Failed to create directory {:?}: {}", parent, e))?;
     }
 
-    fs::write(path, content)
-        .map_err(|e| format!("Failed to write file {:?}: {}", path, e))
+    fs::write(path, content).map_err(|e| format!("Failed to write file {:?}: {}", path, e))
 }
 
 /// Delete a file from the Burd config directory (user space, no privileges needed)
@@ -439,8 +473,7 @@ fn delete_file(path: &PathBuf) -> Result<(), String> {
         return Ok(());
     }
 
-    fs::remove_file(path)
-        .map_err(|e| format!("Failed to delete file {:?}: {}", path, e))
+    fs::remove_file(path).map_err(|e| format!("Failed to delete file {:?}: {}", path, e))
 }
 
 /// Write the main Caddyfile (global config + import + catch-all)
@@ -539,8 +572,7 @@ pub fn read_caddyfile() -> Result<String, String> {
         return Ok(String::new());
     }
 
-    fs::read_to_string(&caddyfile_path)
-        .map_err(|e| format!("Failed to read Caddyfile: {}", e))
+    fs::read_to_string(&caddyfile_path).map_err(|e| format!("Failed to read Caddyfile: {}", e))
 }
 
 /// Touch the main Caddyfile to trigger Caddy's --watch reload
@@ -576,8 +608,7 @@ pub fn install_caddy_for_daemon() -> Result<(), String> {
     }
 
     // Copy the binary
-    fs::copy(&source, &dest)
-        .map_err(|e| format!("Failed to copy Caddy binary: {}", e))?;
+    fs::copy(&source, &dest).map_err(|e| format!("Failed to copy Caddy binary: {}", e))?;
 
     // Make it executable
     #[cfg(unix)]
@@ -612,12 +643,16 @@ mod tests {
         // Import should come before catch-all
         let import_pos = caddyfile.find("import domains").unwrap();
         let catchall_pos = caddyfile.find("*.burd").unwrap();
-        assert!(import_pos < catchall_pos, "Import should come before catch-all");
+        assert!(
+            import_pos < catchall_pos,
+            "Import should come before catch-all"
+        );
     }
 
     #[test]
     fn test_generate_domain_config_reverse_proxy_no_ssl() {
-        let route = RouteEntry::reverse_proxy("api.burd".to_string(), 7700, "test-1".to_string(), false);
+        let route =
+            RouteEntry::reverse_proxy("api.burd".to_string(), 7700, "test-1".to_string(), false);
         let config = generate_domain_config(&route);
 
         assert!(config.contains("http://api.burd"));
@@ -637,7 +672,8 @@ mod tests {
 
     #[test]
     fn test_generate_domain_config_reverse_proxy_with_ssl() {
-        let route = RouteEntry::reverse_proxy("api.burd".to_string(), 7700, "test-1".to_string(), true);
+        let route =
+            RouteEntry::reverse_proxy("api.burd".to_string(), 7700, "test-1".to_string(), true);
         let config = generate_domain_config(&route);
 
         assert!(config.contains("http://api.burd"));
@@ -659,7 +695,7 @@ mod tests {
             "/var/www/html".to_string(),
             true,
             "test-static".to_string(),
-            false
+            false,
         );
         let config = generate_domain_config(&route);
 
@@ -681,7 +717,7 @@ mod tests {
             "/var/www/html".to_string(),
             true,
             "test-static".to_string(),
-            true
+            true,
         );
         let config = generate_domain_config(&route);
 
@@ -698,7 +734,7 @@ mod tests {
             "/var/www/html".to_string(),
             false,
             "test-static".to_string(),
-            false
+            false,
         );
         let config = generate_domain_config(&route);
 

@@ -147,10 +147,7 @@ impl DatabaseManager for PostgresManager {
 
     fn database_exists(&self, name: &str) -> Result<bool, String> {
         let sanitized = super::sanitize_db_name(name)?;
-        let query = format!(
-            "SELECT 1 FROM pg_database WHERE datname = '{}'",
-            sanitized
-        );
+        let query = format!("SELECT 1 FROM pg_database WHERE datname = '{}'", sanitized);
         let output = self.execute_query(&query)?;
         Ok(!output.trim().is_empty())
     }

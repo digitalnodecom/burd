@@ -60,16 +60,18 @@ impl ParkWatcherState {
             move |res: Result<Vec<notify_debouncer_mini::DebouncedEvent>, notify::Error>| {
                 if let Ok(events) = res {
                     // Filter for directory creation/deletion events
-                    let has_dir_change = events.iter().any(|e| {
-                        matches!(e.kind, DebouncedEventKind::Any)
-                            && e.path.is_dir()
-                    });
+                    let has_dir_change = events
+                        .iter()
+                        .any(|e| matches!(e.kind, DebouncedEventKind::Any) && e.path.is_dir());
 
                     if has_dir_change {
                         // Emit event to frontend
-                        let _ = app.emit("park:directory-changed", serde_json::json!({
-                            "parked_dir_id": id.to_string(),
-                        }));
+                        let _ = app.emit(
+                            "park:directory-changed",
+                            serde_json::json!({
+                                "parked_dir_id": id.to_string(),
+                            }),
+                        );
                     }
                 }
             },
@@ -82,13 +84,7 @@ impl ParkWatcherState {
             .watch(&path, RecursiveMode::NonRecursive)
             .map_err(|e| format!("Failed to watch directory: {}", e))?;
 
-        watchers.insert(
-            parked_dir_id,
-            WatcherHandle {
-                debouncer,
-                path,
-            },
-        );
+        watchers.insert(parked_dir_id, WatcherHandle { debouncer, path });
 
         Ok(())
     }
@@ -120,10 +116,7 @@ impl ParkWatcherState {
     /// Get the number of active watchers
     #[allow(dead_code)]
     pub fn watcher_count(&self) -> usize {
-        self.watchers
-            .lock()
-            .map(|w| w.len())
-            .unwrap_or(0)
+        self.watchers.lock().map(|w| w.len()).unwrap_or(0)
     }
 }
 

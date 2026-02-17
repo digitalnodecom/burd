@@ -118,10 +118,7 @@ pub fn parse_caddy_json(line: &str) -> Option<LogEntry> {
     let ts = json["ts"].as_f64().unwrap_or(0.0);
     let timestamp = (ts * 1000.0) as i64;
 
-    let level = json["level"]
-        .as_str()
-        .unwrap_or("info")
-        .to_uppercase();
+    let level = json["level"].as_str().unwrap_or("info").to_uppercase();
 
     let msg = json["msg"].as_str().unwrap_or("").to_string();
 
@@ -135,7 +132,9 @@ pub fn parse_caddy_json(line: &str) -> Option<LogEntry> {
     // Extract response details
     let resp = &json["resp"];
     let status = resp["status"].as_u64().map(|s| s as u16);
-    let latency = resp["duration"].as_f64().or_else(|| resp["latency"].as_f64());
+    let latency = resp["duration"]
+        .as_f64()
+        .or_else(|| resp["latency"].as_f64());
     let duration_ms = latency.map(|l| l * 1000.0);
 
     // Extract request ID if present
@@ -191,10 +190,7 @@ pub fn parse_laravel_json(line: &str, instance_id: Option<&str>) -> Option<LogEn
     // }
 
     let message = json["message"].as_str().unwrap_or("").to_string();
-    let level = json["level_name"]
-        .as_str()
-        .unwrap_or("INFO")
-        .to_uppercase();
+    let level = json["level_name"].as_str().unwrap_or("INFO").to_uppercase();
 
     let datetime = json["datetime"].as_str().unwrap_or("");
     let timestamp = DateTime::parse_from_rfc3339(datetime)
@@ -202,9 +198,7 @@ pub fn parse_laravel_json(line: &str, instance_id: Option<&str>) -> Option<LogEn
         .unwrap_or_else(|_| Utc::now().timestamp_millis());
 
     let context = &json["context"];
-    let request_id = context["request_id"]
-        .as_str()
-        .map(|s| s.to_string());
+    let request_id = context["request_id"].as_str().map(|s| s.to_string());
 
     Some(LogEntry {
         id: Uuid::new_v4().to_string(),
@@ -255,28 +249,22 @@ pub fn parse_plain_text(line: &str, source: &str, instance_id: Option<&str>) -> 
 }
 
 /// Read new lines from a file since the last position
-pub fn read_new_lines(
-    path: &str,
-    state: &mut LogFileState,
-) -> Result<Vec<String>, String> {
-    let file = File::open(path)
-        .map_err(|e| format!("Failed to open log file {}: {}", path, e))?;
+pub fn read_new_lines(path: &str, state: &mut LogFileState) -> Result<Vec<String>, String> {
+    let file = File::open(path).map_err(|e| format!("Failed to open log file {}: {}", path, e))?;
 
-    let metadata = file.metadata()
+    let metadata = file
+        .metadata()
         .map_err(|e| format!("Failed to get file metadata: {}", e))?;
     let file_size = metadata.len();
 
     let last_pos = state.get_position(path);
 
     // If file was truncated (rotated), start from beginning
-    let start_pos = if file_size < last_pos {
-        0
-    } else {
-        last_pos
-    };
+    let start_pos = if file_size < last_pos { 0 } else { last_pos };
 
     let mut reader = BufReader::new(file);
-    reader.seek(SeekFrom::Start(start_pos))
+    reader
+        .seek(SeekFrom::Start(start_pos))
         .map_err(|e| format!("Failed to seek: {}", e))?;
 
     let mut lines = Vec::new();
@@ -303,14 +291,10 @@ pub fn read_new_lines(
 
 /// Get the last N lines from a file (for initial load)
 pub fn get_last_lines(path: &str, count: usize) -> Result<Vec<String>, String> {
-    let file = File::open(path)
-        .map_err(|e| format!("Failed to open log file {}: {}", path, e))?;
+    let file = File::open(path).map_err(|e| format!("Failed to open log file {}: {}", path, e))?;
 
     let reader = BufReader::new(file);
-    let all_lines: Vec<String> = reader
-        .lines()
-        .map_while(Result::ok)
-        .collect();
+    let all_lines: Vec<String> = reader.lines().map_while(Result::ok).collect();
 
     let start = if all_lines.len() > count {
         all_lines.len() - count

@@ -22,7 +22,9 @@ impl ServiceDefinition for CentrifugoService {
     }
 
     fn version_source(&self) -> VersionSource {
-        VersionSource::GitHubReleases("https://api.github.com/repos/centrifugal/centrifugo/releases")
+        VersionSource::GitHubReleases(
+            "https://api.github.com/repos/centrifugal/centrifugo/releases",
+        )
     }
 
     fn download_method(&self, _version: &str, arch: &str) -> DownloadMethod {
@@ -62,7 +64,11 @@ impl ServiceDefinition for CentrifugoService {
         }
 
         // Add token HMAC secret if configured
-        if let Some(secret) = instance.config.get("token_hmac_secret").and_then(|v| v.as_str()) {
+        if let Some(secret) = instance
+            .config
+            .get("token_hmac_secret")
+            .and_then(|v| v.as_str())
+        {
             if !secret.is_empty() {
                 args.push("--token_hmac_secret_key".to_string());
                 args.push(secret.to_string());
@@ -77,7 +83,11 @@ impl ServiceDefinition for CentrifugoService {
         }
 
         // Add admin password if configured
-        if let Some(password) = instance.config.get("admin_password").and_then(|v| v.as_str()) {
+        if let Some(password) = instance
+            .config
+            .get("admin_password")
+            .and_then(|v| v.as_str())
+        {
             if !password.is_empty() {
                 args.push("--admin_password".to_string());
                 args.push(password.to_string());

@@ -167,7 +167,9 @@ fn handle_initialize(id: Option<Value>) -> JsonRpcResponse {
     let result = InitializeResult {
         protocol_version: PROTOCOL_VERSION.to_string(),
         capabilities: ServerCapabilities {
-            tools: ToolsCapability { list_changed: false },
+            tools: ToolsCapability {
+                list_changed: false,
+            },
         },
         server_info: ServerInfo {
             name: "burd-mcp".to_string(),
@@ -372,7 +374,7 @@ fn execute_tool(client: &BurdApiClient, name: &str, args: Option<Value>) -> Resu
             }
 
             // Convert to owned strings
-            let cli_args: Vec<&str> = cli_args.iter().map(|s| *s).collect();
+            let cli_args: Vec<&str> = cli_args.to_vec();
             execute_cli_command(&cli_args)
         }
         "list_db_tools" => {

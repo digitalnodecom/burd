@@ -24,12 +24,7 @@ impl ServiceDefinition for MongoDBService {
     fn version_source(&self) -> VersionSource {
         // MongoDB doesn't use GitHub releases for binaries, use static list
         VersionSource::Static(vec![
-            "8.0.4",
-            "8.0.3",
-            "7.0.15",
-            "7.0.14",
-            "6.0.19",
-            "6.0.18",
+            "8.0.4", "8.0.3", "7.0.15", "7.0.14", "6.0.19", "6.0.18",
         ])
     }
 
@@ -44,8 +39,8 @@ impl ServiceDefinition for MongoDBService {
         DownloadMethod::Direct {
             url,
             is_archive: true,
-                checksum: None, // TODO: Add SHA256 checksums for binary verification
-            }
+            checksum: None, // TODO: Add SHA256 checksums for binary verification
+        }
     }
 
     fn health_check(&self) -> HealthCheck {

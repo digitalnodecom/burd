@@ -58,11 +58,9 @@ pub fn run_db_create(name: &str) -> Result<(), String> {
     let db_instances = find_all_db_instances(&config);
 
     if db_instances.is_empty() {
-        return Err(
-            "No database instances configured in Burd.\n\
+        return Err("No database instances configured in Burd.\n\
              Create a MariaDB or PostgreSQL instance in the Burd app first."
-                .to_string(),
-        );
+            .to_string());
     }
 
     // Use the first database instance (typically MariaDB)
@@ -172,10 +170,7 @@ pub fn run_db_import(name: &str, sql_file: &str) -> Result<(), String> {
         Some(i) => i,
         None => {
             // Database doesn't exist - offer to create it
-            print!(
-                "Database '{}' doesn't exist. Create it? [Y/n] ",
-                sanitized
-            );
+            print!("Database '{}' doesn't exist. Create it? [Y/n] ", sanitized);
             io::stdout().flush().unwrap();
 
             let mut input = String::new();

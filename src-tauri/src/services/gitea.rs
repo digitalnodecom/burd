@@ -45,8 +45,8 @@ impl ServiceDefinition for GiteaService {
     }
 
     fn start_args(&self, instance: &Instance, _data_dir: &Path) -> Vec<String> {
-        let data_dir = get_instance_dir(&instance.id)
-            .unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let data_dir =
+            get_instance_dir(&instance.id).unwrap_or_else(|_| std::path::PathBuf::from("."));
 
         // Generate app.ini config file
         let config_file = data_dir.join("custom").join("conf").join("app.ini");

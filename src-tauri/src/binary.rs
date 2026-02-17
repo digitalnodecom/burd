@@ -4,22 +4,20 @@
 //! Handles version management, download progress reporting, and binary verification.
 
 use crate::config::{
-    get_bin_dir, get_binary_name, get_binary_path, get_service_bin_dir,
-    get_versioned_binary_dir, BinaryInfo, ConfigStore, ServiceType,
+    get_bin_dir, get_binary_name, get_binary_path, get_service_bin_dir, get_versioned_binary_dir,
+    BinaryInfo, ConfigStore, ServiceType,
 };
-use crate::service_config::{
-    get_current_platform, DownloadConfig, ServiceRegistry, VersionConfig,
-};
+use crate::service_config::{get_current_platform, DownloadConfig, ServiceRegistry, VersionConfig};
 use crate::services::{get_service, DownloadMethod, VersionSource};
-use serde::Serialize;
 use chrono::Utc;
 use flate2::read::GzDecoder;
 use futures_util::StreamExt;
 use reqwest::Client;
 use serde::Deserialize;
-use sha2::{Sha256, Digest};
+use serde::Serialize;
+use sha2::{Digest, Sha256};
 use std::fs::{self, File};
-use std::io::{Write, Read};
+use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use tar::Archive;
@@ -81,7 +79,8 @@ fn verify_checksum(file_path: &Path, expected_checksum: &str) -> Result<(), Stri
     let mut hasher = Sha256::new();
     let mut buffer = vec![0; 8192]; // 8KB buffer for reading
     loop {
-        let bytes_read = file.read(&mut buffer)
+        let bytes_read = file
+            .read(&mut buffer)
             .map_err(|e| format!("Failed to read file for checksum: {}", e))?;
         if bytes_read == 0 {
             break;
@@ -107,6 +106,12 @@ fn verify_checksum(file_path: &Path, expected_checksum: &str) -> Result<(), Stri
 #[derive(Clone)]
 pub struct BinaryManager {
     client: Client,
+}
+
+impl Default for BinaryManager {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl BinaryManager {
@@ -137,7 +142,10 @@ impl BinaryManager {
     }
 
     /// Get all installed versions for a service by scanning the versioned directory
-    pub fn get_installed_versions_sync(&self, service_type: ServiceType) -> Result<Vec<String>, String> {
+    pub fn get_installed_versions_sync(
+        &self,
+        service_type: ServiceType,
+    ) -> Result<Vec<String>, String> {
         let service_dir = get_service_bin_dir(service_type)?;
         let legacy_path = get_binary_path(service_type)?;
 
@@ -169,7 +177,8 @@ impl BinaryManager {
             let path = entry.path();
 
             if path.is_dir() {
-                let version = path.file_name()
+                let version = path
+                    .file_name()
                     .and_then(|n| n.to_str())
                     .map(|s| s.to_string());
 
@@ -216,20 +225,16 @@ impl BinaryManager {
         let version_source = service.version_source();
 
         match version_source {
-            VersionSource::GitHubReleases(api_url) => {
-                self.fetch_github_versions(api_url).await
-            }
-            VersionSource::Static(versions) => {
-                Ok(versions
-                    .into_iter()
-                    .enumerate()
-                    .map(|(i, v)| VersionInfo {
-                        version: v.to_string(),
-                        is_latest: i == 0,
-                        label: None,
-                    })
-                    .collect())
-            }
+            VersionSource::GitHubReleases(api_url) => self.fetch_github_versions(api_url).await,
+            VersionSource::Static(versions) => Ok(versions
+                .into_iter()
+                .enumerate()
+                .map(|(i, v)| VersionInfo {
+                    version: v.to_string(),
+                    is_latest: i == 0,
+                    label: None,
+                })
+                .collect()),
         }
     }
 
@@ -240,30 +245,27 @@ impl BinaryManager {
     ) -> Result<Vec<VersionInfo>, String> {
         let mut versions = match &config.versions {
             VersionConfig::GithubReleases { github_repo } => {
-                let api_url = format!(
-                    "https://api.github.com/repos/{}/releases",
-                    github_repo
-                );
+                let api_url = format!("https://api.github.com/repos/{}/releases", github_repo);
                 self.fetch_github_versions(&api_url).await?
             }
-            VersionConfig::Static { versions } => {
-                versions
-                    .iter()
-                    .enumerate()
-                    .map(|(i, v)| VersionInfo {
-                        version: v.clone(),
-                        is_latest: i == 0,
-                        label: None,
-                    })
-                    .collect()
-            }
+            VersionConfig::Static { versions } => versions
+                .iter()
+                .enumerate()
+                .map(|(i, v)| VersionInfo {
+                    version: v.clone(),
+                    is_latest: i == 0,
+                    label: None,
+                })
+                .collect(),
         };
 
         // Apply version labels from config
         if !config.version_labels.is_empty() {
             let default_label = config.version_labels.get("default");
             for v in &mut versions {
-                v.label = config.version_labels.get(&v.version)
+                v.label = config
+                    .version_labels
+                    .get(&v.version)
                     .or(default_label)
                     .cloned();
             }
@@ -335,7 +337,9 @@ impl BinaryManager {
                 match &platform_config.download {
                     DownloadConfig::GithubAsset { asset_pattern } => {
                         // Fetch specific release from GitHub
-                        if let VersionConfig::GithubReleases { github_repo } = &service_config.versions {
+                        if let VersionConfig::GithubReleases { github_repo } =
+                            &service_config.versions
+                        {
                             let release_url = format!(
                                 "https://api.github.com/repos/{}/releases/tags/{}",
                                 github_repo, version
@@ -354,12 +358,15 @@ impl BinaryManager {
                             let asset = release
                                 .assets
                                 .iter()
-                                .find(|a| a.name == *asset_pattern || a.name.contains(asset_pattern))
+                                .find(|a| {
+                                    a.name == *asset_pattern || a.name.contains(asset_pattern)
+                                })
                                 .ok_or_else(|| {
                                     format!("No binary found (looking for {})", asset_pattern)
                                 })?;
 
-                            let final_version = release.tag_name.trim_start_matches('v').to_string();
+                            let final_version =
+                                release.tag_name.trim_start_matches('v').to_string();
                             (
                                 asset.browser_download_url.clone(),
                                 final_version,
@@ -368,10 +375,16 @@ impl BinaryManager {
                                 None, // Checksum not yet supported in JSON config
                             )
                         } else {
-                            return Err("GitHub asset download requires GitHub releases version source".to_string());
+                            return Err(
+                                "GitHub asset download requires GitHub releases version source"
+                                    .to_string(),
+                            );
                         }
                     }
-                    DownloadConfig::Direct { url_template, url_template_versioned } => {
+                    DownloadConfig::Direct {
+                        url_template,
+                        url_template_versioned,
+                    } => {
                         // Use versioned template if version is not "latest"
                         let template = if version != "latest" {
                             url_template_versioned.as_ref().unwrap_or(url_template)
@@ -384,17 +397,25 @@ impl BinaryManager {
                             .replace("{version}", clean_version)
                             .replace("{VERSION}", version);
 
-                        (url, version.to_string(), platform_config.is_archive, binary_name, None)
+                        (
+                            url,
+                            version.to_string(),
+                            platform_config.is_archive,
+                            binary_name,
+                            None,
+                        )
                     }
                     DownloadConfig::Homebrew { formula } => {
                         // Handle Homebrew installation - returns early
-                        return self.install_homebrew_formula(
-                            service_type,
-                            formula,
-                            &binary_name,
-                            &bin_dir,
-                            &app,
-                        ).await;
+                        return self
+                            .install_homebrew_formula(
+                                service_type,
+                                formula,
+                                &binary_name,
+                                &bin_dir,
+                                &app,
+                            )
+                            .await;
                     }
                     DownloadConfig::Npm { package } => {
                         // NPM packages are installed per-instance, not downloaded as binaries
@@ -409,11 +430,19 @@ impl BinaryManager {
             } else {
                 // Fallback to trait-based service
                 let service = get_service(service_type);
-                let arch = if cfg!(target_arch = "aarch64") { "aarch64" } else { "x86_64" };
+                let arch = if cfg!(target_arch = "aarch64") {
+                    "aarch64"
+                } else {
+                    "x86_64"
+                };
                 let download_method = service.download_method(version, arch);
 
                 match download_method {
-                    DownloadMethod::GitHubRelease { api_url, asset_pattern, checksum } => {
+                    DownloadMethod::GitHubRelease {
+                        api_url,
+                        asset_pattern,
+                        checksum,
+                    } => {
                         let release_url = format!("{}{}", api_url, version);
                         let release: GitHubRelease = self
                             .client
@@ -439,11 +468,25 @@ impl BinaryManager {
                             })?;
 
                         let final_version = release.tag_name.trim_start_matches('v').to_string();
-                        (asset.browser_download_url.clone(), final_version, false, service.binary_name().to_string(), checksum)
+                        (
+                            asset.browser_download_url.clone(),
+                            final_version,
+                            false,
+                            service.binary_name().to_string(),
+                            checksum,
+                        )
                     }
-                    DownloadMethod::Direct { url, is_archive, checksum } => {
-                        (url, version.to_string(), is_archive, service.binary_name().to_string(), checksum)
-                    }
+                    DownloadMethod::Direct {
+                        url,
+                        is_archive,
+                        checksum,
+                    } => (
+                        url,
+                        version.to_string(),
+                        is_archive,
+                        service.binary_name().to_string(),
+                        checksum,
+                    ),
                 }
             };
 
@@ -548,13 +591,16 @@ impl BinaryManager {
 
         // Emit extracting phase
         if is_archive {
-            let _ = app.emit("download-progress", DownloadProgress {
-                service_type: service_type.as_str().to_string(),
-                downloaded: total_size,
-                total: total_size,
-                percentage: 100.0,
-                phase: "extracting".to_string(),
-            });
+            let _ = app.emit(
+                "download-progress",
+                DownloadProgress {
+                    service_type: service_type.as_str().to_string(),
+                    downloaded: total_size,
+                    total: total_size,
+                    percentage: 100.0,
+                    phase: "extracting".to_string(),
+                },
+            );
         }
 
         // Extract archive if needed
@@ -597,13 +643,16 @@ impl BinaryManager {
         use std::process::Command;
 
         // Emit initial progress
-        let _ = app.emit("download-progress", DownloadProgress {
-            service_type: service_type.as_str().to_string(),
-            downloaded: 0,
-            total: 0,
-            percentage: -1.0, // Indeterminate
-            phase: "installing".to_string(),
-        });
+        let _ = app.emit(
+            "download-progress",
+            DownloadProgress {
+                service_type: service_type.as_str().to_string(),
+                downloaded: 0,
+                total: 0,
+                percentage: -1.0, // Indeterminate
+                phase: "installing".to_string(),
+            },
+        );
 
         // Check if Homebrew is available
         let brew_check = Command::new("brew")
@@ -623,13 +672,16 @@ impl BinaryManager {
 
         if !list_output.status.success() {
             // Install the formula
-            let _ = app.emit("download-progress", DownloadProgress {
-                service_type: service_type.as_str().to_string(),
-                downloaded: 0,
-                total: 0,
-                percentage: -1.0,
-                phase: "installing".to_string(),
-            });
+            let _ = app.emit(
+                "download-progress",
+                DownloadProgress {
+                    service_type: service_type.as_str().to_string(),
+                    downloaded: 0,
+                    total: 0,
+                    percentage: -1.0,
+                    phase: "installing".to_string(),
+                },
+            );
 
             let install_output = Command::new("brew")
                 .args(["install", formula])
@@ -701,7 +753,9 @@ impl BinaryManager {
         let legacy_binary_path = get_binary_path(service_type)?;
         let service_dir = get_service_bin_dir(service_type)?;
 
-        if legacy_binary_path.exists() && (legacy_binary_path.is_file() || legacy_binary_path.is_symlink()) {
+        if legacy_binary_path.exists()
+            && (legacy_binary_path.is_file() || legacy_binary_path.is_symlink())
+        {
             // There's a legacy flat binary - we need to migrate it
             let temp_path = bin_dir.join(format!("{}_legacy_temp", service_type.as_str()));
             fs::rename(&legacy_binary_path, &temp_path)
@@ -734,13 +788,16 @@ impl BinaryManager {
         }
 
         // Emit completion
-        let _ = app.emit("download-progress", DownloadProgress {
-            service_type: service_type.as_str().to_string(),
-            downloaded: 100,
-            total: 100,
-            percentage: 100.0,
-            phase: "complete".to_string(),
-        });
+        let _ = app.emit(
+            "download-progress",
+            DownloadProgress {
+                service_type: service_type.as_str().to_string(),
+                downloaded: 100,
+                total: 100,
+                percentage: 100.0,
+                phase: "complete".to_string(),
+            },
+        );
 
         Ok(BinaryInfo {
             version,
@@ -769,8 +826,8 @@ fn extract_zip(archive_path: &Path, dest_dir: &Path) -> Result<(), String> {
     // Use system unzip command
     let output = Command::new("unzip")
         .args([
-            "-o",  // overwrite without prompting
-            "-q",  // quiet
+            "-o", // overwrite without prompting
+            "-q", // quiet
             archive_path.to_str().ok_or("Invalid archive path")?,
             "-d",
             dest_dir.to_str().ok_or("Invalid destination path")?,
@@ -788,8 +845,7 @@ fn extract_zip(archive_path: &Path, dest_dir: &Path) -> Result<(), String> {
 
 /// Extract a tar.gz archive and find the binary
 fn extract_tar_gz(archive_path: &Path, dest_dir: &Path, binary_name: &str) -> Result<(), String> {
-    let file = File::open(archive_path)
-        .map_err(|e| format!("Failed to open archive: {}", e))?;
+    let file = File::open(archive_path).map_err(|e| format!("Failed to open archive: {}", e))?;
 
     let decoder = GzDecoder::new(file);
     let mut archive = Archive::new(decoder);
@@ -817,10 +873,7 @@ fn extract_tar_gz(archive_path: &Path, dest_dir: &Path, binary_name: &str) -> Re
         if !found {
             // Clean up temp directory
             let _ = fs::remove_dir_all(&extract_dir);
-            return Err(format!(
-                "Binary '{}' not found in archive",
-                binary_name
-            ));
+            return Err(format!("Binary '{}' not found in archive", binary_name));
         }
     }
 
@@ -982,7 +1035,11 @@ fn patch_postgresql_paths(bin_dir: &Path, share_path: &str, lib_path: &str) -> R
 }
 
 /// Copy a bundled package preserving lib/ structure
-fn copy_bundled_package(extract_dir: &Path, dest_dir: &Path, binary_name: &str) -> Result<(), String> {
+fn copy_bundled_package(
+    extract_dir: &Path,
+    dest_dir: &Path,
+    binary_name: &str,
+) -> Result<(), String> {
     use std::process::Command;
 
     // Find the root of the package (where bin/ and lib/ are)
@@ -1045,7 +1102,9 @@ fn copy_bundled_package(extract_dir: &Path, dest_dir: &Path, binary_name: &str) 
             // Check if this looks like PostgreSQL (has timezonesets)
             if dest_share.join("timezonesets").exists() {
                 // Patch binaries to use /opt/burd paths
-                if let Err(e) = patch_postgresql_paths(&dest_bin, "/opt/burd/share", "/opt/burd/lib") {
+                if let Err(e) =
+                    patch_postgresql_paths(&dest_bin, "/opt/burd/share", "/opt/burd/lib")
+                {
                     eprintln!("Warning: Failed to patch PostgreSQL paths: {}", e);
                 }
 
@@ -1214,8 +1273,9 @@ fn copy_dir_contents(src: &Path, dest: &Path) -> Result<(), String> {
                 let _ = fs::remove_file(&dest_path);
 
                 #[cfg(unix)]
-                std::os::unix::fs::symlink(&link_target, &dest_path)
-                    .map_err(|e| format!("Failed to create symlink {}: {}", dest_path.display(), e))?;
+                std::os::unix::fs::symlink(&link_target, &dest_path).map_err(|e| {
+                    format!("Failed to create symlink {}: {}", dest_path.display(), e)
+                })?;
             } else if metadata.is_dir() {
                 fs::create_dir_all(&dest_path)
                     .map_err(|e| format!("Failed to create directory: {}", e))?;
@@ -1330,7 +1390,10 @@ mod tests {
 
         // Verify checksum - should fail
         let result = verify_checksum(&file_path, wrong_checksum);
-        assert!(result.is_err(), "Checksum verification should fail with wrong checksum");
+        assert!(
+            result.is_err(),
+            "Checksum verification should fail with wrong checksum"
+        );
         assert!(result.unwrap_err().contains("Checksum verification failed"));
     }
 
@@ -1350,7 +1413,10 @@ mod tests {
 
         // Should still verify successfully (case-insensitive)
         let result = verify_checksum(&file_path, uppercase_checksum);
-        assert!(result.is_ok(), "Checksum verification should be case-insensitive");
+        assert!(
+            result.is_ok(),
+            "Checksum verification should be case-insensitive"
+        );
     }
 
     #[test]

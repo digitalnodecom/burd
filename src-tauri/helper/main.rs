@@ -112,8 +112,8 @@ fn handle_client(mut stream: UnixStream) -> Result<(), String> {
             continue;
         }
 
-        let request: HelperRequest = serde_json::from_str(&line)
-            .map_err(|e| format!("Invalid request: {}", e))?;
+        let request: HelperRequest =
+            serde_json::from_str(&line).map_err(|e| format!("Invalid request: {}", e))?;
 
         let response = handle_request(request);
 
@@ -131,41 +131,23 @@ fn handle_request(request: HelperRequest) -> HelperResponse {
     match request {
         HelperRequest::Ping => HelperResponse::ok("pong"),
 
-        HelperRequest::InstallResolver { tld, dns_port } => {
-            install_resolver(&tld, dns_port)
-        }
+        HelperRequest::InstallResolver { tld, dns_port } => install_resolver(&tld, dns_port),
 
-        HelperRequest::UninstallResolver { tld } => {
-            uninstall_resolver(&tld)
-        }
+        HelperRequest::UninstallResolver { tld } => uninstall_resolver(&tld),
 
-        HelperRequest::InstallProxyDaemon { plist_content } => {
-            install_proxy_daemon(&plist_content)
-        }
+        HelperRequest::InstallProxyDaemon { plist_content } => install_proxy_daemon(&plist_content),
 
-        HelperRequest::UninstallProxyDaemon => {
-            uninstall_proxy_daemon()
-        }
+        HelperRequest::UninstallProxyDaemon => uninstall_proxy_daemon(),
 
-        HelperRequest::StartProxyDaemon => {
-            start_proxy_daemon()
-        }
+        HelperRequest::StartProxyDaemon => start_proxy_daemon(),
 
-        HelperRequest::RestartProxyDaemon => {
-            restart_proxy_daemon()
-        }
+        HelperRequest::RestartProxyDaemon => restart_proxy_daemon(),
 
-        HelperRequest::GetCertInfo { cert_path } => {
-            get_cert_info(&cert_path)
-        }
+        HelperRequest::GetCertInfo { cert_path } => get_cert_info(&cert_path),
 
-        HelperRequest::FixCaddyPermissions { path } => {
-            fix_caddy_permissions(&path)
-        }
+        HelperRequest::FixCaddyPermissions { path } => fix_caddy_permissions(&path),
 
-        HelperRequest::SetupOptBurd { username } => {
-            setup_opt_burd(&username)
-        }
+        HelperRequest::SetupOptBurd { username } => setup_opt_burd(&username),
     }
 }
 
@@ -236,16 +218,12 @@ fn install_proxy_daemon(plist_content: &str) -> HelperResponse {
         .output();
 
     match output {
-        Ok(o) if o.status.success() => {
-            HelperResponse::ok("Proxy daemon installed and loaded")
-        }
+        Ok(o) if o.status.success() => HelperResponse::ok("Proxy daemon installed and loaded"),
         Ok(o) => {
             let stderr = String::from_utf8_lossy(&o.stderr);
             HelperResponse::error(format!("Failed to load daemon: {}", stderr))
         }
-        Err(e) => {
-            HelperResponse::error(format!("Failed to run launchctl: {}", e))
-        }
+        Err(e) => HelperResponse::error(format!("Failed to run launchctl: {}", e)),
     }
 }
 
@@ -276,16 +254,12 @@ fn start_proxy_daemon() -> HelperResponse {
         .output();
 
     match output {
-        Ok(o) if o.status.success() => {
-            HelperResponse::ok("Proxy daemon started")
-        }
+        Ok(o) if o.status.success() => HelperResponse::ok("Proxy daemon started"),
         Ok(o) => {
             let stderr = String::from_utf8_lossy(&o.stderr);
             HelperResponse::error(format!("Failed to start daemon: {}", stderr))
         }
-        Err(e) => {
-            HelperResponse::error(format!("Failed to run launchctl: {}", e))
-        }
+        Err(e) => HelperResponse::error(format!("Failed to run launchctl: {}", e)),
     }
 }
 
@@ -295,16 +269,12 @@ fn restart_proxy_daemon() -> HelperResponse {
         .output();
 
     match output {
-        Ok(o) if o.status.success() => {
-            HelperResponse::ok("Proxy daemon restarted")
-        }
+        Ok(o) if o.status.success() => HelperResponse::ok("Proxy daemon restarted"),
         Ok(o) => {
             let stderr = String::from_utf8_lossy(&o.stderr);
             HelperResponse::error(format!("Failed to restart daemon: {}", stderr))
         }
-        Err(e) => {
-            HelperResponse::error(format!("Failed to run launchctl: {}", e))
-        }
+        Err(e) => HelperResponse::error(format!("Failed to run launchctl: {}", e)),
     }
 }
 
@@ -330,7 +300,9 @@ fn get_cert_info(cert_path: &str) -> HelperResponse {
         .and_then(|o| {
             if o.status.success() {
                 let output = String::from_utf8_lossy(&o.stdout);
-                output.split("CN = ").nth(1)
+                output
+                    .split("CN = ")
+                    .nth(1)
                     .or_else(|| output.split("CN=").nth(1))
                     .map(|s| s.trim().to_string())
             } else {
@@ -369,7 +341,7 @@ fn fix_caddy_permissions(path: &str) -> HelperResponse {
     // The path should be something like /Users/xxx/Library/Application Support/Burd/caddy-data
     if !path.contains("/Library/Application Support/Burd/") {
         return HelperResponse::error(
-            "Permission denied: can only fix permissions within Burd directories".to_string()
+            "Permission denied: can only fix permissions within Burd directories".to_string(),
         );
     }
 
@@ -380,9 +352,7 @@ fn fix_caddy_permissions(path: &str) -> HelperResponse {
 
     // Make directory and all contents readable (755 for dirs, 644 for files)
     // Use chmod -R to recursively set permissions
-    let output = Command::new("chmod")
-        .args(["-R", "755", path])
-        .output();
+    let output = Command::new("chmod").args(["-R", "755", path]).output();
 
     match output {
         Ok(o) if o.status.success() => {
@@ -392,9 +362,7 @@ fn fix_caddy_permissions(path: &str) -> HelperResponse {
             let stderr = String::from_utf8_lossy(&o.stderr);
             HelperResponse::error(format!("Failed to fix permissions: {}", stderr))
         }
-        Err(e) => {
-            HelperResponse::error(format!("Failed to run chmod: {}", e))
-        }
+        Err(e) => HelperResponse::error(format!("Failed to run chmod: {}", e)),
     }
 }
 
@@ -415,9 +383,7 @@ fn setup_opt_burd(username: &str) -> HelperResponse {
     // Check if already exists with correct ownership
     if Path::new(OPT_BURD).exists() {
         // Check ownership
-        let output = Command::new("stat")
-            .args(["-f", "%Su", OPT_BURD])
-            .output();
+        let output = Command::new("stat").args(["-f", "%Su", OPT_BURD]).output();
 
         if let Ok(o) = output {
             let owner = String::from_utf8_lossy(&o.stdout).trim().to_string();
@@ -427,21 +393,15 @@ fn setup_opt_burd(username: &str) -> HelperResponse {
         }
 
         // Fix ownership if it exists but has wrong owner
-        let output = Command::new("chown")
-            .args([username, OPT_BURD])
-            .output();
+        let output = Command::new("chown").args([username, OPT_BURD]).output();
 
         return match output {
-            Ok(o) if o.status.success() => {
-                HelperResponse::ok("/opt/burd ownership fixed")
-            }
+            Ok(o) if o.status.success() => HelperResponse::ok("/opt/burd ownership fixed"),
             Ok(o) => {
                 let stderr = String::from_utf8_lossy(&o.stderr);
                 HelperResponse::error(format!("Failed to fix ownership: {}", stderr))
             }
-            Err(e) => {
-                HelperResponse::error(format!("Failed to run chown: {}", e))
-            }
+            Err(e) => HelperResponse::error(format!("Failed to run chown: {}", e)),
         };
     }
 
@@ -451,20 +411,14 @@ fn setup_opt_burd(username: &str) -> HelperResponse {
     }
 
     // Set ownership to the user
-    let output = Command::new("chown")
-        .args([username, OPT_BURD])
-        .output();
+    let output = Command::new("chown").args([username, OPT_BURD]).output();
 
     match output {
-        Ok(o) if o.status.success() => {
-            HelperResponse::ok("/opt/burd created and ownership set")
-        }
+        Ok(o) if o.status.success() => HelperResponse::ok("/opt/burd created and ownership set"),
         Ok(o) => {
             let stderr = String::from_utf8_lossy(&o.stderr);
             HelperResponse::error(format!("Failed to set ownership: {}", stderr))
         }
-        Err(e) => {
-            HelperResponse::error(format!("Failed to run chown: {}", e))
-        }
+        Err(e) => HelperResponse::error(format!("Failed to run chown: {}", e)),
     }
 }

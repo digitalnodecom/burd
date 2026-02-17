@@ -2,7 +2,9 @@
 //!
 //! Handles PVM (PHP Version Manager) commands for managing PHP versions.
 
-use crate::pvm::{self, CurrentPHP, PHPVersion, PvmStatus, RemotePHPVersion, ShellIntegrationStatus};
+use crate::pvm::{
+    self, CurrentPHP, PHPVersion, PvmStatus, RemotePHPVersion, ShellIntegrationStatus,
+};
 
 // ============================================================================
 // PVM Commands (PHP Version Manager)

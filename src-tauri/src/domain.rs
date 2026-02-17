@@ -86,7 +86,11 @@ impl DomainManager {
             // Safety limit
             if counter > 1000 {
                 // Use a more unique suffix
-                return format!("{}-{}", base_slug, uuid::Uuid::new_v4().to_string().split('-').next().unwrap());
+                return format!(
+                    "{}-{}",
+                    base_slug,
+                    uuid::Uuid::new_v4().to_string().split('-').next().unwrap()
+                );
             }
         }
     }
@@ -119,19 +123,32 @@ impl DomainManager {
         }
 
         // Must start with alphanumeric
-        if !slug.chars().next().map(|c| c.is_ascii_alphanumeric()).unwrap_or(false) {
+        if !slug
+            .chars()
+            .next()
+            .map(|c| c.is_ascii_alphanumeric())
+            .unwrap_or(false)
+        {
             return Some("Domain must start with a letter or number".to_string());
         }
 
         // Must end with alphanumeric
-        if !slug.chars().last().map(|c| c.is_ascii_alphanumeric()).unwrap_or(false) {
+        if !slug
+            .chars()
+            .last()
+            .map(|c| c.is_ascii_alphanumeric())
+            .unwrap_or(false)
+        {
             return Some("Domain must end with a letter or number".to_string());
         }
 
         // Only lowercase alphanumeric, hyphens, and periods
         for c in slug.chars() {
             if !c.is_ascii_lowercase() && !c.is_ascii_digit() && c != '-' && c != '.' {
-                return Some("Domain can only contain lowercase letters, numbers, hyphens, and periods".to_string());
+                return Some(
+                    "Domain can only contain lowercase letters, numbers, hyphens, and periods"
+                        .to_string(),
+                );
             }
         }
 
@@ -191,7 +208,10 @@ mod tests {
 
     #[test]
     fn test_generate_domain() {
-        assert_eq!(DomainManager::generate_domain("My API", "burd"), "my-api.burd");
+        assert_eq!(
+            DomainManager::generate_domain("My API", "burd"),
+            "my-api.burd"
+        );
     }
 
     #[test]

@@ -3,10 +3,10 @@
 //! Provides integration with NVM for managing Node.js versions.
 //! Supports version installation, switching, and listing available versions.
 
+use serde::{Deserialize, Serialize};
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
-use serde::{Deserialize, Serialize};
 
 /// Strip ANSI escape codes from a string
 fn strip_ansi_codes(s: &str) -> String {
@@ -71,10 +71,7 @@ fn get_nvm_dir() -> Option<PathBuf> {
 /// Get the path to nvm.sh - handles both standard and Homebrew installations
 fn get_nvm_sh_path() -> Option<PathBuf> {
     // Check Homebrew location first (common on macOS)
-    let homebrew_paths = [
-        "/opt/homebrew/opt/nvm/nvm.sh",
-        "/usr/local/opt/nvm/nvm.sh",
-    ];
+    let homebrew_paths = ["/opt/homebrew/opt/nvm/nvm.sh", "/usr/local/opt/nvm/nvm.sh"];
 
     for path in &homebrew_paths {
         let p = PathBuf::from(path);
@@ -131,9 +128,7 @@ fn run_nvm_command(args: &str) -> Result<String, String> {
             .unwrap_or_else(|| "/Users/tj".to_string())
     });
 
-    let nvm_dir = get_nvm_dir().unwrap_or_else(|| {
-        PathBuf::from(&home).join(".nvm")
-    });
+    let nvm_dir = get_nvm_dir().unwrap_or_else(|| PathBuf::from(&home).join(".nvm"));
 
     // Build the command that exports HOME, NVM_DIR, unsets conflicting vars, sources nvm.sh and runs the nvm command
     // npm_config_prefix conflicts with NVM - must be unset
@@ -149,7 +144,7 @@ fn run_nvm_command(args: &str) -> Result<String, String> {
     let shell = get_user_shell();
     let output = Command::new(&shell)
         .args(["-c", &script])
-        .env("HOME", &home)  // Also set in environment
+        .env("HOME", &home) // Also set in environment
         .output()
         .map_err(|e| format!("Failed to run {}: {}", shell, e))?;
 
@@ -189,29 +184,31 @@ pub fn get_nvm_status() -> NvmStatus {
     // Get default alias
     // Output format: "default -> 21 (-> v21.x.y)" or "default -> 21 (-> N/A)"
     // We want to extract the resolved version (vX.Y.Z) if available
-    let default_version = run_nvm_command("alias default")
-        .ok()
-        .and_then(|output| {
-            // First try to find the resolved version in parentheses: (-> vX.Y.Z)
-            if let Some(start) = output.find("(->") {
-                let after_arrow = &output[start + 3..];
-                if let Some(version) = after_arrow
-                    .split_whitespace()
-                    .find(|s| s.starts_with('v') && s.chars().nth(1).map(|c| c.is_ascii_digit()).unwrap_or(false))
-                {
-                    let clean = version.trim_end_matches([')', '*']);
-                    if !clean.is_empty() && clean != "N/A" {
-                        return Some(clean.to_string());
-                    }
+    let default_version = run_nvm_command("alias default").ok().and_then(|output| {
+        // First try to find the resolved version in parentheses: (-> vX.Y.Z)
+        if let Some(start) = output.find("(->") {
+            let after_arrow = &output[start + 3..];
+            if let Some(version) = after_arrow.split_whitespace().find(|s| {
+                s.starts_with('v')
+                    && s.chars()
+                        .nth(1)
+                        .map(|c| c.is_ascii_digit())
+                        .unwrap_or(false)
+            }) {
+                let clean = version.trim_end_matches([')', '*']);
+                if !clean.is_empty() && clean != "N/A" {
+                    return Some(clean.to_string());
                 }
             }
-            // Fall back to the alias target (e.g., "21" or "node")
-            output.split("->")
-                .nth(1)
-                .and_then(|s| s.split_whitespace().next())
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-        });
+        }
+        // Fall back to the alias target (e.g., "21" or "node")
+        output
+            .split("->")
+            .nth(1)
+            .and_then(|s| s.split_whitespace().next())
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+    });
 
     NvmStatus {
         installed,
@@ -224,21 +221,29 @@ pub fn get_nvm_status() -> NvmStatus {
 /// List installed Node versions
 pub fn list_installed_versions() -> Result<Vec<NodeVersion>, String> {
     let output = run_nvm_command("ls --no-colors")?;
-    let current = run_nvm_command("current").ok().map(|v| v.trim().to_string());
+    let current = run_nvm_command("current")
+        .ok()
+        .map(|v| v.trim().to_string());
     let default_alias = run_nvm_command("alias default").ok();
 
     // Parse the default version from alias output
     let default_version = default_alias.and_then(|output| {
         // Format: "default -> 21 (-> v21.x.y)" or "default -> v21.x.y"
-        output.split("->")
-            .last()
-            .and_then(|s| {
-                // Find any vX.Y.Z pattern in the string
-                let trimmed = s.trim().trim_matches(|c| c == '(' || c == ')' || c == '*');
-                trimmed.split_whitespace()
-                    .find(|part| part.starts_with('v') && part.chars().nth(1).map(|c| c.is_ascii_digit()).unwrap_or(false))
-                    .map(|v| v.trim_end_matches('*').to_string())
-            })
+        output.split("->").last().and_then(|s| {
+            // Find any vX.Y.Z pattern in the string
+            let trimmed = s.trim().trim_matches(|c| c == '(' || c == ')' || c == '*');
+            trimmed
+                .split_whitespace()
+                .find(|part| {
+                    part.starts_with('v')
+                        && part
+                            .chars()
+                            .nth(1)
+                            .map(|c| c.is_ascii_digit())
+                            .unwrap_or(false)
+                })
+                .map(|v| v.trim_end_matches('*').to_string())
+        })
     });
 
     let mut versions = Vec::new();
@@ -272,14 +277,23 @@ pub fn list_installed_versions() -> Result<Vec<NodeVersion>, String> {
         let version_str = line
             .replace("->", "")
             .split_whitespace()
-            .find(|s| s.starts_with('v') && s.chars().nth(1).map(|c| c.is_ascii_digit()).unwrap_or(false))
+            .find(|s| {
+                s.starts_with('v')
+                    && s.chars()
+                        .nth(1)
+                        .map(|c| c.is_ascii_digit())
+                        .unwrap_or(false)
+            })
             .map(|s| s.trim_end_matches('*').to_string());
 
         if let Some(version) = version_str {
             // Determine if current version
-            let is_current = line.starts_with("->") ||
-                current.as_ref().map(|c| c == &version).unwrap_or(false);
-            let is_default = default_version.as_ref().map(|d| d == &version).unwrap_or(false);
+            let is_current =
+                line.starts_with("->") || current.as_ref().map(|c| c == &version).unwrap_or(false);
+            let is_default = default_version
+                .as_ref()
+                .map(|d| d == &version)
+                .unwrap_or(false);
 
             // Avoid duplicates
             if !versions.iter().any(|v: &NodeVersion| v.version == version) {
@@ -295,9 +309,7 @@ pub fn list_installed_versions() -> Result<Vec<NodeVersion>, String> {
     }
 
     // Sort versions in descending order (newest first)
-    versions.sort_by(|a, b| {
-        compare_versions(&b.version, &a.version)
-    });
+    versions.sort_by(|a, b| compare_versions(&b.version, &a.version));
 
     Ok(versions)
 }
@@ -423,8 +435,17 @@ mod tests {
 
     #[test]
     fn test_compare_versions() {
-        assert_eq!(compare_versions("v20.18.0", "v18.20.5"), std::cmp::Ordering::Greater);
-        assert_eq!(compare_versions("v18.20.5", "v18.20.4"), std::cmp::Ordering::Greater);
-        assert_eq!(compare_versions("v18.20.5", "v18.20.5"), std::cmp::Ordering::Equal);
+        assert_eq!(
+            compare_versions("v20.18.0", "v18.20.5"),
+            std::cmp::Ordering::Greater
+        );
+        assert_eq!(
+            compare_versions("v18.20.5", "v18.20.4"),
+            std::cmp::Ordering::Greater
+        );
+        assert_eq!(
+            compare_versions("v18.20.5", "v18.20.5"),
+            std::cmp::Ordering::Equal
+        );
     }
 }

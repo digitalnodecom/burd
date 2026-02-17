@@ -36,7 +36,7 @@ pub async fn list(State(_state): State<ApiState>) -> Json<ApiResponse<Vec<Servic
     let services: Vec<ServiceInfo> = registry
         .all_services()
         .iter()
-        .filter(|(_, config)| !config.internal)  // Filter out internal services
+        .filter(|(_, config)| !config.internal) // Filter out internal services
         .map(|(id, config)| ServiceInfo {
             id: id.to_string(),
             name: config.display_name.clone(),

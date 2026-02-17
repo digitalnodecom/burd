@@ -3,17 +3,17 @@
 //! Provides helper functions for acquiring locks on AppState components with
 //! consistent error handling. This reduces boilerplate and improves code readability.
 
-use std::sync::{MutexGuard, PoisonError};
+use crate::binary::BinaryManager;
 use crate::commands::AppState;
 use crate::config::ConfigStore;
-use crate::process::ProcessManager;
-use crate::binary::BinaryManager;
 use crate::dns::DnsServer;
+use crate::process::ProcessManager;
+use std::sync::{MutexGuard, PoisonError};
 
 /// Helper function to acquire config_store lock with consistent error handling
 ///
 /// # Example
-/// ```no_run
+/// ```ignore
 /// let config = with_config_lock(&state, |store| {
 ///     store.load()
 /// })?;
@@ -22,7 +22,8 @@ pub fn with_config_lock<F, R>(state: &AppState, f: F) -> Result<R, String>
 where
     F: FnOnce(&ConfigStore) -> Result<R, String>,
 {
-    let guard = state.config_store
+    let guard = state
+        .config_store
         .lock()
         .map_err(|e| format!("Failed to acquire config store lock: {}", e))?;
     f(&guard)
@@ -31,7 +32,7 @@ where
 /// Helper function to acquire a mutable config_store lock
 ///
 /// # Example
-/// ```no_run
+/// ```ignore
 /// with_config_lock_mut(&state, |store| {
 ///     store.create_instance(name, port, service_type, version, config)
 /// })?;
@@ -40,7 +41,8 @@ pub fn with_config_lock_mut<F, R>(state: &AppState, f: F) -> Result<R, String>
 where
     F: FnOnce(&mut ConfigStore) -> Result<R, String>,
 {
-    let mut guard = state.config_store
+    let mut guard = state
+        .config_store
         .lock()
         .map_err(|e| format!("Failed to acquire config store lock: {}", e))?;
     f(&mut guard)
@@ -49,7 +51,7 @@ where
 /// Helper function to acquire process_manager lock with consistent error handling
 ///
 /// # Example
-/// ```no_run
+/// ```ignore
 /// let is_running = with_process_lock(&state, |pm| {
 ///     Ok(pm.is_running(&instance_id))
 /// })?;
@@ -58,7 +60,8 @@ pub fn with_process_lock<F, R>(state: &AppState, f: F) -> Result<R, String>
 where
     F: FnOnce(&ProcessManager) -> Result<R, String>,
 {
-    let guard = state.process_manager
+    let guard = state
+        .process_manager
         .lock()
         .map_err(|e| format!("Failed to acquire process manager lock: {}", e))?;
     f(&guard)
@@ -67,7 +70,7 @@ where
 /// Helper function to acquire a mutable process_manager lock
 ///
 /// # Example
-/// ```no_run
+/// ```ignore
 /// with_process_lock_mut(&state, |pm| {
 ///     pm.start(&instance_id, binary_path, args, env_vars, data_dir)
 /// })?;
@@ -76,7 +79,8 @@ pub fn with_process_lock_mut<F, R>(state: &AppState, f: F) -> Result<R, String>
 where
     F: FnOnce(&mut ProcessManager) -> Result<R, String>,
 {
-    let mut guard = state.process_manager
+    let mut guard = state
+        .process_manager
         .lock()
         .map_err(|e| format!("Failed to acquire process manager lock: {}", e))?;
     f(&mut guard)
@@ -85,7 +89,7 @@ where
 /// Helper function to acquire binary_manager lock with consistent error handling
 ///
 /// # Example
-/// ```no_run
+/// ```ignore
 /// let versions = with_binary_lock(&state, |bm| {
 ///     bm.get_installed_versions_sync(service_type)
 /// })?;
@@ -94,7 +98,8 @@ pub fn with_binary_lock<F, R>(state: &AppState, f: F) -> Result<R, String>
 where
     F: FnOnce(&BinaryManager) -> Result<R, String>,
 {
-    let guard = state.binary_manager
+    let guard = state
+        .binary_manager
         .lock()
         .map_err(|e| format!("Failed to acquire binary manager lock: {}", e))?;
     f(&guard)
@@ -103,7 +108,7 @@ where
 /// Helper function to acquire a mutable binary_manager lock
 ///
 /// # Example
-/// ```no_run
+/// ```ignore
 /// with_binary_lock_mut(&state, |bm| {
 ///     bm.install(service_type, version)
 /// })?;
@@ -112,7 +117,8 @@ pub fn with_binary_lock_mut<F, R>(state: &AppState, f: F) -> Result<R, String>
 where
     F: FnOnce(&mut BinaryManager) -> Result<R, String>,
 {
-    let mut guard = state.binary_manager
+    let mut guard = state
+        .binary_manager
         .lock()
         .map_err(|e| format!("Failed to acquire binary manager lock: {}", e))?;
     f(&mut guard)
@@ -121,7 +127,7 @@ where
 /// Helper function to acquire dns_server lock with consistent error handling
 ///
 /// # Example
-/// ```no_run
+/// ```ignore
 /// let port = with_dns_lock(&state, |dns| {
 ///     Ok(dns.port())
 /// })?;
@@ -130,7 +136,8 @@ pub fn with_dns_lock<F, R>(state: &AppState, f: F) -> Result<R, String>
 where
     F: FnOnce(&DnsServer) -> Result<R, String>,
 {
-    let guard = state.dns_server
+    let guard = state
+        .dns_server
         .lock()
         .map_err(|e| format!("Failed to acquire DNS server lock: {}", e))?;
     f(&guard)
@@ -139,7 +146,7 @@ where
 /// Helper function to acquire a mutable dns_server lock
 ///
 /// # Example
-/// ```no_run
+/// ```ignore
 /// with_dns_lock_mut(&state, |dns| {
 ///     dns.start()
 /// })?;
@@ -148,7 +155,8 @@ pub fn with_dns_lock_mut<F, R>(state: &AppState, f: F) -> Result<R, String>
 where
     F: FnOnce(&mut DnsServer) -> Result<R, String>,
 {
-    let mut guard = state.dns_server
+    let mut guard = state
+        .dns_server
         .lock()
         .map_err(|e| format!("Failed to acquire DNS server lock: {}", e))?;
     f(&mut guard)
@@ -159,7 +167,8 @@ where
 /// This is useful when you need to hold the lock across multiple operations or
 /// when the lock needs to be dropped explicitly.
 pub fn lock_config_store(state: &AppState) -> Result<MutexGuard<'_, ConfigStore>, String> {
-    state.config_store
+    state
+        .config_store
         .lock()
         .map_err(|e: PoisonError<MutexGuard<ConfigStore>>| {
             format!("Failed to acquire config store lock: {}", e)
@@ -168,7 +177,8 @@ pub fn lock_config_store(state: &AppState) -> Result<MutexGuard<'_, ConfigStore>
 
 /// Helper to get a direct process manager lock guard
 pub fn lock_process_manager(state: &AppState) -> Result<MutexGuard<'_, ProcessManager>, String> {
-    state.process_manager
+    state
+        .process_manager
         .lock()
         .map_err(|e: PoisonError<MutexGuard<ProcessManager>>| {
             format!("Failed to acquire process manager lock: {}", e)
@@ -177,7 +187,8 @@ pub fn lock_process_manager(state: &AppState) -> Result<MutexGuard<'_, ProcessMa
 
 /// Helper to get a direct binary manager lock guard
 pub fn lock_binary_manager(state: &AppState) -> Result<MutexGuard<'_, BinaryManager>, String> {
-    state.binary_manager
+    state
+        .binary_manager
         .lock()
         .map_err(|e: PoisonError<MutexGuard<BinaryManager>>| {
             format!("Failed to acquire binary manager lock: {}", e)
@@ -186,7 +197,8 @@ pub fn lock_binary_manager(state: &AppState) -> Result<MutexGuard<'_, BinaryMana
 
 /// Helper to get a direct DNS server lock guard
 pub fn lock_dns_server(state: &AppState) -> Result<MutexGuard<'_, DnsServer>, String> {
-    state.dns_server
+    state
+        .dns_server
         .lock()
         .map_err(|e: PoisonError<MutexGuard<DnsServer>>| {
             format!("Failed to acquire DNS server lock: {}", e)
@@ -196,10 +208,10 @@ pub fn lock_dns_server(state: &AppState) -> Result<MutexGuard<'_, DnsServer>, St
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::ConfigStore;
-    use crate::process::ProcessManager;
     use crate::binary::BinaryManager;
+    use crate::config::ConfigStore;
     use crate::dns::DnsServer;
+    use crate::process::ProcessManager;
     use crate::proxy::ProxyServer;
     use std::sync::{Arc, Mutex};
     use tokio::sync::Mutex as AsyncMutex;
@@ -244,9 +256,7 @@ mod tests {
     #[test]
     fn test_with_dns_lock() {
         let state = create_test_state();
-        let result = with_dns_lock(&state, |dns| {
-            Ok(dns.port())
-        });
+        let result = with_dns_lock(&state, |dns| Ok(dns.port()));
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 5300);
     }

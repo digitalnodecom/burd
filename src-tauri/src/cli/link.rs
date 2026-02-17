@@ -21,8 +21,8 @@ use uuid::Uuid;
 /// Creates a FrankenPHP instance and domain for the current directory.
 /// Also analyzes the project and offers to set up database and fix .env.
 pub fn run_link(name: Option<String>) -> Result<(), String> {
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     let project_name = current_dir
         .file_name()
@@ -111,12 +111,14 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
     }
 
     // Get installed FrankenPHP version
-    let version = config.binaries
+    let version = config
+        .binaries
         .get(&ServiceType::FrankenPHP)
         .and_then(|versions| versions.keys().next())
         .ok_or_else(|| {
             "No FrankenPHP versions installed.\n\
-             Please download FrankenPHP in the Burd app first.".to_string()
+             Please download FrankenPHP in the Burd app first."
+                .to_string()
         })?
         .clone();
 
@@ -160,7 +162,10 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
     };
 
     println!();
-    println!("Linked '{}' to '{}.{}'", project_name, subdomain, config.tld);
+    println!(
+        "Linked '{}' to '{}.{}'",
+        project_name, subdomain, config.tld
+    );
     println!();
     println!("  URL: {}", url);
     println!("  Port: {}", port);
@@ -221,7 +226,9 @@ fn offer_database_setup(
         .as_ref()
         .filter(|d| !d.database.is_empty() && !d.is_sqlite())
         .map(|d| d.database.clone())
-        .unwrap_or_else(|| sanitize_db_name(&project.name).unwrap_or_else(|_| project.name.clone()));
+        .unwrap_or_else(|| {
+            sanitize_db_name(&project.name).unwrap_or_else(|_| project.name.clone())
+        });
 
     // Use first database instance (typically MariaDB)
     let db_instance = db_instances[0];
@@ -232,7 +239,10 @@ fn offer_database_setup(
 
     if db_exists {
         println!();
-        println!("Database '{}' already exists on {:?}.", db_name, db_instance.service_type);
+        println!(
+            "Database '{}' already exists on {:?}.",
+            db_name, db_instance.service_type
+        );
     } else {
         println!();
         print!(
@@ -393,7 +403,10 @@ fn collect_env_issues(
                     "DB_PORT".to_string(),
                     db_config.port.to_string(),
                     instance.port.to_string(),
-                    format!("Burd's {:?} is on port {}", instance.service_type, instance.port),
+                    format!(
+                        "Burd's {:?} is on port {}",
+                        instance.service_type, instance.port
+                    ),
                 ));
             }
 
@@ -480,8 +493,8 @@ fn collect_env_issues(
 ///
 /// Removes the domain and instance created by 'burd link' or 'burd init'.
 pub fn run_unlink() -> Result<(), String> {
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     let document_root = current_dir.to_string_lossy().to_string();
 
@@ -523,7 +536,10 @@ pub fn run_unlink() -> Result<(), String> {
     };
 
     // Find and remove domain pointing to this instance
-    let domain_idx = config.domains.iter().position(|d| d.routes_to_instance(&instance.id));
+    let domain_idx = config
+        .domains
+        .iter()
+        .position(|d| d.routes_to_instance(&instance.id));
 
     if let Some(idx) = domain_idx {
         let domain = config.domains.remove(idx);
@@ -531,7 +547,10 @@ pub fn run_unlink() -> Result<(), String> {
 
         // Delete Caddy domain file
         if let Err(e) = caddy::delete_domain_file(&full_domain) {
-            eprintln!("Warning: Failed to delete domain file for {}: {}", full_domain, e);
+            eprintln!(
+                "Warning: Failed to delete domain file for {}: {}",
+                full_domain, e
+            );
         }
     }
 
@@ -560,10 +579,15 @@ pub fn run_links() -> Result<(), String> {
     let config = config_store.load()?;
 
     // Find all FrankenPHP instances with document_root set (these are linked sites)
-    let linked_instances: Vec<&Instance> = config.instances.iter()
+    let linked_instances: Vec<&Instance> = config
+        .instances
+        .iter()
         .filter(|i| {
             i.service_type == ServiceType::FrankenPHP
-                && i.config.get("document_root").and_then(|v| v.as_str()).is_some()
+                && i.config
+                    .get("document_root")
+                    .and_then(|v| v.as_str())
+                    .is_some()
         })
         .collect();
 
@@ -578,13 +602,16 @@ pub fn run_links() -> Result<(), String> {
     println!();
 
     for instance in linked_instances {
-        let document_root = instance.config
+        let document_root = instance
+            .config
             .get("document_root")
             .and_then(|v| v.as_str())
             .unwrap_or("unknown");
 
         // Find associated domain
-        let domain = config.domains.iter()
+        let domain = config
+            .domains
+            .iter()
             .find(|d| d.routes_to_instance(&instance.id));
 
         let domain_str = domain
@@ -595,7 +622,10 @@ pub fn run_links() -> Result<(), String> {
             .map(|d| if d.ssl_enabled { "SSL" } else { "HTTP" })
             .unwrap_or("HTTP");
 
-        println!("  {} -> {} (port {}, {})", document_root, domain_str, instance.port, ssl_status);
+        println!(
+            "  {} -> {} (port {}, {})",
+            document_root, domain_str, instance.port, ssl_status
+        );
     }
 
     println!();

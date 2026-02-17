@@ -374,7 +374,10 @@ fn check_app_url_config(info: &mut ProjectInfo, path: &Path, config: &Config) {
         None => {
             info.add_issue(
                 ProjectIssue::warning("config", format!("{} is not set in .env", url_var_name))
-                    .with_suggestion(format!("Set {} to your local development URL", url_var_name)),
+                    .with_suggestion(format!(
+                        "Set {} to your local development URL",
+                        url_var_name
+                    )),
             );
             return;
         }
@@ -394,7 +397,10 @@ fn check_app_url_config(info: &mut ProjectInfo, path: &Path, config: &Config) {
 
     // Find associated domain
     let domain = if let Some(inst) = instance {
-        config.domains.iter().find(|d| d.routes_to_instance(&inst.id))
+        config
+            .domains
+            .iter()
+            .find(|d| d.routes_to_instance(&inst.id))
     } else {
         None
     };
@@ -405,7 +411,10 @@ fn check_app_url_config(info: &mut ProjectInfo, path: &Path, config: &Config) {
         } else if config.proxy_installed {
             format!("http://{}.{}", domain.subdomain, config.tld)
         } else {
-            format!("http://{}.{}:{}", domain.subdomain, config.tld, config.proxy_port)
+            format!(
+                "http://{}.{}:{}",
+                domain.subdomain, config.tld, config.proxy_port
+            )
         };
 
         // Normalize URLs for comparison (remove trailing slashes)
@@ -421,7 +430,10 @@ fn check_app_url_config(info: &mut ProjectInfo, path: &Path, config: &Config) {
                         url_var_name, site_url, expected_url
                     ),
                 )
-                .with_suggestion(format!("Update {} to {} in .env", url_var_name, expected_url)),
+                .with_suggestion(format!(
+                    "Update {} to {} in .env",
+                    url_var_name, expected_url
+                )),
             );
         }
     } else {
@@ -493,12 +505,10 @@ pub fn find_matching_db_instance<'a>(
     config: &'a Config,
     connection_type: &str,
 ) -> Option<&'a Instance> {
-    config.instances.iter().find(|i| {
-        match connection_type {
-            "mysql" | "mariadb" => i.service_type == ServiceType::MariaDB,
-            "pgsql" | "postgres" | "postgresql" => i.service_type == ServiceType::PostgreSQL,
-            _ => false,
-        }
+    config.instances.iter().find(|i| match connection_type {
+        "mysql" | "mariadb" => i.service_type == ServiceType::MariaDB,
+        "pgsql" | "postgres" | "postgresql" => i.service_type == ServiceType::PostgreSQL,
+        _ => false,
     })
 }
 

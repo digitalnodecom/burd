@@ -186,7 +186,11 @@ pub fn list_mysql_tools() -> Result<(), String> {
         return Ok(());
     }
 
-    println!("Available {} {} tools:", service_type.display_name(), version);
+    println!(
+        "Available {} {} tools:",
+        service_type.display_name(),
+        version
+    );
     println!();
 
     let mut tools: Vec<String> = std::fs::read_dir(&tools_dir)

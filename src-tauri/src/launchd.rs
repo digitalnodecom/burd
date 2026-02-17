@@ -112,7 +112,9 @@ fn generate_plist() -> String {
 pub fn install() -> Result<(), String> {
     // Verify Caddy is installed for daemon
     if !crate::caddy::is_daemon_caddy_installed() {
-        return Err("Caddy binary not installed. Call caddy::install_caddy_for_daemon() first.".to_string());
+        return Err(
+            "Caddy binary not installed. Call caddy::install_caddy_for_daemon() first.".to_string(),
+        );
     }
 
     // Verify Caddyfile exists (now in user space)
@@ -124,8 +126,7 @@ pub fn install() -> Result<(), String> {
     // Create user-space directories (no admin needed)
     let logs_dir = get_user_logs_dir();
     let caddy_data = get_caddy_data_dir();
-    fs::create_dir_all(&logs_dir)
-        .map_err(|e| format!("Failed to create logs directory: {}", e))?;
+    fs::create_dir_all(&logs_dir).map_err(|e| format!("Failed to create logs directory: {}", e))?;
     fs::create_dir_all(&caddy_data)
         .map_err(|e| format!("Failed to create caddy data directory: {}", e))?;
 
@@ -244,17 +245,12 @@ pub fn get_status() -> LaunchdStatus {
     use std::net::TcpStream;
     use std::time::Duration;
 
-    let running = TcpStream::connect_timeout(
-        &"127.0.0.1:80".parse().unwrap(),
-        Duration::from_millis(100),
-    ).is_ok();
+    let running =
+        TcpStream::connect_timeout(&"127.0.0.1:80".parse().unwrap(), Duration::from_millis(100))
+            .is_ok();
 
     // Try to get PID using lsof
-    let pid = if running {
-        get_pid_on_port(80)
-    } else {
-        None
-    };
+    let pid = if running { get_pid_on_port(80) } else { None };
 
     LaunchdStatus {
         installed: true,

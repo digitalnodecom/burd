@@ -27,9 +27,7 @@ impl ServiceDefinition for FrankenPHPParkService {
     }
 
     fn version_source(&self) -> VersionSource {
-        VersionSource::GitHubReleases(
-            "https://api.github.com/repos/dunglas/frankenphp/releases",
-        )
+        VersionSource::GitHubReleases("https://api.github.com/repos/dunglas/frankenphp/releases")
     }
 
     fn download_method(&self, _version: &str, arch: &str) -> DownloadMethod {

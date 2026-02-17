@@ -60,7 +60,11 @@ impl AppError {
     }
 
     /// Create a new error with context
-    pub fn with_context(code: ErrorCode, message: impl Into<String>, context: impl Into<String>) -> Self {
+    pub fn with_context(
+        code: ErrorCode,
+        message: impl Into<String>,
+        context: impl Into<String>,
+    ) -> Self {
         Self {
             code,
             message: message.into(),
@@ -236,11 +240,8 @@ mod tests {
 
     #[test]
     fn test_error_with_context() {
-        let err = AppError::with_context(
-            ErrorCode::IoError,
-            "Failed to read file",
-            "/path/to/file"
-        );
+        let err =
+            AppError::with_context(ErrorCode::IoError, "Failed to read file", "/path/to/file");
         assert_eq!(err.code, ErrorCode::IoError);
         assert_eq!(err.context, Some("/path/to/file".to_string()));
     }
@@ -250,11 +251,8 @@ mod tests {
         let err = AppError::not_found("Instance not found");
         assert_eq!(err.to_string(), "Instance not found");
 
-        let err_with_ctx = AppError::with_context(
-            ErrorCode::IoError,
-            "Failed to read",
-            "/path/to/file"
-        );
+        let err_with_ctx =
+            AppError::with_context(ErrorCode::IoError, "Failed to read", "/path/to/file");
         assert_eq!(err_with_ctx.to_string(), "Failed to read: /path/to/file");
     }
 

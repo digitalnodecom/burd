@@ -75,11 +75,10 @@ impl TunnelTarget {
     pub fn resolve_port(&self, instances: &[Instance]) -> Option<u16> {
         match self {
             TunnelTarget::Port(port) => Some(*port),
-            TunnelTarget::Instance(instance_id) => {
-                instances.iter()
-                    .find(|i| i.id == *instance_id)
-                    .map(|i| i.port)
-            }
+            TunnelTarget::Instance(instance_id) => instances
+                .iter()
+                .find(|i| i.id == *instance_id)
+                .map(|i| i.port),
         }
     }
 
@@ -87,12 +86,11 @@ impl TunnelTarget {
     pub fn display_name(&self, instances: &[Instance]) -> String {
         match self {
             TunnelTarget::Port(port) => format!("Port {}", port),
-            TunnelTarget::Instance(instance_id) => {
-                instances.iter()
-                    .find(|i| i.id == *instance_id)
-                    .map(|i| format!("{} (port {})", i.name, i.port))
-                    .unwrap_or_else(|| format!("Instance {}", instance_id))
-            }
+            TunnelTarget::Instance(instance_id) => instances
+                .iter()
+                .find(|i| i.id == *instance_id)
+                .map(|i| format!("{} (port {})", i.name, i.port))
+                .unwrap_or_else(|| format!("Instance {}", instance_id)),
         }
     }
 }
@@ -108,9 +106,7 @@ pub enum SubdomainConfig {
         generated: Option<String>,
     },
     /// User-specified custom subdomain
-    Custom {
-        subdomain: String,
-    },
+    Custom { subdomain: String },
 }
 
 impl SubdomainConfig {
@@ -183,7 +179,11 @@ impl Tunnel {
     /// Get the public URL for this tunnel
     pub fn get_public_url(&self, server: &FrpServer) -> String {
         let subdomain = self.get_subdomain();
-        let protocol = if self.protocol == "https" { "https" } else { "http" };
+        let protocol = if self.protocol == "https" {
+            "https"
+        } else {
+            "http"
+        };
         format!("{}://{}.{}", protocol, subdomain, server.subdomain_host)
     }
 }
@@ -327,7 +327,7 @@ pub fn generate_frpc_config(
     // Server connection
     config.push_str(&format!("serverAddr = \"{}\"\n", server.server_addr));
     config.push_str(&format!("serverPort = {}\n", server.server_port));
-    config.push_str("loginFailExit = false\n");  // Keep retrying if server is unavailable
+    config.push_str("loginFailExit = false\n"); // Keep retrying if server is unavailable
     config.push('\n');
 
     // Authentication
@@ -357,7 +357,10 @@ pub fn generate_frpc_config(
         };
 
         let subdomain = tunnel.get_subdomain();
-        let proxy_name = format!("tunnel-{}", tunnel.id.to_string().split('-').next().unwrap_or("unknown"));
+        let proxy_name = format!(
+            "tunnel-{}",
+            tunnel.id.to_string().split('-').next().unwrap_or("unknown")
+        );
 
         config.push_str("[[proxies]]\n");
         config.push_str(&format!("name = \"{}\"\n", proxy_name));
@@ -447,15 +450,12 @@ impl FrpcManager {
             return Ok(String::new());
         }
 
-        fs::read_to_string(&log_path)
-            .map_err(|e| format!("Failed to read log file: {}", e))
+        fs::read_to_string(&log_path).map_err(|e| format!("Failed to read log file: {}", e))
     }
 
     /// Check if frpc binary is installed
     pub fn is_binary_installed(&self) -> bool {
-        get_frpc_binary_path()
-            .map(|p| p.exists())
-            .unwrap_or(false)
+        get_frpc_binary_path().map(|p| p.exists()).unwrap_or(false)
     }
 
     /// Check if frpc process is running
@@ -502,9 +502,7 @@ impl FrpcManager {
         };
 
         // Check if process is running using kill -0
-        unsafe {
-            libc::kill(pid, 0) == 0
-        }
+        unsafe { libc::kill(pid, 0) == 0 }
     }
 
     /// Start the frpc process with the given configuration
@@ -526,7 +524,9 @@ impl FrpcManager {
         }
 
         // Get the default server (or first one)
-        let server = servers.iter().find(|s| s.is_default)
+        let server = servers
+            .iter()
+            .find(|s| s.is_default)
             .or_else(|| servers.first())
             .ok_or("No frp server available")?;
 
@@ -550,12 +550,14 @@ impl FrpcManager {
         let log_path = get_frpc_log_path()?;
 
         // Start frpc process
-        let log_file = fs::File::create(&log_path)
-            .map_err(|e| format!("Failed to create log file: {}", e))?;
+        let log_file =
+            fs::File::create(&log_path).map_err(|e| format!("Failed to create log file: {}", e))?;
 
-        let config_path_str = config_path.to_str()
+        let config_path_str = config_path
+            .to_str()
             .ok_or_else(|| "Invalid config path encoding".to_string())?;
-        let log_file_clone = log_file.try_clone()
+        let log_file_clone = log_file
+            .try_clone()
             .map_err(|e| format!("Failed to clone log file handle: {}", e))?;
 
         let child = Command::new(&binary_path)
@@ -572,8 +574,7 @@ impl FrpcManager {
             .map_err(|e| format!("Failed to write PID file: {}", e))?;
 
         // Store process handle
-        let mut process = self.process.lock_or_err()
-            .map_err(|e| e.to_string())?;
+        let mut process = self.process.lock_or_err().map_err(|e| e.to_string())?;
         *process = Some(child);
 
         Ok(())
@@ -581,11 +582,12 @@ impl FrpcManager {
 
     /// Stop the frpc process
     pub fn stop(&mut self) -> Result<(), String> {
-        let mut process = self.process.lock_or_err()
-            .map_err(|e| e.to_string())?;
+        let mut process = self.process.lock_or_err().map_err(|e| e.to_string())?;
 
         if let Some(ref mut child) = *process {
-            child.kill().map_err(|e| format!("Failed to kill frpc: {}", e))?;
+            child
+                .kill()
+                .map_err(|e| format!("Failed to kill frpc: {}", e))?;
             let _ = child.wait();
         } else {
             // Try to kill via PID file
@@ -609,10 +611,12 @@ impl FrpcManager {
             return Ok(());
         }
 
-        let pid_str = fs::read_to_string(&pid_path)
-            .map_err(|e| format!("Failed to read PID file: {}", e))?;
+        let pid_str =
+            fs::read_to_string(&pid_path).map_err(|e| format!("Failed to read PID file: {}", e))?;
 
-        let pid: i32 = pid_str.trim().parse()
+        let pid: i32 = pid_str
+            .trim()
+            .parse()
             .map_err(|e| format!("Invalid PID: {}", e))?;
 
         unsafe {
@@ -637,7 +641,9 @@ impl FrpcManager {
         }
 
         // Get the default server (or first one)
-        let server = servers.iter().find(|s| s.is_default)
+        let server = servers
+            .iter()
+            .find(|s| s.is_default)
             .or_else(|| servers.first())
             .ok_or("No frp server available")?;
 
@@ -649,10 +655,12 @@ impl FrpcManager {
 
         // Send SIGHUP to reload config
         let pid_path = get_frpc_pid_path()?;
-        let pid_str = fs::read_to_string(&pid_path)
-            .map_err(|e| format!("Failed to read PID file: {}", e))?;
+        let pid_str =
+            fs::read_to_string(&pid_path).map_err(|e| format!("Failed to read PID file: {}", e))?;
 
-        let pid: i32 = pid_str.trim().parse()
+        let pid: i32 = pid_str
+            .trim()
+            .parse()
             .map_err(|e| format!("Invalid PID: {}", e))?;
 
         unsafe {
@@ -690,7 +698,9 @@ mod tests {
         let subdomain = generate_random_subdomain();
         assert_eq!(subdomain.len(), 8);
         assert!(subdomain.chars().all(|c| c.is_ascii_alphanumeric()));
-        assert!(subdomain.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()));
+        assert!(subdomain
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()));
     }
 
     #[test]
@@ -702,11 +712,15 @@ mod tests {
 
     #[test]
     fn test_subdomain_config() {
-        let custom = SubdomainConfig::Custom { subdomain: "my-api".to_string() };
+        let custom = SubdomainConfig::Custom {
+            subdomain: "my-api".to_string(),
+        };
         assert_eq!(custom.get_subdomain(), "my-api");
         assert!(!custom.is_random());
 
-        let random = SubdomainConfig::Random { generated: Some("abc12345".to_string()) };
+        let random = SubdomainConfig::Random {
+            generated: Some("abc12345".to_string()),
+        };
         assert_eq!(random.get_subdomain(), "abc12345");
         assert!(random.is_random());
     }
@@ -725,7 +739,9 @@ mod tests {
             "My API".to_string(),
             server.id,
             TunnelTarget::Port(8080),
-            SubdomainConfig::Custom { subdomain: "my-api".to_string() },
+            SubdomainConfig::Custom {
+                subdomain: "my-api".to_string(),
+            },
         );
 
         assert_eq!(
@@ -748,7 +764,9 @@ mod tests {
             "My API".to_string(),
             server.id,
             TunnelTarget::Port(8080),
-            SubdomainConfig::Custom { subdomain: "my-api".to_string() },
+            SubdomainConfig::Custom {
+                subdomain: "my-api".to_string(),
+            },
         );
 
         let config = generate_frpc_config(&server, &[tunnel], &[], None);

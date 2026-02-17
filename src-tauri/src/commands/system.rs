@@ -45,8 +45,7 @@ pub fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
 pub fn update_tld(tld: String, state: State<'_, AppState>) -> Result<(), String> {
     // Validate and normalize TLD
     let new_tld = tld.trim().to_lowercase();
-    validation::validate_tld(&new_tld)
-        .map_err(|e| format!("Invalid TLD: {}", e))?;
+    validation::validate_tld(&new_tld).map_err(|e| format!("Invalid TLD: {}", e))?;
 
     // Get old TLD to check if it changed
     let old_tld = {
@@ -64,7 +63,6 @@ pub fn update_tld(tld: String, state: State<'_, AppState>) -> Result<(), String>
     if old_tld != new_tld {
         // Update resolver if it was installed for old TLD
         if crate::resolver::is_installed(&old_tld) {
-
             // Get DNS port from config
             let dns_port = {
                 let config_store = lock!(state.config_store)?;
@@ -94,7 +92,9 @@ pub fn update_tld(tld: String, state: State<'_, AppState>) -> Result<(), String>
                 for d in &config.domains {
                     match &d.target {
                         DomainTarget::Instance(instance_id) => {
-                            if let Some(instance) = config.instances.iter().find(|i| i.id == *instance_id) {
+                            if let Some(instance) =
+                                config.instances.iter().find(|i| i.id == *instance_id)
+                            {
                                 routes.push(crate::caddy::RouteEntry::reverse_proxy(
                                     d.full_domain(&new_tld),
                                     instance.port,
@@ -216,7 +216,8 @@ pub async fn install_cli(app_handle: AppHandle) -> Result<String, String> {
         use std::process::Command;
 
         // First, check if /usr/local/bin exists, create if not
-        let mkdir_script = r#"do shell script "mkdir -p /usr/local/bin" with administrator privileges"#;
+        let mkdir_script =
+            r#"do shell script "mkdir -p /usr/local/bin" with administrator privileges"#;
         let _ = Command::new("osascript")
             .args(["-e", mkdir_script])
             .output();
@@ -226,15 +227,12 @@ pub async fn install_cli(app_handle: AppHandle) -> Result<String, String> {
             r#"do shell script "rm -f {}" with administrator privileges"#,
             install_path
         );
-        let _ = Command::new("osascript")
-            .args(["-e", &rm_script])
-            .output();
+        let _ = Command::new("osascript").args(["-e", &rm_script]).output();
 
         // Create the symlink
         let ln_script = format!(
             r#"do shell script "ln -sf '{}' '{}'" with administrator privileges"#,
-            binary_path_str,
-            install_path
+            binary_path_str, install_path
         );
 
         let output = Command::new("osascript")

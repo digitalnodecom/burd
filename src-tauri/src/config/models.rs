@@ -8,7 +8,9 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 // Re-export tunnel types for convenience
-pub use crate::tunnel::{FrpServer, Tunnel, TunnelTarget, SubdomainConfig, TunnelState, TunnelWithState};
+pub use crate::tunnel::{
+    FrpServer, SubdomainConfig, Tunnel, TunnelState, TunnelTarget, TunnelWithState,
+};
 
 // ============================================================================
 // Domain Entity
@@ -94,7 +96,12 @@ impl Domain {
     }
 
     /// Create a new domain serving static files from a directory
-    pub fn for_static_files(subdomain: String, path: String, browse: bool, ssl_enabled: bool) -> Self {
+    pub fn for_static_files(
+        subdomain: String,
+        path: String,
+        browse: bool,
+        ssl_enabled: bool,
+    ) -> Self {
         Self {
             id: Uuid::new_v4(),
             subdomain,
@@ -106,7 +113,12 @@ impl Domain {
     }
 
     /// Create a parked domain routing to the park server port
-    pub fn for_parked_port(subdomain: String, port: u16, ssl_enabled: bool, parked_dir_id: Uuid) -> Self {
+    pub fn for_parked_port(
+        subdomain: String,
+        port: u16,
+        ssl_enabled: bool,
+        parked_dir_id: Uuid,
+    ) -> Self {
         Self {
             id: Uuid::new_v4(),
             subdomain,
@@ -118,7 +130,13 @@ impl Domain {
     }
 
     /// Create a parked domain serving static files
-    pub fn for_parked_static_files(subdomain: String, path: String, browse: bool, ssl_enabled: bool, parked_dir_id: Uuid) -> Self {
+    pub fn for_parked_static_files(
+        subdomain: String,
+        path: String,
+        browse: bool,
+        ssl_enabled: bool,
+        parked_dir_id: Uuid,
+    ) -> Self {
         Self {
             id: Uuid::new_v4(),
             subdomain,
@@ -143,7 +161,9 @@ impl Domain {
     pub fn parked_dir_id(&self) -> Option<Uuid> {
         match &self.source {
             DomainSource::Parked { parked_dir_id } => Some(*parked_dir_id),
-            DomainSource::Isolated { original_parked_dir_id } => Some(*original_parked_dir_id),
+            DomainSource::Isolated {
+                original_parked_dir_id,
+            } => Some(*original_parked_dir_id),
             DomainSource::Manual => None,
         }
     }
@@ -158,11 +178,10 @@ impl Domain {
     pub fn get_target_port(&self, instances: &[Instance]) -> Option<u16> {
         match &self.target {
             DomainTarget::Port(port) => Some(*port),
-            DomainTarget::Instance(instance_id) => {
-                instances.iter()
-                    .find(|i| i.id == *instance_id)
-                    .map(|i| i.port)
-            }
+            DomainTarget::Instance(instance_id) => instances
+                .iter()
+                .find(|i| i.id == *instance_id)
+                .map(|i| i.port),
             DomainTarget::StaticFiles { .. } => None, // Static files don't use a port
         }
     }
@@ -363,7 +382,10 @@ impl Instance {
         if let Some(ref key) = self.master_key {
             if !key.is_empty() && self.config.get("master_key").is_none() {
                 if let serde_json::Value::Object(ref mut map) = self.config {
-                    map.insert("master_key".to_string(), serde_json::Value::String(key.clone()));
+                    map.insert(
+                        "master_key".to_string(),
+                        serde_json::Value::String(key.clone()),
+                    );
                 } else {
                     self.config = serde_json::json!({ "master_key": key });
                 }
@@ -379,7 +401,9 @@ impl Instance {
 
     /// Get the effective domain slug (custom or auto-generated)
     pub fn effective_domain_slug(&self) -> String {
-        self.domain.clone().unwrap_or_else(|| self.generate_domain_slug())
+        self.domain
+            .clone()
+            .unwrap_or_else(|| self.generate_domain_slug())
     }
 
     /// Get the full domain with TLD (e.g., "my-api.burd")
@@ -420,7 +444,9 @@ where
             for (key, val) in map {
                 // Parse service type
                 let service_type: ServiceType = serde_json::from_value(Value::String(key.clone()))
-                    .map_err(|e| D::Error::custom(format!("Invalid service type '{}': {}", key, e)))?;
+                    .map_err(|e| {
+                        D::Error::custom(format!("Invalid service type '{}': {}", key, e))
+                    })?;
 
                 // Check if it's old format (direct BinaryInfo) or new format (version map)
                 if val.get("version").is_some() && val.get("path").is_some() {
@@ -435,8 +461,13 @@ where
                     // New format: version -> BinaryInfo mapping
                     let mut versions = HashMap::new();
                     for (version, info) in version_map {
-                        let binary_info: BinaryInfo = serde_json::from_value(info)
-                            .map_err(|e| D::Error::custom(format!("Invalid binary info for version '{}': {}", version, e)))?;
+                        let binary_info: BinaryInfo =
+                            serde_json::from_value(info).map_err(|e| {
+                                D::Error::custom(format!(
+                                    "Invalid binary info for version '{}': {}",
+                                    version, e
+                                ))
+                            })?;
                         versions.insert(version, binary_info);
                     }
                     result.insert(service_type, versions);

@@ -67,7 +67,12 @@ fn parse_env_content(content: &str) -> HashMap<String, String> {
 
 /// Parse composer.json file
 pub fn parse_composer_json(path: &Path) -> Option<ComposerInfo> {
-    let composer_path = if path.is_file() && path.file_name().map(|n| n == "composer.json").unwrap_or(false) {
+    let composer_path = if path.is_file()
+        && path
+            .file_name()
+            .map(|n| n == "composer.json")
+            .unwrap_or(false)
+    {
         path.to_path_buf()
     } else {
         path.join("composer.json")
@@ -82,7 +87,10 @@ fn parse_composer_content(content: &str) -> Option<ComposerInfo> {
     let json: serde_json::Value = serde_json::from_str(content).ok()?;
 
     let mut info = ComposerInfo {
-        name: json.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        name: json
+            .get("name")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
         ..Default::default()
     };
 
@@ -129,9 +137,8 @@ fn parse_wp_config_content(content: &str) -> Option<DatabaseConfig> {
     let mut db_host = None;
 
     // Match define('CONSTANT', 'value') patterns
-    let define_pattern = regex::Regex::new(
-        r#"define\s*\(\s*['"](\w+)['"]\s*,\s*['"]([^'"]*)['"]\s*\)"#
-    ).ok()?;
+    let define_pattern =
+        regex::Regex::new(r#"define\s*\(\s*['"](\w+)['"]\s*,\s*['"]([^'"]*)['"]\s*\)"#).ok()?;
 
     for cap in define_pattern.captures_iter(content) {
         let name = cap.get(1).map(|m| m.as_str())?;
@@ -295,10 +302,7 @@ fn extract_bedrock_database_config(env: &HashMap<String, String>) -> Option<Data
         .cloned()
         .unwrap_or_else(|| "root".to_string());
 
-    let password = env
-        .get("DB_PASSWORD")
-        .cloned()
-        .unwrap_or_default();
+    let password = env.get("DB_PASSWORD").cloned().unwrap_or_default();
 
     Some(DatabaseConfig {
         connection: "mysql".to_string(),
@@ -317,7 +321,9 @@ fn parse_database_url(url: &str) -> Option<DatabaseConfig> {
 
     let connection = url.scheme().to_string();
     let host = url.host_str().unwrap_or("127.0.0.1").to_string();
-    let port = url.port().unwrap_or(if connection == "pgsql" { 5432 } else { 3306 });
+    let port = url
+        .port()
+        .unwrap_or(if connection == "pgsql" { 5432 } else { 3306 });
     let database = url.path().trim_start_matches('/').to_string();
     let username = url.username().to_string();
     let password = url.password().unwrap_or("").to_string();
@@ -471,13 +477,12 @@ pub fn update_env_value(path: &Path, key: &str, value: &str) -> Result<(), Strin
         path.join(".env")
     };
 
-    let content = fs::read_to_string(&env_path)
-        .map_err(|e| format!("Failed to read .env file: {}", e))?;
+    let content =
+        fs::read_to_string(&env_path).map_err(|e| format!("Failed to read .env file: {}", e))?;
 
     let new_content = update_env_content(&content, key, value);
 
-    fs::write(&env_path, new_content)
-        .map_err(|e| format!("Failed to write .env file: {}", e))?;
+    fs::write(&env_path, new_content).map_err(|e| format!("Failed to write .env file: {}", e))?;
 
     Ok(())
 }
@@ -551,7 +556,10 @@ SINGLE='single quotes'
         assert_eq!(info.name, Some("laravel/laravel".to_string()));
         assert!(info.has_dependency("laravel/framework"));
         assert!(info.has_dependency("phpunit/phpunit"));
-        assert_eq!(info.get_major_version("laravel/framework"), Some("11".to_string()));
+        assert_eq!(
+            info.get_major_version("laravel/framework"),
+            Some("11".to_string())
+        );
     }
 
     #[test]

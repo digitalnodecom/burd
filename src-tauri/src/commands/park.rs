@@ -128,9 +128,10 @@ pub async fn list_parked_directories(
             .iter()
             .filter_map(|p| {
                 let subdomain = park::generate_subdomain(&p.name);
-                let is_conflict = config.domains.iter().any(|d| {
-                    d.subdomain == subdomain && d.parked_dir_id() != Some(pd.id)
-                });
+                let is_conflict = config
+                    .domains
+                    .iter()
+                    .any(|d| d.subdomain == subdomain && d.parked_dir_id() != Some(pd.id));
                 if is_conflict {
                     Some(subdomain)
                 } else {
@@ -169,7 +170,10 @@ pub async fn park_directory(
     let (parked_dir, tld) = {
         let config_store = lock!(state.config_store)?;
         if !config_store.is_park_enabled()? {
-            return Err("FrankenPHP Park is not enabled. Please create a FrankenPHP Park instance first.".to_string());
+            return Err(
+                "FrankenPHP Park is not enabled. Please create a FrankenPHP Park instance first."
+                    .to_string(),
+            );
         }
         let parked_dir = config_store.create_parked_directory(path.clone(), ssl_enabled)?;
         let config = config_store.load()?;
@@ -187,11 +191,8 @@ pub async fn park_directory(
     };
 
     // Phase 4: Start file system watcher for this directory
-    let _ = watcher_state.start_watching(
-        parked_dir.id,
-        PathBuf::from(&parked_dir.path),
-        app_handle,
-    );
+    let _ =
+        watcher_state.start_watching(parked_dir.id, PathBuf::from(&parked_dir.path), app_handle);
 
     // Return info
     let projects = park::scan_directory(std::path::Path::new(&path)).unwrap_or_default();
@@ -324,7 +325,8 @@ pub async fn get_parked_projects(
         let subdomain = park::generate_subdomain(&project.name);
 
         // Determine status
-        let status = if let Some(domain) = config.domains.iter().find(|d| d.subdomain == subdomain) {
+        let status = if let Some(domain) = config.domains.iter().find(|d| d.subdomain == subdomain)
+        {
             if domain.is_isolated() {
                 "isolated"
             } else if domain.parked_dir_id() == Some(parked_dir.id) {
@@ -344,7 +346,11 @@ pub async fn get_parked_projects(
         let mut info = ParkedProjectInfo::from_discovered(&project, &config.tld, status);
 
         // Check if isolated
-        if let Some(domain) = config.domains.iter().find(|d| d.subdomain == subdomain && d.is_isolated()) {
+        if let Some(domain) = config
+            .domains
+            .iter()
+            .find(|d| d.subdomain == subdomain && d.is_isolated())
+        {
             info.isolated = true;
             if let crate::config::DomainTarget::Instance(instance_id) = &domain.target {
                 info.instance_id = Some(instance_id.to_string());

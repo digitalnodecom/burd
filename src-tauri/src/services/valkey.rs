@@ -1,6 +1,6 @@
 use crate::config::{Instance, ServiceType};
-use crate::services::{DownloadMethod, HealthCheck, ServiceDefinition, VersionSource};
 use crate::services::key_value_service::KeyValueService;
+use crate::services::{DownloadMethod, HealthCheck, ServiceDefinition, VersionSource};
 use std::path::Path;
 
 /// Valkey service implementation

@@ -14,8 +14,8 @@ use std::path::Path;
 /// Adds the current directory to the list of parked directories.
 /// All subdirectories will automatically become domains.
 pub fn run_park() -> Result<(), String> {
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     let path = current_dir.to_string_lossy().to_string();
 
@@ -25,14 +25,12 @@ pub fn run_park() -> Result<(), String> {
 
     // Check if park is enabled (FrankenPHP Park instance exists)
     if !config_store.is_park_enabled()? {
-        return Err(
-            "FrankenPHP Park is not enabled.\n\
+        return Err("FrankenPHP Park is not enabled.\n\
              Please create a FrankenPHP Park instance in the Burd app first:\n\
              1. Open Burd\n\
              2. Go to Instances\n\
              3. Create a new 'FrankenPHP Park' instance"
-                .to_string(),
-        );
+            .to_string());
     }
 
     // Check if already parked
@@ -80,8 +78,8 @@ pub fn run_park() -> Result<(), String> {
 ///
 /// Removes the current directory from the list of parked directories.
 pub fn run_forget() -> Result<(), String> {
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     let path = current_dir.to_string_lossy().to_string();
 
@@ -101,7 +99,10 @@ pub fn run_forget() -> Result<(), String> {
     for domain in &domains {
         let full_domain = format!("{}.{}", domain.subdomain, config.tld);
         if let Err(e) = caddy::delete_domain_file(&full_domain) {
-            eprintln!("Warning: Failed to delete domain file for {}: {}", full_domain, e);
+            eprintln!(
+                "Warning: Failed to delete domain file for {}: {}",
+                full_domain, e
+            );
         }
     }
 
@@ -153,7 +154,12 @@ pub fn run_parked() -> Result<(), String> {
         let projects = park::scan_directory(Path::new(&dir.path)).unwrap_or_default();
         let ssl_status = if dir.ssl_enabled { "SSL" } else { "HTTP" };
 
-        println!("  {} ({} projects, {})", dir.path, projects.len(), ssl_status);
+        println!(
+            "  {} ({} projects, {})",
+            dir.path,
+            projects.len(),
+            ssl_status
+        );
 
         // Show projects
         for project in projects {
@@ -246,8 +252,8 @@ pub fn run_refresh() -> Result<(), String> {
 
 /// Show park status for the current directory
 pub fn run_status() -> Result<(), String> {
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     let path = current_dir.to_string_lossy().to_string();
 
@@ -285,7 +291,11 @@ pub fn run_status() -> Result<(), String> {
     // Check if this directory is parked
     if let Some(parked_dir) = config_store.find_parked_directory_by_path(&path)? {
         let projects = park::scan_directory(Path::new(&path)).unwrap_or_default();
-        let ssl_status = if parked_dir.ssl_enabled { "SSL enabled" } else { "SSL disabled" };
+        let ssl_status = if parked_dir.ssl_enabled {
+            "SSL enabled"
+        } else {
+            "SSL disabled"
+        };
 
         println!("Directory '{}' is parked", path);
         println!();

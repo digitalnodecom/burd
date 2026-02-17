@@ -37,8 +37,8 @@ impl ServiceDefinition for TypesenseService {
         DownloadMethod::Direct {
             url,
             is_archive: true,
-                checksum: None, // TODO: Add SHA256 checksums for binary verification
-            }
+            checksum: None, // TODO: Add SHA256 checksums for binary verification
+        }
     }
 
     fn health_check(&self) -> HealthCheck {

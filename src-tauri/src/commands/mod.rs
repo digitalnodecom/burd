@@ -16,96 +16,94 @@ mod tunnels;
 
 // Re-export tunnel commands
 pub use tunnels::{
-    list_frp_servers, create_frp_server, update_frp_server, delete_frp_server,
-    list_tunnels, create_tunnel, update_tunnel, delete_tunnel,
-    start_tunnels, stop_tunnels, get_tunnel_status, get_frpc_logs,
-    generate_server_token, check_frpc_installed, get_frpc_connection_status, get_frpc_config,
+    check_frpc_installed, create_frp_server, create_tunnel, delete_frp_server, delete_tunnel,
+    generate_server_token, get_frpc_config, get_frpc_connection_status, get_frpc_logs,
+    get_tunnel_status, list_frp_servers, list_tunnels, start_tunnels, stop_tunnels,
+    update_frp_server, update_tunnel,
 };
 
 // Re-export node commands (NVM, PM2, Node-RED)
 pub use node::{
-    get_nvm_status, is_nvm_installed, list_installed_node_versions, list_remote_node_versions,
-    install_node_version, uninstall_node_version, set_default_node_version,
-    get_pm2_status, is_pm2_installed, install_pm2, pm2_list, pm2_start, pm2_stop,
-    pm2_restart, pm2_delete, pm2_logs, pm2_save, pm2_stop_all, pm2_delete_all,
-    init_nodered_instance, is_nodered_initialized,
+    get_nvm_status, get_pm2_status, init_nodered_instance, install_node_version, install_pm2,
+    is_nodered_initialized, is_nvm_installed, is_pm2_installed, list_installed_node_versions,
+    list_remote_node_versions, pm2_delete, pm2_delete_all, pm2_list, pm2_logs, pm2_restart,
+    pm2_save, pm2_start, pm2_stop, pm2_stop_all, set_default_node_version, uninstall_node_version,
 };
 
 // Re-export PHP/PVM commands
 pub use php::{
-    get_pvm_status, get_current_php, list_installed_php_versions, list_remote_php_versions,
-    download_php_version, delete_php_version, set_default_php_version,
-    get_php_shell_integration_status, configure_php_shell_integration, remove_php_shell_integration,
-    fix_php_shell_integration,
+    configure_php_shell_integration, delete_php_version, download_php_version,
+    fix_php_shell_integration, get_current_php, get_php_shell_integration_status, get_pvm_status,
+    list_installed_php_versions, list_remote_php_versions, remove_php_shell_integration,
+    set_default_php_version,
 };
 
 // Re-export instance commands
 pub use instances::{
-    list_instances, create_instance, rename_instance, start_instance, stop_instance, restart_instance, delete_instance,
-    check_instance_health, get_instance_logs, get_instance_config, update_instance_config, change_instance_version,
-    get_instance_env, get_instance_info, generate_env_for_service, reorder_instances,
+    change_instance_version, check_instance_health, create_instance, delete_instance,
+    generate_env_for_service, get_instance_config, get_instance_env, get_instance_info,
+    get_instance_logs, list_instances, rename_instance, reorder_instances, restart_instance,
+    start_instance, stop_instance, update_instance_config,
 };
 
 // Re-export domain commands
 pub use domains::{
-    list_domains, create_domain, update_domain, delete_domain, set_instance_domain, reinit_domain_ssl,
-    update_domain_ssl, get_domain_config, update_domain_config,
+    create_domain, delete_domain, get_domain_config, list_domains, reinit_domain_ssl,
+    set_instance_domain, update_domain, update_domain_config, update_domain_ssl,
 };
 
 // Re-export service commands
 pub use services::{
-    get_binary_status, get_all_binary_statuses, get_available_versions, get_installed_versions,
-    delete_binary_version, download_binary, get_available_services, parse_service_type,
+    delete_binary_version, download_binary, get_all_binary_statuses, get_available_services,
+    get_available_versions, get_binary_status, get_installed_versions, parse_service_type,
 };
 
 // Re-export DNS/network commands
 pub use dns::{
-    get_network_status, get_resolver_status, install_resolver, uninstall_resolver,
-    start_dns_server, stop_dns_server, restart_dns_server,
+    get_network_status, get_resolver_status, install_resolver, restart_dns_server,
+    start_dns_server, stop_dns_server, uninstall_resolver,
 };
 
 // Re-export proxy commands
 pub use proxy::{
-    get_proxy_status, setup_proxy, disable_proxy, start_proxy_daemon, restart_proxy_daemon,
-    restart_proxy_for_certs, get_proxy_config, get_ca_trust_status, trust_caddy_ca, untrust_caddy_ca,
-    auto_trust_ca_if_needed,
+    auto_trust_ca_if_needed, disable_proxy, get_ca_trust_status, get_proxy_config,
+    get_proxy_status, restart_proxy_daemon, restart_proxy_for_certs, setup_proxy,
+    start_proxy_daemon, trust_caddy_ca, untrust_caddy_ca,
 };
 
 // Re-export system commands (settings, CLI, helper)
 pub use system::{
-    get_settings, update_tld, get_cli_status, install_cli, uninstall_cli,
-    get_helper_status, install_helper, uninstall_helper, open_keychain_access,
+    get_cli_status, get_helper_status, get_settings, install_cli, install_helper,
+    open_keychain_access, uninstall_cli, uninstall_helper, update_tld,
 };
 
 // Re-export mail commands (Mailpit)
 pub use mail::{
-    get_mailpit_config, list_emails, get_email, delete_emails, delete_all_emails,
-    mark_emails_read, get_unread_count,
+    delete_all_emails, delete_emails, get_email, get_mailpit_config, get_unread_count, list_emails,
+    mark_emails_read,
 };
 
 // Re-export tinker commands (PHP Console)
 pub use tinker::{
-    list_tinker_projects, execute_tinker, get_tinker_history,
-    clear_tinker_history, delete_tinker_history_item, get_tinker_php_info,
+    clear_tinker_history, delete_tinker_history_item, execute_tinker, get_tinker_history,
+    get_tinker_php_info, list_tinker_projects,
 };
 
 // Re-export log commands
-pub use logs::{
-    get_available_log_sources, get_recent_logs, stream_logs, clear_logs,
-};
+pub use logs::{clear_logs, get_available_log_sources, get_recent_logs, stream_logs};
 
 // Re-export park commands
 pub use park::{
-    is_park_enabled, list_parked_directories, park_directory, unpark_directory,
-    refresh_parked_directory, refresh_all_parked_directories, get_parked_projects,
+    get_parked_projects, is_park_enabled, list_parked_directories, park_directory,
+    refresh_all_parked_directories, refresh_parked_directory, unpark_directory,
     update_parked_directory_ssl,
 };
 
 // Re-export stack commands
 pub use stacks::{
-    list_stacks, get_stack, create_stack, update_stack, delete_stack,
-    add_instances_to_stack, remove_instances_from_stack, move_instance_to_stack,
-    export_stack, preview_stack_import, import_stack,
+    add_instances_to_stack, create_stack, delete_stack, export_stack, get_stack, import_stack,
+    list_stacks, move_instance_to_stack, preview_stack_import, remove_instances_from_stack,
+    update_stack,
 };
 
 use crate::binary::BinaryManager;
@@ -115,7 +113,6 @@ use crate::process::ProcessManager;
 use crate::proxy::ProxyServer;
 use std::sync::{Arc, Mutex};
 use tokio::sync::Mutex as AsyncMutex;
-
 
 /// Application state shared between Tauri commands and the HTTP API.
 ///

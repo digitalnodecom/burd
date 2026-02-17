@@ -41,8 +41,8 @@ impl ServiceDefinition for MinIOService {
         DownloadMethod::Direct {
             url,
             is_archive: false,
-                checksum: None, // TODO: Add SHA256 checksums for binary verification
-            }
+            checksum: None, // TODO: Add SHA256 checksums for binary verification
+        }
     }
 
     fn health_check(&self) -> HealthCheck {

@@ -11,7 +11,7 @@ use crate::api::{
     state::ApiState,
     types::{ApiResponse, CreateInstanceRequest},
 };
-use crate::commands::{parse_service_type, generate_env_for_service};
+use crate::commands::{generate_env_for_service, parse_service_type};
 use crate::process::ProcessManager;
 use crate::service_config::ServiceRegistry;
 use crate::services::{get_service, HealthCheck};
@@ -243,7 +243,7 @@ pub async fn create(
     // Check auto_create_domain and max_instances
     let registry = ServiceRegistry::load();
     let service_def = registry.get_service(&req.service_type.to_lowercase());
-    let auto_create_domain = service_def.map(|s| s.auto_create_domain).unwrap_or(false);
+    let _auto_create_domain = service_def.map(|s| s.auto_create_domain).unwrap_or(false);
 
     let service_config = req.config.unwrap_or_else(|| serde_json::json!({}));
 
@@ -361,7 +361,8 @@ pub async fn start(
             )));
         }
 
-        let version_exists = config.binaries
+        let version_exists = config
+            .binaries
             .get(&instance.service_type)
             .map(|versions| versions.contains_key(&instance.version))
             .unwrap_or(false);
@@ -416,10 +417,7 @@ pub async fn start(
 }
 
 /// POST /instances/:id/stop - Stop an instance
-pub async fn stop(
-    State(state): State<ApiState>,
-    Path(id): Path<String>,
-) -> Json<ApiResponse<()>> {
+pub async fn stop(State(state): State<ApiState>, Path(id): Path<String>) -> Json<ApiResponse<()>> {
     let uuid = match Uuid::parse_str(&id) {
         Ok(u) => u,
         Err(_) => return Json(ApiResponse::err("Invalid instance ID")),
@@ -516,7 +514,12 @@ pub async fn restart(
 
         // Start again
         let start_result = start(State(state.clone()), Path(id)).await;
-        if let Json(ApiResponse { success: false, error: Some(e), .. }) = &start_result {
+        if let Json(ApiResponse {
+            success: false,
+            error: Some(e),
+            ..
+        }) = &start_result
+        {
             return Json(ApiResponse::err(e.clone()));
         }
     }

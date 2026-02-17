@@ -117,14 +117,18 @@ impl ServiceDefinition for MySQLService {
 
     fn download_method(&self, version: &str, _arch: &str) -> DownloadMethod {
         // Direct download from S3
-        let arch = if cfg!(target_arch = "aarch64") { "arm64" } else { "x64" };
+        let arch = if cfg!(target_arch = "aarch64") {
+            "arm64"
+        } else {
+            "x64"
+        };
         DownloadMethod::Direct {
             url: format!(
                 "https://burdbin.s3.fr-par.scw.cloud/mysql/{}/mysql-{}-{}.tar.gz",
                 version, version, arch
             ),
             is_archive: true,
-                checksum: None, // TODO: Add SHA256 checksums for binary verification
+            checksum: None, // TODO: Add SHA256 checksums for binary verification
         }
     }
 

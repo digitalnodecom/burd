@@ -27,16 +27,16 @@ pub struct DomainInfo {
     pub id: String,
     pub subdomain: String,
     pub full_domain: String,
-    pub target_type: String,           // "instance", "port", or "static"
-    pub target_value: String,          // instance ID, port number, or path
-    pub target_name: Option<String>,   // instance name if targeting instance
-    pub target_port: Option<u16>,      // resolved port (None for static files)
-    pub static_path: Option<String>,   // path for static file server
-    pub static_browse: Option<bool>,   // directory listing enabled
-    pub ssl_enabled: bool,             // whether SSL/HTTPS is enabled
+    pub target_type: String,         // "instance", "port", or "static"
+    pub target_value: String,        // instance ID, port number, or path
+    pub target_name: Option<String>, // instance name if targeting instance
+    pub target_port: Option<u16>,    // resolved port (None for static files)
+    pub static_path: Option<String>, // path for static file server
+    pub static_browse: Option<bool>, // directory listing enabled
+    pub ssl_enabled: bool,           // whether SSL/HTTPS is enabled
     pub created_at: String,
-    pub source: String,                // "manual", "parked", or "isolated"
-    pub project_type: Option<String>,  // For parked: "Laravel", "WordPress", etc.
+    pub source: String,               // "manual", "parked", or "isolated"
+    pub project_type: Option<String>, // For parked: "Laravel", "WordPress", etc.
 }
 
 /// Create domain target - instance, port, or static files
@@ -67,8 +67,8 @@ pub struct UpdateDomainRequest {
     pub subdomain: Option<String>,
     pub target_type: Option<String>,
     pub target_value: Option<String>,
-    pub static_path: Option<String>,   // For static file server
-    pub static_browse: Option<bool>,   // Directory listing for static
+    pub static_path: Option<String>, // For static file server
+    pub static_browse: Option<bool>, // Directory listing for static
 }
 
 // ============================================================================
@@ -138,78 +138,83 @@ pub fn list_domains(state: State<'_, AppState>) -> Result<Vec<DomainInfo>, Strin
     let config = config_store.load()?;
     let tld = config.tld.clone();
 
-    let domains: Vec<DomainInfo> = config.domains.iter().map(|d| {
-        let (target_type, target_value, target_name, target_port, static_path, static_browse) = match &d.target {
-            DomainTarget::Instance(id) => {
-                let instance = config.instances.iter().find(|i| i.id == *id);
-                (
-                    "instance".to_string(),
-                    id.to_string(),
-                    instance.map(|i| i.name.clone()),
-                    instance.map(|i| i.port),
-                    None,
-                    None,
-                )
-            }
-            DomainTarget::Port(port) => (
-                "port".to_string(),
-                port.to_string(),
-                None,
-                Some(*port),
-                None,
-                None,
-            ),
-            DomainTarget::StaticFiles { path, browse } => (
-                "static".to_string(),
-                path.clone(),
-                None,
-                None,
-                Some(path.clone()),
-                Some(*browse),
-            ),
-        };
+    let domains: Vec<DomainInfo> = config
+        .domains
+        .iter()
+        .map(|d| {
+            let (target_type, target_value, target_name, target_port, static_path, static_browse) =
+                match &d.target {
+                    DomainTarget::Instance(id) => {
+                        let instance = config.instances.iter().find(|i| i.id == *id);
+                        (
+                            "instance".to_string(),
+                            id.to_string(),
+                            instance.map(|i| i.name.clone()),
+                            instance.map(|i| i.port),
+                            None,
+                            None,
+                        )
+                    }
+                    DomainTarget::Port(port) => (
+                        "port".to_string(),
+                        port.to_string(),
+                        None,
+                        Some(*port),
+                        None,
+                        None,
+                    ),
+                    DomainTarget::StaticFiles { path, browse } => (
+                        "static".to_string(),
+                        path.clone(),
+                        None,
+                        None,
+                        Some(path.clone()),
+                        Some(*browse),
+                    ),
+                };
 
-        // Determine source and project type
-        let (source, project_type) = match &d.source {
-            DomainSource::Manual => ("manual".to_string(), None),
-            DomainSource::Parked { parked_dir_id } => {
-                // Find the parked directory and scan for project type
-                let ptype = config
-                    .parked_directories
-                    .iter()
-                    .find(|pd| pd.id == *parked_dir_id)
-                    .and_then(|pd| {
-                        // Scan directory to find the project matching this subdomain
-                        park::scan_directory(Path::new(&pd.path))
-                            .ok()
-                            .and_then(|projects| {
-                                projects.into_iter().find(|p| {
-                                    park::generate_subdomain(&p.name) == d.subdomain
+            // Determine source and project type
+            let (source, project_type) = match &d.source {
+                DomainSource::Manual => ("manual".to_string(), None),
+                DomainSource::Parked { parked_dir_id } => {
+                    // Find the parked directory and scan for project type
+                    let ptype = config
+                        .parked_directories
+                        .iter()
+                        .find(|pd| pd.id == *parked_dir_id)
+                        .and_then(|pd| {
+                            // Scan directory to find the project matching this subdomain
+                            park::scan_directory(Path::new(&pd.path))
+                                .ok()
+                                .and_then(|projects| {
+                                    projects
+                                        .into_iter()
+                                        .find(|p| park::generate_subdomain(&p.name) == d.subdomain)
                                 })
-                            })
-                            .map(|p| p.project_type.as_str().to_string())
-                    });
-                ("parked".to_string(), ptype)
-            }
-            DomainSource::Isolated { .. } => ("isolated".to_string(), None),
-        };
+                                .map(|p| p.project_type.as_str().to_string())
+                        });
+                    ("parked".to_string(), ptype)
+                }
+                DomainSource::Isolated { .. } => ("isolated".to_string(), None),
+            };
 
-        DomainInfo {
-            id: d.id.to_string(),
-            subdomain: d.subdomain.clone(),
-            full_domain: d.full_domain(&tld),
-            target_type,
-            target_value,
-            target_name,
-            target_port,
-            static_path,
-            static_browse,
-            ssl_enabled: d.ssl_enabled,
-            created_at: d.created_at.to_rfc3339(),
-            source,
-            project_type,
-        }
-    }).collect();
+            DomainInfo {
+                id: d.id.to_string(),
+                subdomain: d.subdomain.clone(),
+                full_domain: d.full_domain(&tld),
+                target_type,
+                target_value,
+                target_name,
+                target_port,
+                static_path,
+                static_browse,
+                ssl_enabled: d.ssl_enabled,
+                created_at: d.created_at.to_rfc3339(),
+                source,
+                project_type,
+            }
+        })
+        .collect();
 
     Ok(domains)
 }
@@ -242,21 +247,15 @@ pub async fn create_domain(
 
         let domain = match &request.target {
             CreateDomainTarget::Instance { target_value: id } => {
-                let instance_id = Uuid::parse_str(id)
-                    .map_err(|_| "Invalid instance ID")?;
+                let instance_id = Uuid::parse_str(id).map_err(|_| "Invalid instance ID")?;
                 config_store.create_domain_for_instance(
                     request.subdomain.clone(),
                     instance_id,
                     request.ssl_enabled,
                 )?
             }
-            CreateDomainTarget::Port { target_value: port } => {
-                config_store.create_domain_for_port(
-                    request.subdomain.clone(),
-                    *port,
-                    request.ssl_enabled,
-                )?
-            }
+            CreateDomainTarget::Port { target_value: port } => config_store
+                .create_domain_for_port(request.subdomain.clone(), *port, request.ssl_enabled)?,
             CreateDomainTarget::StaticFiles { path, browse } => {
                 // Path already validated above
                 config_store.create_domain_for_static_files(
@@ -280,45 +279,57 @@ pub async fn create_domain(
         DomainTarget::Instance(_) | DomainTarget::Port(_) => {
             if let Some(port) = target_port {
                 let proxy = state.proxy_server.lock().await;
-                proxy.register_route(&domain.full_domain(&tld), port, &domain.id.to_string(), domain.ssl_enabled)?;
+                proxy.register_route(
+                    &domain.full_domain(&tld),
+                    port,
+                    &domain.id.to_string(),
+                    domain.ssl_enabled,
+                )?;
             }
         }
         DomainTarget::StaticFiles { path, browse } => {
             let proxy = state.proxy_server.lock().await;
-            proxy.register_static_route(&domain.full_domain(&tld), path, *browse, &domain.id.to_string(), domain.ssl_enabled)?;
+            proxy.register_static_route(
+                &domain.full_domain(&tld),
+                path,
+                *browse,
+                &domain.id.to_string(),
+                domain.ssl_enabled,
+            )?;
         }
     }
 
     // Build response using cached instances
-    let (target_type, target_value, target_name, resolved_port, static_path, static_browse) = match &domain.target {
-        DomainTarget::Instance(id) => {
-            let instance = instances.iter().find(|i| i.id == *id);
-            (
-                "instance".to_string(),
-                id.to_string(),
-                instance.map(|i| i.name.clone()),
-                instance.map(|i| i.port),
+    let (target_type, target_value, target_name, resolved_port, static_path, static_browse) =
+        match &domain.target {
+            DomainTarget::Instance(id) => {
+                let instance = instances.iter().find(|i| i.id == *id);
+                (
+                    "instance".to_string(),
+                    id.to_string(),
+                    instance.map(|i| i.name.clone()),
+                    instance.map(|i| i.port),
+                    None,
+                    None,
+                )
+            }
+            DomainTarget::Port(p) => (
+                "port".to_string(),
+                p.to_string(),
+                None,
+                Some(*p),
                 None,
                 None,
-            )
-        }
-        DomainTarget::Port(p) => (
-            "port".to_string(),
-            p.to_string(),
-            None,
-            Some(*p),
-            None,
-            None,
-        ),
-        DomainTarget::StaticFiles { path, browse } => (
-            "static".to_string(),
-            path.clone(),
-            None,
-            None,
-            Some(path.clone()),
-            Some(*browse),
-        ),
-    };
+            ),
+            DomainTarget::StaticFiles { path, browse } => (
+                "static".to_string(),
+                path.clone(),
+                None,
+                None,
+                Some(path.clone()),
+                Some(*browse),
+            ),
+        };
 
     Ok(DomainInfo {
         id: domain.id.to_string(),
@@ -332,7 +343,7 @@ pub async fn create_domain(
         static_browse,
         ssl_enabled: domain.ssl_enabled,
         created_at: domain.created_at.to_rfc3339(),
-        source: "manual".to_string(),  // Newly created domains are always manual
+        source: "manual".to_string(), // Newly created domains are always manual
         project_type: None,
     })
 }
@@ -375,24 +386,29 @@ pub async fn update_domain(
     let new_target = if let Some(target_type) = &request.target_type {
         Some(match target_type.as_str() {
             "instance" => {
-                let target_value = request.target_value.as_ref()
+                let target_value = request
+                    .target_value
+                    .as_ref()
                     .ok_or("target_value required for instance target")?;
-                let instance_id = Uuid::parse_str(target_value)
-                    .map_err(|_| "Invalid instance ID")?;
+                let instance_id =
+                    Uuid::parse_str(target_value).map_err(|_| "Invalid instance ID")?;
                 DomainTarget::Instance(instance_id)
             }
             "port" => {
-                let target_value = request.target_value.as_ref()
+                let target_value = request
+                    .target_value
+                    .as_ref()
                     .ok_or("target_value required for port target")?;
-                let port: u16 = target_value.parse()
-                    .map_err(|_| "Invalid port number")?;
+                let port: u16 = target_value.parse().map_err(|_| "Invalid port number")?;
                 // Validate port
                 validation::validate_port_allow_privileged(port)
                     .map_err(|e| format!("Invalid port: {}", e))?;
                 DomainTarget::Port(port)
             }
             "static" => {
-                let path = request.static_path.clone()
+                let path = request
+                    .static_path
+                    .clone()
                     .ok_or("static_path required for static target")?;
                 // Path already validated above
                 let browse = request.static_browse.unwrap_or(false);
@@ -407,11 +423,7 @@ pub async fn update_domain(
     // Update domain and get TLD + instances in one lock acquisition
     let (domain, tld, instances) = {
         let config_store = lock!(state.config_store)?;
-        let domain = config_store.update_domain(
-            domain_id,
-            request.subdomain,
-            new_target,
-        )?;
+        let domain = config_store.update_domain(domain_id, request.subdomain, new_target)?;
         let config = config_store.load()?;
         (domain, config.tld.clone(), config.instances.clone())
     };
@@ -424,45 +436,57 @@ pub async fn update_domain(
         DomainTarget::Instance(_) | DomainTarget::Port(_) => {
             if let Some(port) = target_port {
                 let proxy = state.proxy_server.lock().await;
-                proxy.register_route(&domain.full_domain(&tld), port, &domain.id.to_string(), domain.ssl_enabled)?;
+                proxy.register_route(
+                    &domain.full_domain(&tld),
+                    port,
+                    &domain.id.to_string(),
+                    domain.ssl_enabled,
+                )?;
             }
         }
         DomainTarget::StaticFiles { path, browse } => {
             let proxy = state.proxy_server.lock().await;
-            proxy.register_static_route(&domain.full_domain(&tld), path, *browse, &domain.id.to_string(), domain.ssl_enabled)?;
+            proxy.register_static_route(
+                &domain.full_domain(&tld),
+                path,
+                *browse,
+                &domain.id.to_string(),
+                domain.ssl_enabled,
+            )?;
         }
     }
 
     // Build response using cached instances
-    let (target_type, target_value, target_name, resolved_port, static_path, static_browse) = match &domain.target {
-        DomainTarget::Instance(inst_id) => {
-            let instance = instances.iter().find(|i| i.id == *inst_id);
-            (
-                "instance".to_string(),
-                inst_id.to_string(),
-                instance.map(|i| i.name.clone()),
-                instance.map(|i| i.port),
+    let (target_type, target_value, target_name, resolved_port, static_path, static_browse) =
+        match &domain.target {
+            DomainTarget::Instance(inst_id) => {
+                let instance = instances.iter().find(|i| i.id == *inst_id);
+                (
+                    "instance".to_string(),
+                    inst_id.to_string(),
+                    instance.map(|i| i.name.clone()),
+                    instance.map(|i| i.port),
+                    None,
+                    None,
+                )
+            }
+            DomainTarget::Port(p) => (
+                "port".to_string(),
+                p.to_string(),
+                None,
+                Some(*p),
                 None,
                 None,
-            )
-        }
-        DomainTarget::Port(p) => (
-            "port".to_string(),
-            p.to_string(),
-            None,
-            Some(*p),
-            None,
-            None,
-        ),
-        DomainTarget::StaticFiles { path, browse } => (
-            "static".to_string(),
-            path.clone(),
-            None,
-            None,
-            Some(path.clone()),
-            Some(*browse),
-        ),
-    };
+            ),
+            DomainTarget::StaticFiles { path, browse } => (
+                "static".to_string(),
+                path.clone(),
+                None,
+                None,
+                Some(path.clone()),
+                Some(*browse),
+            ),
+        };
 
     let full_domain = domain.full_domain(&tld);
 
@@ -478,7 +502,7 @@ pub async fn update_domain(
         static_browse,
         ssl_enabled: domain.ssl_enabled,
         created_at: domain.created_at.to_rfc3339(),
-        source: "manual".to_string(),  // Updated domains are treated as manual
+        source: "manual".to_string(), // Updated domains are treated as manual
         project_type: None,
     })
 }
@@ -516,11 +540,9 @@ pub async fn reinit_domain_ssl(id: String, _state: State<'_, AppState>) -> Resul
     // With Caddy, certificates are auto-managed
     // Just restart the daemon to force a config reload
     if launchd::is_installed() {
-        tokio::task::spawn_blocking(|| {
-            launchd::restart()
-        })
-        .await
-        .map_err(|e| format!("Task error: {}", e))??;
+        tokio::task::spawn_blocking(launchd::restart)
+            .await
+            .map_err(|e| format!("Task error: {}", e))??;
     }
 
     Ok(())
@@ -558,12 +580,23 @@ pub async fn update_domain_ssl(
             };
             if let Some(port) = target_port {
                 let proxy = state.proxy_server.lock().await;
-                proxy.register_route(&domain.full_domain(&tld), port, &domain.id.to_string(), domain.ssl_enabled)?;
+                proxy.register_route(
+                    &domain.full_domain(&tld),
+                    port,
+                    &domain.id.to_string(),
+                    domain.ssl_enabled,
+                )?;
             }
         }
         DomainTarget::StaticFiles { path, browse } => {
             let proxy = state.proxy_server.lock().await;
-            proxy.register_static_route(&domain.full_domain(&tld), path, *browse, &domain.id.to_string(), domain.ssl_enabled)?;
+            proxy.register_static_route(
+                &domain.full_domain(&tld),
+                path,
+                *browse,
+                &domain.id.to_string(),
+                domain.ssl_enabled,
+            )?;
         }
     }
 
@@ -573,37 +606,38 @@ pub async fn update_domain_ssl(
     }
 
     // Build response
-    let (target_type, target_value, target_name, resolved_port, static_path, static_browse) = match &domain.target {
-        DomainTarget::Instance(inst_id) => {
-            let config_store = lock!(state.config_store)?;
-            let config = config_store.load()?;
-            let instance = config.instances.iter().find(|i| i.id == *inst_id);
-            (
-                "instance".to_string(),
-                inst_id.to_string(),
-                instance.map(|i| i.name.clone()),
-                instance.map(|i| i.port),
+    let (target_type, target_value, target_name, resolved_port, static_path, static_browse) =
+        match &domain.target {
+            DomainTarget::Instance(inst_id) => {
+                let config_store = lock!(state.config_store)?;
+                let config = config_store.load()?;
+                let instance = config.instances.iter().find(|i| i.id == *inst_id);
+                (
+                    "instance".to_string(),
+                    inst_id.to_string(),
+                    instance.map(|i| i.name.clone()),
+                    instance.map(|i| i.port),
+                    None,
+                    None,
+                )
+            }
+            DomainTarget::Port(p) => (
+                "port".to_string(),
+                p.to_string(),
+                None,
+                Some(*p),
                 None,
                 None,
-            )
-        }
-        DomainTarget::Port(p) => (
-            "port".to_string(),
-            p.to_string(),
-            None,
-            Some(*p),
-            None,
-            None,
-        ),
-        DomainTarget::StaticFiles { path, browse } => (
-            "static".to_string(),
-            path.clone(),
-            None,
-            None,
-            Some(path.clone()),
-            Some(*browse),
-        ),
-    };
+            ),
+            DomainTarget::StaticFiles { path, browse } => (
+                "static".to_string(),
+                path.clone(),
+                None,
+                None,
+                Some(path.clone()),
+                Some(*browse),
+            ),
+        };
 
     let full_domain = domain.full_domain(&tld);
 
@@ -619,14 +653,18 @@ pub async fn update_domain_ssl(
         static_browse,
         ssl_enabled: domain.ssl_enabled,
         created_at: domain.created_at.to_rfc3339(),
-        source: "manual".to_string(),  // SSL toggle is for manual domains
+        source: "manual".to_string(), // SSL toggle is for manual domains
         project_type: None,
     })
 }
 
 /// Update the Caddy configuration for a specific domain with custom content
 #[tauri::command]
-pub fn update_domain_config(id: String, config: String, state: State<'_, AppState>) -> Result<(), String> {
+pub fn update_domain_config(
+    id: String,
+    config: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let domain_id = Uuid::parse_str(&id).map_err(|_| "Invalid domain ID")?;
 
     let config_store = lock!(state.config_store)?;
@@ -654,7 +692,9 @@ pub fn get_domain_config(id: String, state: State<'_, AppState>) -> Result<Strin
     // Build the RouteEntry for this domain
     let route = match &domain.target {
         DomainTarget::Instance(instance_id) => {
-            let instance = config.instances.iter()
+            let instance = config
+                .instances
+                .iter()
                 .find(|i| i.id == *instance_id)
                 .ok_or_else(|| "Instance not found for this domain".to_string())?;
             caddy::RouteEntry::reverse_proxy(
@@ -664,23 +704,19 @@ pub fn get_domain_config(id: String, state: State<'_, AppState>) -> Result<Strin
                 domain.ssl_enabled,
             )
         }
-        DomainTarget::Port(port) => {
-            caddy::RouteEntry::reverse_proxy(
-                full_domain,
-                *port,
-                domain.id.to_string(),
-                domain.ssl_enabled,
-            )
-        }
-        DomainTarget::StaticFiles { path, browse } => {
-            caddy::RouteEntry::file_server(
-                full_domain,
-                path.clone(),
-                *browse,
-                domain.id.to_string(),
-                domain.ssl_enabled,
-            )
-        }
+        DomainTarget::Port(port) => caddy::RouteEntry::reverse_proxy(
+            full_domain,
+            *port,
+            domain.id.to_string(),
+            domain.ssl_enabled,
+        ),
+        DomainTarget::StaticFiles { path, browse } => caddy::RouteEntry::file_server(
+            full_domain,
+            path.clone(),
+            *browse,
+            domain.id.to_string(),
+            domain.ssl_enabled,
+        ),
     };
 
     // Generate and return the Caddy config

@@ -4,9 +4,9 @@
 //! and ensure data integrity.
 
 use crate::error::AppError;
-use std::path::{Path, PathBuf};
-use regex::Regex;
 use once_cell::sync::Lazy;
+use regex::Regex;
+use std::path::{Path, PathBuf};
 
 // ============================================================================
 // Port Validation
@@ -50,6 +50,9 @@ pub fn validate_port(port: u16) -> Result<(), AppError> {
         )));
     }
 
+    // MAX_PORT is u16::MAX, so this check is a no-op for u16,
+    // but kept for clarity if the type ever changes.
+    #[allow(clippy::absurd_extreme_comparisons)]
     if port > MAX_PORT {
         return Err(AppError::invalid_config(format!(
             "Port {} exceeds maximum port number {}",
@@ -66,6 +69,7 @@ pub fn validate_port_allow_privileged(port: u16) -> Result<(), AppError> {
         return Err(AppError::invalid_config("Port cannot be 0"));
     }
 
+    #[allow(clippy::absurd_extreme_comparisons)]
     if port > MAX_PORT {
         return Err(AppError::invalid_config(format!(
             "Port {} exceeds maximum port number {}",
@@ -109,9 +113,12 @@ pub fn validate_path(path: &str) -> Result<PathBuf, AppError> {
     let path_buf = PathBuf::from(path);
 
     // Check for path traversal attempts using parent directory components
-    if path_buf.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+    if path_buf
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
         return Err(AppError::invalid_config(
-            "Path traversal not allowed (.. component detected)"
+            "Path traversal not allowed (.. component detected)",
         ));
     }
 
@@ -120,7 +127,9 @@ pub fn validate_path(path: &str) -> Result<PathBuf, AppError> {
         path_buf
     } else {
         std::env::current_dir()
-            .map_err(|e| AppError::invalid_config(format!("Failed to get current directory: {}", e)))?
+            .map_err(|e| {
+                AppError::invalid_config(format!("Failed to get current directory: {}", e))
+            })?
             .join(path_buf)
     };
 
@@ -156,7 +165,8 @@ pub fn validate_directory_path(path: &str) -> Result<PathBuf, AppError> {
     }
 
     // Canonicalize to resolve symlinks and get absolute path
-    path_buf.canonicalize()
+    path_buf
+        .canonicalize()
         .map_err(|e| AppError::invalid_config(format!("Failed to canonicalize path: {}", e)))
 }
 
@@ -184,7 +194,8 @@ pub fn validate_path_within(path: &str, allowed_parent: &Path) -> Result<PathBuf
     let validated_path = validate_path(path)?;
 
     // Canonicalize the allowed parent
-    let canonical_parent = allowed_parent.canonicalize()
+    let canonical_parent = allowed_parent
+        .canonicalize()
         .map_err(|e| AppError::invalid_config(format!("Invalid parent directory: {}", e)))?;
 
     // Check if the path starts with the allowed parent
@@ -204,9 +215,8 @@ pub fn validate_path_within(path: &str, allowed_parent: &Path) -> Result<PathBuf
 // ============================================================================
 
 /// Regex for valid instance names (alphanumeric, hyphens, underscores)
-static INSTANCE_NAME_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}[a-zA-Z0-9]$|^[a-zA-Z0-9]$").unwrap()
-});
+static INSTANCE_NAME_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,62}[a-zA-Z0-9]$|^[a-zA-Z0-9]$").unwrap());
 
 /// Validate an instance name
 ///
@@ -238,7 +248,7 @@ pub fn validate_instance_name(name: &str) -> Result<(), AppError> {
 
     if name.len() > 64 {
         return Err(AppError::invalid_config(
-            "Instance name cannot exceed 64 characters"
+            "Instance name cannot exceed 64 characters",
         ));
     }
 
@@ -256,9 +266,8 @@ pub fn validate_instance_name(name: &str) -> Result<(), AppError> {
 // ============================================================================
 
 /// Regex for valid DNS labels (RFC 1123 compliant)
-static DNS_LABEL_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$").unwrap()
-});
+static DNS_LABEL_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$").unwrap());
 
 /// Validate a domain/subdomain name
 ///
@@ -295,7 +304,7 @@ pub fn validate_domain_name(domain: &str) -> Result<(), AppError> {
 
     if domain.len() > 253 {
         return Err(AppError::invalid_config(
-            "Domain name cannot exceed 253 characters (DNS limit)"
+            "Domain name cannot exceed 253 characters (DNS limit)",
         ));
     }
 
@@ -305,7 +314,7 @@ pub fn validate_domain_name(domain: &str) -> Result<(), AppError> {
     for label in labels {
         if label.is_empty() {
             return Err(AppError::invalid_config(
-                "Domain name cannot have empty labels (consecutive dots or leading/trailing dots)"
+                "Domain name cannot have empty labels (consecutive dots or leading/trailing dots)",
             ));
         }
 
@@ -346,7 +355,9 @@ pub fn validate_tld(tld: &str) -> Result<(), AppError> {
     }
 
     if tld.len() < 2 {
-        return Err(AppError::invalid_config("TLD must be at least 2 characters"));
+        return Err(AppError::invalid_config(
+            "TLD must be at least 2 characters",
+        ));
     }
 
     if tld.len() > 63 {
@@ -354,9 +365,12 @@ pub fn validate_tld(tld: &str) -> Result<(), AppError> {
     }
 
     // TLD should only contain lowercase alphanumeric characters
-    if !tld.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()) {
+    if !tld
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+    {
         return Err(AppError::invalid_config(
-            "TLD must contain only lowercase alphanumeric characters"
+            "TLD must contain only lowercase alphanumeric characters",
         ));
     }
 
@@ -490,7 +504,8 @@ mod tests {
         assert!(validate_domain_name(".leading").is_err()); // leading dot
         assert!(validate_domain_name("trailing.").is_err()); // trailing dot
         assert!(validate_domain_name(&"a".repeat(64)).is_err()); // label too long
-        assert!(validate_domain_name(&format!("{}.{}", "a".repeat(63), "b".repeat(191))).is_err()); // total too long
+        assert!(validate_domain_name(&format!("{}.{}", "a".repeat(63), "b".repeat(191))).is_err());
+        // total too long
     }
 
     // TLD validation tests

@@ -34,12 +34,18 @@ pub fn run_proxy(name: String, port: u16) -> Result<(), String> {
     regenerate_caddyfile(&config_store)?;
 
     println!();
-    println!("Created proxy {}.{} -> localhost:{}", subdomain, config.tld, port);
+    println!(
+        "Created proxy {}.{} -> localhost:{}",
+        subdomain, config.tld, port
+    );
     println!();
     if config.proxy_installed {
         println!("  https://{}.{}", subdomain, config.tld);
     } else {
-        println!("  https://{}.{}:{}", subdomain, config.tld, config.proxy_port);
+        println!(
+            "  https://{}.{}:{}",
+            subdomain, config.tld, config.proxy_port
+        );
     }
     println!();
 
@@ -166,15 +172,13 @@ fn regenerate_caddyfile(config_store: &ConfigStore) -> Result<(), String> {
                     domain.id.to_string(),
                     domain.ssl_enabled,
                 )),
-                DomainTarget::StaticFiles { path, browse } => {
-                    Some(caddy::RouteEntry::file_server(
-                        full_domain,
-                        path.clone(),
-                        *browse,
-                        domain.id.to_string(),
-                        domain.ssl_enabled,
-                    ))
-                }
+                DomainTarget::StaticFiles { path, browse } => Some(caddy::RouteEntry::file_server(
+                    full_domain,
+                    path.clone(),
+                    *browse,
+                    domain.id.to_string(),
+                    domain.ssl_enabled,
+                )),
             }
         })
         .collect();

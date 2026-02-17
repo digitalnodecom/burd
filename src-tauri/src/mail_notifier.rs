@@ -113,7 +113,9 @@ pub fn start_mail_notifier(app_handle: AppHandle) {
                     match msg_result {
                         Ok(msg) => {
                             if let Ok(text) = msg.to_text() {
-                                if let Ok(MailpitEvent::New { data: email }) = serde_json::from_str::<MailpitEvent>(text) {
+                                if let Ok(MailpitEvent::New { data: email }) =
+                                    serde_json::from_str::<MailpitEvent>(text)
+                                {
                                     let payload = NewEmailPayload {
                                         from_name: email
                                             .From

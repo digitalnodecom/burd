@@ -19,7 +19,8 @@ use tauri::State;
 fn fix_double_encoded_utf8(s: &str) -> String {
     // Try to decode as if the string was Latin-1 encoded UTF-8 bytes
     // Latin-1 is a 1:1 mapping of bytes 0x00-0xFF to Unicode U+0000-U+00FF
-    let bytes: Vec<u8> = s.chars()
+    let bytes: Vec<u8> = s
+        .chars()
         .filter_map(|c| {
             let code = c as u32;
             if code <= 0xFF {
@@ -182,16 +183,24 @@ pub struct SmtpConfig {
 // ============================================================================
 
 fn get_mailpit_port(state: &State<'_, AppState>) -> Result<u16, String> {
-    let config_store = state.config_store.lock().map_err(|_| "Failed to lock config")?;
+    let config_store = state
+        .config_store
+        .lock()
+        .map_err(|_| "Failed to lock config")?;
     let config = config_store.load().map_err(|e| e.to_string())?;
 
     // Find Mailpit instance
-    let mailpit = config.instances.iter()
+    let mailpit = config
+        .instances
+        .iter()
         .find(|i| i.service_type == ServiceType::Mailpit)
         .ok_or("No Mailpit instance found")?;
 
     // Check if running via ProcessManager
-    let process_manager = state.process_manager.lock().map_err(|_| "Failed to lock process manager")?;
+    let process_manager = state
+        .process_manager
+        .lock()
+        .map_err(|_| "Failed to lock process manager")?;
     if !process_manager.is_running(&mailpit.id) {
         return Err("Mailpit is not running".to_string());
     }
@@ -200,14 +209,21 @@ fn get_mailpit_port(state: &State<'_, AppState>) -> Result<u16, String> {
 }
 
 fn get_mailpit_smtp_port(state: &State<'_, AppState>) -> Result<u16, String> {
-    let config_store = state.config_store.lock().map_err(|_| "Failed to lock config")?;
+    let config_store = state
+        .config_store
+        .lock()
+        .map_err(|_| "Failed to lock config")?;
     let config = config_store.load().map_err(|e| e.to_string())?;
 
-    let mailpit = config.instances.iter()
+    let mailpit = config
+        .instances
+        .iter()
         .find(|i| i.service_type == ServiceType::Mailpit)
         .ok_or("No Mailpit instance found")?;
 
-    let smtp_port = mailpit.config.get("smtp_port")
+    let smtp_port = mailpit
+        .config
+        .get("smtp_port")
         .and_then(|v| v.as_str())
         .and_then(|s| s.parse().ok())
         .unwrap_or(1025);
@@ -243,7 +259,7 @@ pub async fn list_emails(
     let client = &*HTTP_CLIENT;
 
     // Use /search endpoint when searching, /messages otherwise
-    let has_search = search.as_ref().map_or(false, |q| !q.is_empty());
+    let has_search = search.as_ref().is_some_and(|q| !q.is_empty());
     let base_path = if has_search { "search" } else { "messages" };
     let mut url = format!("http://127.0.0.1:{}/api/v1/{}", port, base_path);
 
@@ -264,7 +280,8 @@ pub async fn list_emails(
         url = format!("{}?{}", url, params.join("&"));
     }
 
-    let response = client.get(&url)
+    let response = client
+        .get(&url)
         .send()
         .await
         .map_err(|e| format!("Failed to fetch emails: {}", e))?;
@@ -273,7 +290,8 @@ pub async fn list_emails(
         return Err(format!("Mailpit API error: {}", response.status()));
     }
 
-    let mut result: MailMessageList = response.json()
+    let mut result: MailMessageList = response
+        .json()
         .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
@@ -295,7 +313,8 @@ pub async fn get_email(
     let client = &*HTTP_CLIENT;
     let url = format!("http://127.0.0.1:{}/api/v1/message/{}", port, message_id);
 
-    let response = client.get(&url)
+    let response = client
+        .get(&url)
         .send()
         .await
         .map_err(|e| format!("Failed to fetch email: {}", e))?;
@@ -304,7 +323,8 @@ pub async fn get_email(
         return Err(format!("Mailpit API error: {}", response.status()));
     }
 
-    let mut result: MailMessageDetail = response.json()
+    let mut result: MailMessageDetail = response
+        .json()
         .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
@@ -330,7 +350,8 @@ pub async fn delete_emails(
         ids: Vec<String>,
     }
 
-    let response = client.delete(&url)
+    let response = client
+        .delete(&url)
         .json(&DeleteRequest { ids: message_ids })
         .send()
         .await
@@ -350,7 +371,8 @@ pub async fn delete_all_emails(state: State<'_, AppState>) -> Result<(), String>
     let client = &*HTTP_CLIENT;
     let url = format!("http://127.0.0.1:{}/api/v1/messages", port);
 
-    let response = client.delete(&url)
+    let response = client
+        .delete(&url)
         .send()
         .await
         .map_err(|e| format!("Failed to delete all emails: {}", e))?;
@@ -381,8 +403,12 @@ pub async fn mark_emails_read(
         read: bool,
     }
 
-    let response = client.put(&url)
-        .json(&ReadRequest { ids: message_ids, read })
+    let response = client
+        .put(&url)
+        .json(&ReadRequest {
+            ids: message_ids,
+            read,
+        })
         .send()
         .await
         .map_err(|e| format!("Failed to update read status: {}", e))?;
@@ -401,7 +427,8 @@ pub async fn get_unread_count(state: State<'_, AppState>) -> Result<u32, String>
     let client = &*HTTP_CLIENT;
     let url = format!("http://127.0.0.1:{}/api/v1/messages?limit=0", port);
 
-    let response = client.get(&url)
+    let response = client
+        .get(&url)
         .send()
         .await
         .map_err(|e| format!("Failed to fetch unread count: {}", e))?;
@@ -410,7 +437,8 @@ pub async fn get_unread_count(state: State<'_, AppState>) -> Result<u32, String>
         return Err(format!("Mailpit API error: {}", response.status()));
     }
 
-    let result: MailMessageList = response.json()
+    let result: MailMessageList = response
+        .json()
         .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 

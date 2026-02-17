@@ -42,7 +42,8 @@ impl DnsServer {
             .map_err(|e| format!("Failed to bind DNS server to {}: {}", addr, e))?;
 
         // Set socket timeout so we can check the running flag
-        socket.set_read_timeout(Some(Duration::from_millis(500)))
+        socket
+            .set_read_timeout(Some(Duration::from_millis(500)))
             .map_err(|e| format!("Failed to set socket timeout: {}", e))?;
 
         self.running.store(true, Ordering::SeqCst);
@@ -141,8 +142,7 @@ fn handle_dns_query(query_data: &[u8], tld: &str) -> Option<Vec<u8>> {
 
         // Check if this is a query for our TLD
         let tld_suffix = format!(".{}.", tld);
-        let is_our_tld = name_str.ends_with(&tld_suffix) ||
-                         name_str == format!("{}.", tld);
+        let is_our_tld = name_str.ends_with(&tld_suffix) || name_str == format!("{}.", tld);
 
         if is_our_tld && query_record.query_type() == RecordType::A {
             // Create A record pointing to localhost
@@ -151,7 +151,9 @@ fn handle_dns_query(query_data: &[u8], tld: &str) -> Option<Vec<u8>> {
             record.set_rr_type(RecordType::A);
             record.set_dns_class(DNSClass::IN);
             record.set_ttl(300); // 5 minute TTL
-            record.set_data(Some(RData::A(hickory_proto::rr::rdata::A(Ipv4Addr::new(127, 0, 0, 1)))));
+            record.set_data(Some(RData::A(hickory_proto::rr::rdata::A(Ipv4Addr::new(
+                127, 0, 0, 1,
+            )))));
 
             response.add_answer(record);
         } else if !is_our_tld {

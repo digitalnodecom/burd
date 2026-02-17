@@ -3,9 +3,7 @@
 //! Exposes local sites to the internet via frpc tunnel.
 
 use crate::config::{ConfigStore, ServiceType};
-use crate::tunnel::{
-    generate_random_subdomain, FrpcManager, SubdomainConfig, TunnelTarget,
-};
+use crate::tunnel::{generate_random_subdomain, FrpcManager, SubdomainConfig, TunnelTarget};
 use std::env;
 
 /// Share a site via frpc tunnel
@@ -13,8 +11,8 @@ use std::env;
 /// Exposes a local site to the internet.
 /// Requires frpc to be installed, running, and connected.
 pub fn run_share(subdomain: Option<String>) -> Result<(), String> {
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     let document_root = current_dir.to_string_lossy().to_string();
 
@@ -32,41 +30,35 @@ pub fn run_share(subdomain: Option<String>) -> Result<(), String> {
     let frpc_instance = match frpc_instance {
         Some(inst) => inst,
         None => {
-            return Err(
-                "Tunnels not configured.\n\n\
+            return Err("Tunnels not configured.\n\n\
                  Create a Tunnels (frpc) instance in the Burd app first:\n\
                  1. Open Burd\n\
                  2. Go to Instances\n\
                  3. Create a new 'Tunnels (frpc)' instance\n\
                  4. Configure frp server settings"
-                    .to_string(),
-            );
+                .to_string());
         }
     };
 
     // 2. Check frpc binary is installed
     let frpc_manager = FrpcManager::new()?;
     if !frpc_manager.is_binary_installed() {
-        return Err(
-            "frpc binary not installed.\n\n\
+        return Err("frpc binary not installed.\n\n\
              Download frpc in the Burd app:\n\
              1. Open Burd\n\
              2. Go to Services\n\
              3. Download frpc"
-                .to_string(),
-        );
+            .to_string());
     }
 
     // 3. Check frpc is running
     if !frpc_manager.is_running() {
-        return Err(
-            "Tunnels not running.\n\n\
+        return Err("Tunnels not running.\n\n\
              Start tunnels in the Burd app:\n\
              1. Open Burd\n\
              2. Go to Tunnels\n\
              3. Click Start"
-                .to_string(),
-        );
+            .to_string());
     }
 
     // 4. Check frpc is connected (query admin API)
@@ -84,12 +76,10 @@ pub fn run_share(subdomain: Option<String>) -> Result<(), String> {
 
     let is_connected = check_frpc_connected(admin_port, admin_user, admin_password);
     if !is_connected {
-        return Err(
-            "Not connected to tunnel server.\n\n\
+        return Err("Not connected to tunnel server.\n\n\
              Check your frp server configuration and ensure the server is reachable.\n\
              Open Burd app and check Tunnels for connection status."
-                .to_string(),
-        );
+            .to_string());
     }
 
     // === Find target to share ===
@@ -133,34 +123,33 @@ pub fn run_share(subdomain: Option<String>) -> Result<(), String> {
     let server = match server {
         Some(s) => s,
         None => {
-            return Err(
-                "No frp server configured.\n\n\
+            return Err("No frp server configured.\n\n\
                  Add an frp server in the Burd app:\n\
                  1. Open Burd\n\
                  2. Go to Tunnels\n\
                  3. Click 'Add Server' and configure your frp server"
-                    .to_string(),
-            );
+                .to_string());
         }
     };
 
     // === Check for existing tunnel to same port ===
-    let existing_tunnel = config.tunnels.iter().find(|t| {
-        match &t.target {
-            TunnelTarget::Port(p) => *p == target_port,
-            TunnelTarget::Instance(id) => {
-                config.instances.iter()
-                    .find(|i| i.id == *id)
-                    .map(|i| i.port == target_port)
-                    .unwrap_or(false)
-            }
-        }
+    let existing_tunnel = config.tunnels.iter().find(|t| match &t.target {
+        TunnelTarget::Port(p) => *p == target_port,
+        TunnelTarget::Instance(id) => config
+            .instances
+            .iter()
+            .find(|i| i.id == *id)
+            .map(|i| i.port == target_port)
+            .unwrap_or(false),
     });
 
     if let Some(tunnel) = existing_tunnel {
         let public_url = tunnel.get_public_url(server);
         println!();
-        println!("Tunnel already exists for '{}' on port {}", target_name, target_port);
+        println!(
+            "Tunnel already exists for '{}' on port {}",
+            target_name, target_port
+        );
         println!();
         println!("  Public URL: {}", public_url);
         println!();
@@ -169,7 +158,9 @@ pub fn run_share(subdomain: Option<String>) -> Result<(), String> {
 
     // === Create new tunnel ===
     let tunnel_subdomain = match subdomain {
-        Some(s) => SubdomainConfig::Custom { subdomain: slug::slugify(&s) },
+        Some(s) => SubdomainConfig::Custom {
+            subdomain: slug::slugify(&s),
+        },
         None => SubdomainConfig::Random {
             generated: Some(generate_random_subdomain()),
         },
@@ -216,10 +207,7 @@ fn check_frpc_connected(port: u16, _user: &str, _password: &str) -> bool {
 
     // First check if admin API is reachable
     let addr = format!("127.0.0.1:{}", port);
-    let stream = TcpStream::connect_timeout(
-        &addr.parse().unwrap(),
-        Duration::from_secs(2),
-    );
+    let stream = TcpStream::connect_timeout(&addr.parse().unwrap(), Duration::from_secs(2));
 
     if stream.is_err() {
         return false;

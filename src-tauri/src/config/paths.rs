@@ -61,13 +61,23 @@ pub fn get_binary_path(service_type: ServiceType) -> Result<PathBuf, String> {
 }
 
 /// Get the versioned binary path: bin/{service_type}/{version}/{binary_name}
-pub fn get_versioned_binary_path(service_type: ServiceType, version: &str) -> Result<PathBuf, String> {
+pub fn get_versioned_binary_path(
+    service_type: ServiceType,
+    version: &str,
+) -> Result<PathBuf, String> {
     let binary_name = get_binary_name(service_type);
-    get_bin_dir().map(|p| p.join(service_type.as_str()).join(version).join(binary_name))
+    get_bin_dir().map(|p| {
+        p.join(service_type.as_str())
+            .join(version)
+            .join(binary_name)
+    })
 }
 
 /// Get the versioned directory: bin/{service_type}/{version}/
-pub fn get_versioned_binary_dir(service_type: ServiceType, version: &str) -> Result<PathBuf, String> {
+pub fn get_versioned_binary_dir(
+    service_type: ServiceType,
+    version: &str,
+) -> Result<PathBuf, String> {
     get_bin_dir().map(|p| p.join(service_type.as_str()).join(version))
 }
 

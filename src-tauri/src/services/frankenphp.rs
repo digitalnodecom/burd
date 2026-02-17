@@ -22,9 +22,7 @@ impl ServiceDefinition for FrankenPHPService {
     }
 
     fn version_source(&self) -> VersionSource {
-        VersionSource::GitHubReleases(
-            "https://api.github.com/repos/dunglas/frankenphp/releases",
-        )
+        VersionSource::GitHubReleases("https://api.github.com/repos/dunglas/frankenphp/releases")
     }
 
     fn download_method(&self, _version: &str, arch: &str) -> DownloadMethod {
@@ -45,8 +43,8 @@ impl ServiceDefinition for FrankenPHPService {
     }
 
     fn start_args(&self, instance: &Instance, _data_dir: &Path) -> Vec<String> {
-        let data_dir = get_instance_dir(&instance.id)
-            .unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let data_dir =
+            get_instance_dir(&instance.id).unwrap_or_else(|_| std::path::PathBuf::from("."));
 
         let config_file = data_dir.join("Caddyfile");
 

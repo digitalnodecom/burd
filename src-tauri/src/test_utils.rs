@@ -8,9 +8,7 @@ use std::path::PathBuf;
 use tempfile::TempDir;
 use uuid::Uuid;
 
-use crate::config::{
-    Config, Domain, DomainTarget, Instance, ParkedDirectory, ServiceType, Stack,
-};
+use crate::config::{Config, Domain, DomainTarget, Instance, ParkedDirectory, ServiceType, Stack};
 
 // ============================================================================
 // Instance Builders
@@ -191,9 +189,7 @@ impl DomainBuilder {
             DomainTarget::Instance(id) => {
                 Domain::for_instance(self.subdomain, id, self.ssl_enabled)
             }
-            DomainTarget::Port(port) => {
-                Domain::for_port(self.subdomain, port, self.ssl_enabled)
-            }
+            DomainTarget::Port(port) => Domain::for_port(self.subdomain, port, self.ssl_enabled),
             DomainTarget::StaticFiles { path, browse } => {
                 Domain::for_static_files(self.subdomain, path, browse, self.ssl_enabled)
             }
@@ -272,8 +268,7 @@ pub struct TempConfigDir {
 impl TempConfigDir {
     /// Create a new temporary config directory
     pub fn new() -> Result<Self, String> {
-        let temp_dir = TempDir::new()
-            .map_err(|e| format!("Failed to create temp dir: {}", e))?;
+        let temp_dir = TempDir::new().map_err(|e| format!("Failed to create temp dir: {}", e))?;
 
         let config_path = temp_dir.path().join("config.json");
 
@@ -302,8 +297,7 @@ impl TempConfigDir {
         let content = std::fs::read_to_string(&self.config_path)
             .map_err(|e| format!("Failed to read config: {}", e))?;
 
-        serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse config: {}", e))
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))
     }
 }
 
@@ -429,10 +423,7 @@ pub fn database_service_types() -> Vec<ServiceType> {
 
 /// Get key-value store service types
 pub fn key_value_service_types() -> Vec<ServiceType> {
-    vec![
-        ServiceType::Redis,
-        ServiceType::Valkey,
-    ]
+    vec![ServiceType::Redis, ServiceType::Valkey]
 }
 
 // ============================================================================
@@ -457,23 +448,17 @@ pub fn test_domain_for_instance(subdomain: &str, instance_id: Uuid) -> Domain {
 
 /// Create a test domain routing to a port
 pub fn test_domain_for_port(subdomain: &str, port: u16) -> Domain {
-    DomainBuilder::new_port(port)
-        .subdomain(subdomain)
-        .build()
+    DomainBuilder::new_port(port).subdomain(subdomain).build()
 }
 
 /// Create a test stack
 pub fn test_stack(name: &str) -> Stack {
-    StackBuilder::new()
-        .name(name)
-        .build()
+    StackBuilder::new().name(name).build()
 }
 
 /// Create a test config with some instances
 pub fn test_config_with_instances(instances: Vec<Instance>) -> Config {
-    ConfigBuilder::new()
-        .instances(instances)
-        .build()
+    ConfigBuilder::new().instances(instances).build()
 }
 
 #[cfg(test)]

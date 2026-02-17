@@ -89,12 +89,8 @@ pub struct EnvVar {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "source", rename_all = "snake_case")]
 pub enum VersionConfig {
-    GithubReleases {
-        github_repo: String,
-    },
-    Static {
-        versions: Vec<String>,
-    },
+    GithubReleases { github_repo: String },
+    Static { versions: Vec<String> },
 }
 
 /// Platform-specific configuration
@@ -356,9 +352,7 @@ impl ServiceRegistry {
             .filter_map(|(id, config)| {
                 let platform_config = config.platforms.get(&platform);
                 // Skip services that require building (like Redis)
-                let requires_build = platform_config
-                    .map(|p| p.requires_build)
-                    .unwrap_or(false);
+                let requires_build = platform_config.map(|p| p.requires_build).unwrap_or(false);
 
                 if requires_build {
                     return None;
@@ -422,6 +416,10 @@ mod tests {
     #[test]
     fn test_platform_detection() {
         let platform = get_current_platform();
-        assert!(platform.contains("darwin") || platform.contains("linux") || platform.contains("windows"));
+        assert!(
+            platform.contains("darwin")
+                || platform.contains("linux")
+                || platform.contains("windows")
+        );
     }
 }

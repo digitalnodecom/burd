@@ -159,11 +159,14 @@ pub fn scan_directory(parked_path: &Path) -> Result<Vec<DiscoveredProject>, Stri
         return Err(format!("Path '{}' does not exist", parked_path.display()));
     }
     if !parked_path.is_dir() {
-        return Err(format!("Path '{}' is not a directory", parked_path.display()));
+        return Err(format!(
+            "Path '{}' is not a directory",
+            parked_path.display()
+        ));
     }
 
-    let entries = fs::read_dir(parked_path)
-        .map_err(|e| format!("Failed to read directory: {}", e))?;
+    let entries =
+        fs::read_dir(parked_path).map_err(|e| format!("Failed to read directory: {}", e))?;
 
     let mut projects = Vec::new();
 
@@ -193,21 +196,20 @@ pub fn scan_directory(parked_path: &Path) -> Result<Vec<DiscoveredProject>, Stri
         }
 
         // Check custom drivers first, then fall back to built-in detection
-        let (project_type, document_root) = if let Some(driver_match) =
-            driver_loader.detect_custom(&path)
-        {
-            // Custom driver matched
-            let project_type = ProjectType::Custom {
-                name: driver_match.name,
-                requires_php: driver_match.requires_php,
+        let (project_type, document_root) =
+            if let Some(driver_match) = driver_loader.detect_custom(&path) {
+                // Custom driver matched
+                let project_type = ProjectType::Custom {
+                    name: driver_match.name,
+                    requires_php: driver_match.requires_php,
+                };
+                (project_type, driver_match.document_root)
+            } else {
+                // Use built-in detection
+                let project_type = detect_project_type(&path);
+                let document_root = determine_document_root(&path, &project_type);
+                (project_type, document_root)
             };
-            (project_type, driver_match.document_root)
-        } else {
-            // Use built-in detection
-            let project_type = detect_project_type(&path);
-            let document_root = determine_document_root(&path, &project_type);
-            (project_type, document_root)
-        };
 
         projects.push(DiscoveredProject {
             name,
@@ -473,11 +475,8 @@ pub fn sync_parked_domains(
         .collect();
 
     // Get all existing subdomains (for conflict detection)
-    let all_existing_subdomains: HashSet<String> = config
-        .domains
-        .iter()
-        .map(|d| d.subdomain.clone())
-        .collect();
+    let all_existing_subdomains: HashSet<String> =
+        config.domains.iter().map(|d| d.subdomain.clone()).collect();
 
     // Discovered subdomain names
     let discovered_names: HashSet<String> = discovered
@@ -556,7 +555,9 @@ pub fn sync_parked_domains(
     if !result.added.is_empty() || !result.removed.is_empty() {
         if let Some(instance) = &park_instance {
             if let Err(e) = regenerate_park_caddyfile(config_store, instance, tld) {
-                result.errors.push(format!("Failed to regenerate Caddyfile: {}", e));
+                result
+                    .errors
+                    .push(format!("Failed to regenerate Caddyfile: {}", e));
             }
         }
     }
@@ -692,9 +693,21 @@ mod tests {
     #[test]
     fn test_generate_caddyfile_content() {
         let projects = vec![
-            ("blog.burd".to_string(), "/Users/dev/Sites/blog/public".to_string(), true),  // PHP
-            ("api.burd".to_string(), "/Users/dev/Sites/api/public".to_string(), true),    // PHP
-            ("docs.burd".to_string(), "/Users/dev/Sites/docs".to_string(), false),        // Static
+            (
+                "blog.burd".to_string(),
+                "/Users/dev/Sites/blog/public".to_string(),
+                true,
+            ), // PHP
+            (
+                "api.burd".to_string(),
+                "/Users/dev/Sites/api/public".to_string(),
+                true,
+            ), // PHP
+            (
+                "docs.burd".to_string(),
+                "/Users/dev/Sites/docs".to_string(),
+                false,
+            ), // Static
         ];
         let content = generate_caddyfile_content(&projects, 8888);
 

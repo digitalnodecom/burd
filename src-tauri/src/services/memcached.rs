@@ -38,10 +38,7 @@ impl ServiceDefinition for MemcachedService {
         } else {
             // Fallback to source
             DownloadMethod::Direct {
-                url: format!(
-                    "https://memcached.org/files/memcached-{}.tar.gz",
-                    version
-                ),
+                url: format!("https://memcached.org/files/memcached-{}.tar.gz", version),
                 is_archive: true,
                 checksum: None, // TODO: Add SHA256 checksums for binary verification
             }
@@ -53,7 +50,9 @@ impl ServiceDefinition for MemcachedService {
     }
 
     fn start_args(&self, instance: &Instance, _data_dir: &Path) -> Vec<String> {
-        let memory = instance.config.get("memory")
+        let memory = instance
+            .config
+            .get("memory")
             .and_then(|v| v.as_str())
             .unwrap_or("64");
 

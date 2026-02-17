@@ -122,7 +122,11 @@ fn detect_php_source(path: &str) -> String {
         "Burd".to_string()
     } else if path_lower.contains("herd") || path_lower.contains(".config/herd") {
         "Herd Pro".to_string()
-    } else if path_lower.contains("homebrew") || path_lower.contains("/opt/homebrew") || path_lower.contains("/usr/local/opt") || path_lower.contains("/usr/local/cellar") {
+    } else if path_lower.contains("homebrew")
+        || path_lower.contains("/opt/homebrew")
+        || path_lower.contains("/usr/local/opt")
+        || path_lower.contains("/usr/local/cellar")
+    {
         "Homebrew".to_string()
     } else if path == "/usr/bin/php" {
         "System".to_string()
@@ -192,10 +196,7 @@ fn detect_terminal_php() -> Option<CurrentPHP> {
 
 /// Detect PHP from the Tauri app's own environment (fallback).
 fn detect_app_php() -> Option<CurrentPHP> {
-    let which_output = Command::new("which")
-        .arg("php")
-        .output()
-        .ok()?;
+    let which_output = Command::new("which").arg("php").output().ok()?;
 
     if !which_output.status.success() {
         return None;
@@ -209,10 +210,7 @@ fn detect_app_php() -> Option<CurrentPHP> {
         return None;
     }
 
-    let version_output = Command::new(&path)
-        .arg("-v")
-        .output()
-        .ok()?;
+    let version_output = Command::new(&path).arg("-v").output().ok()?;
 
     let version_str = String::from_utf8_lossy(&version_output.stdout);
     let version = parse_php_version(&version_str)?;
@@ -236,10 +234,7 @@ pub fn get_burd_php() -> Option<CurrentPHP> {
     }
 
     // Run php -v to get the version
-    let version_output = Command::new(&php_path)
-        .arg("-v")
-        .output()
-        .ok()?;
+    let version_output = Command::new(&php_path).arg("-v").output().ok()?;
 
     let version_str = String::from_utf8_lossy(&version_output.stdout);
     let version = parse_php_version(&version_str)?;
@@ -282,7 +277,8 @@ pub fn get_default_version() -> Option<String> {
     let target = fs::read_link(&link).ok()?;
 
     // Extract version from path (the directory name)
-    target.file_name()
+    target
+        .file_name()
         .and_then(|n| n.to_str())
         .map(|s| s.to_string())
 }
@@ -298,8 +294,8 @@ pub fn list_installed_versions() -> Result<Vec<PHPVersion>, String> {
     let default_version = get_default_version();
     let mut versions = Vec::new();
 
-    let entries = fs::read_dir(&pvm_dir)
-        .map_err(|e| format!("Failed to read PVM directory: {}", e))?;
+    let entries =
+        fs::read_dir(&pvm_dir).map_err(|e| format!("Failed to read PVM directory: {}", e))?;
 
     for entry in entries.flatten() {
         let path = entry.path();
@@ -314,7 +310,10 @@ pub fn list_installed_versions() -> Result<Vec<PHPVersion>, String> {
             let php_binary = path.join("php");
             if php_binary.exists() {
                 if let Some(version) = path.file_name().and_then(|n| n.to_str()) {
-                    let is_default = default_version.as_ref().map(|d| d == version).unwrap_or(false);
+                    let is_default = default_version
+                        .as_ref()
+                        .map(|d| d == version)
+                        .unwrap_or(false);
                     versions.push(PHPVersion {
                         version: version.to_string(),
                         is_default,
@@ -332,11 +331,7 @@ pub fn list_installed_versions() -> Result<Vec<PHPVersion>, String> {
 
 /// Compare two version strings (e.g., "8.4.12" vs "8.3.15")
 fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
-    let parse = |s: &str| -> Vec<u32> {
-        s.split('.')
-            .filter_map(|p| p.parse().ok())
-            .collect()
-    };
+    let parse = |s: &str| -> Vec<u32> { s.split('.').filter_map(|p| p.parse().ok()).collect() };
 
     let a_parts = parse(a);
     let b_parts = parse(b);
@@ -363,21 +358,25 @@ pub async fn list_remote_versions() -> Result<Vec<RemotePHPVersion>, String> {
         .map_err(|e| format!("Failed to fetch version list: {}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!("Failed to fetch version list: HTTP {}", response.status()));
+        return Err(format!(
+            "Failed to fetch version list: HTTP {}",
+            response.status()
+        ));
     }
 
-    let body = response.text().await
+    let body = response
+        .text()
+        .await
         .map_err(|e| format!("Failed to read response: {}", e))?;
 
     // Parse the JSON response - it's an array of file entries
-    let entries: Vec<serde_json::Value> = serde_json::from_str(&body)
-        .map_err(|e| format!("Failed to parse response: {}", e))?;
+    let entries: Vec<serde_json::Value> =
+        serde_json::from_str(&body).map_err(|e| format!("Failed to parse response: {}", e))?;
 
     // Pattern to match PHP CLI binaries for our architecture
     // e.g., php-8.4.12-cli-macos-aarch64.tar.gz
     let pattern = format!(r"^php-(\d+\.\d+\.\d+)-cli-macos-{}\.tar\.gz$", arch);
-    let re = Regex::new(&pattern)
-        .map_err(|e| format!("Failed to compile regex: {}", e))?;
+    let re = Regex::new(&pattern).map_err(|e| format!("Failed to compile regex: {}", e))?;
 
     let installed = list_installed_versions().unwrap_or_default();
     let installed_versions: Vec<&str> = installed.iter().map(|v| v.version.as_str()).collect();
@@ -472,7 +471,11 @@ pub async fn download_version(version: &str, app_handle: &AppHandle) -> Result<(
         .map_err(|e| format!("Failed to download PHP {}: {}", version, e))?;
 
     if !response.status().is_success() {
-        return Err(format!("Failed to download PHP {}: HTTP {}", version, response.status()));
+        return Err(format!(
+            "Failed to download PHP {}: HTTP {}",
+            version,
+            response.status()
+        ));
     }
 
     let total_size = response.content_length().unwrap_or(0);
@@ -480,8 +483,8 @@ pub async fn download_version(version: &str, app_handle: &AppHandle) -> Result<(
     // Create temp file
     let temp_dir = std::env::temp_dir();
     let temp_file = temp_dir.join(&filename);
-    let mut file = fs::File::create(&temp_file)
-        .map_err(|e| format!("Failed to create temp file: {}", e))?;
+    let mut file =
+        fs::File::create(&temp_file).map_err(|e| format!("Failed to create temp file: {}", e))?;
 
     // Download with progress
     let mut stream = response.bytes_stream();
@@ -501,12 +504,15 @@ pub async fn download_version(version: &str, app_handle: &AppHandle) -> Result<(
             0
         };
 
-        let _ = app_handle.emit("php-download-progress", serde_json::json!({
-            "version": version,
-            "downloaded": downloaded,
-            "total": total_size,
-            "percentage": percentage,
-        }));
+        let _ = app_handle.emit(
+            "php-download-progress",
+            serde_json::json!({
+                "version": version,
+                "downloaded": downloaded,
+                "total": total_size,
+                "percentage": percentage,
+            }),
+        );
     }
 
     // Create version directory
@@ -514,12 +520,13 @@ pub async fn download_version(version: &str, app_handle: &AppHandle) -> Result<(
         .map_err(|e| format!("Failed to create version directory: {}", e))?;
 
     // Extract the tarball
-    let tar_gz = fs::File::open(&temp_file)
-        .map_err(|e| format!("Failed to open temp file: {}", e))?;
+    let tar_gz =
+        fs::File::open(&temp_file).map_err(|e| format!("Failed to open temp file: {}", e))?;
     let tar = flate2::read::GzDecoder::new(tar_gz);
     let mut archive = tar::Archive::new(tar);
 
-    archive.unpack(&version_dir)
+    archive
+        .unpack(&version_dir)
         .map_err(|e| format!("Failed to extract archive: {}", e))?;
 
     // Clean up temp file
@@ -642,7 +649,11 @@ pub fn set_default_version(version: &str) -> Result<(), String> {
         Ok(output) if output.status.success() => Ok(()),
         Ok(output) => {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(format!("PHP {} binary exists but failed to run: {}", version, stderr.trim()))
+            Err(format!(
+                "PHP {} binary exists but failed to run: {}",
+                version,
+                stderr.trim()
+            ))
         }
         Err(e) => Err(format!("Failed to verify PHP {} binary: {}", version, e)),
     }
@@ -782,8 +793,8 @@ fn is_burd_in_path() -> bool {
 
 /// Configure shell integration (add to profile)
 pub fn configure_shell_integration() -> Result<(), String> {
-    let profile = get_shell_profile()
-        .ok_or_else(|| "Could not determine shell profile path".to_string())?;
+    let profile =
+        get_shell_profile().ok_or_else(|| "Could not determine shell profile path".to_string())?;
 
     let export_line = get_path_export_line()?;
 
@@ -816,30 +827,26 @@ pub fn configure_shell_integration() -> Result<(), String> {
 
 /// Remove shell integration
 pub fn remove_shell_integration() -> Result<(), String> {
-    let profile = get_shell_profile()
-        .ok_or_else(|| "Could not determine shell profile path".to_string())?;
+    let profile =
+        get_shell_profile().ok_or_else(|| "Could not determine shell profile path".to_string())?;
 
     if !profile.exists() {
         return Ok(());
     }
 
-    let content = fs::read_to_string(&profile)
-        .map_err(|e| format!("Failed to read shell profile: {}", e))?;
+    let content =
+        fs::read_to_string(&profile).map_err(|e| format!("Failed to read shell profile: {}", e))?;
 
     // Remove our lines
     let new_content: Vec<&str> = content
         .lines()
-        .filter(|line| {
-            !line.contains(SHELL_MARKER) &&
-            !line.contains("Burd/bin/php/default")
-        })
+        .filter(|line| !line.contains(SHELL_MARKER) && !line.contains("Burd/bin/php/default"))
         .collect();
 
     // Remove consecutive blank lines that might be left
     let cleaned = new_content.join("\n");
 
-    fs::write(&profile, cleaned)
-        .map_err(|e| format!("Failed to write shell profile: {}", e))?;
+    fs::write(&profile, cleaned).map_err(|e| format!("Failed to write shell profile: {}", e))?;
 
     Ok(())
 }
@@ -850,23 +857,20 @@ pub fn remove_shell_integration() -> Result<(), String> {
 /// own PATH export after Burd's, causing it to take priority. The fix removes
 /// existing Burd lines and re-appends them at the very end.
 pub fn reassert_shell_integration() -> Result<(), String> {
-    let profile = get_shell_profile()
-        .ok_or_else(|| "Could not determine shell profile path".to_string())?;
+    let profile =
+        get_shell_profile().ok_or_else(|| "Could not determine shell profile path".to_string())?;
 
     if !profile.exists() {
         return Err("Shell profile does not exist".to_string());
     }
 
-    let content = fs::read_to_string(&profile)
-        .map_err(|e| format!("Failed to read shell profile: {}", e))?;
+    let content =
+        fs::read_to_string(&profile).map_err(|e| format!("Failed to read shell profile: {}", e))?;
 
     // Filter out existing Burd lines
     let filtered: Vec<&str> = content
         .lines()
-        .filter(|line| {
-            !line.contains(SHELL_MARKER) &&
-            !line.contains("Burd/bin/php/default")
-        })
+        .filter(|line| !line.contains(SHELL_MARKER) && !line.contains("Burd/bin/php/default"))
         .collect();
 
     let mut new_content = filtered.join("\n");
@@ -917,17 +921,32 @@ mod tests {
 
     #[test]
     fn test_compare_versions() {
-        assert_eq!(compare_versions("8.4.12", "8.3.15"), std::cmp::Ordering::Greater);
-        assert_eq!(compare_versions("8.3.15", "8.3.14"), std::cmp::Ordering::Greater);
-        assert_eq!(compare_versions("8.3.15", "8.3.15"), std::cmp::Ordering::Equal);
+        assert_eq!(
+            compare_versions("8.4.12", "8.3.15"),
+            std::cmp::Ordering::Greater
+        );
+        assert_eq!(
+            compare_versions("8.3.15", "8.3.14"),
+            std::cmp::Ordering::Greater
+        );
+        assert_eq!(
+            compare_versions("8.3.15", "8.3.15"),
+            std::cmp::Ordering::Equal
+        );
     }
 
     #[test]
     fn test_detect_php_source() {
         assert_eq!(detect_php_source("/opt/homebrew/bin/php"), "Homebrew");
-        assert_eq!(detect_php_source("/Applications/Herd.app/Contents/Resources/php/8.3/bin/php"), "Herd Pro");
+        assert_eq!(
+            detect_php_source("/Applications/Herd.app/Contents/Resources/php/8.3/bin/php"),
+            "Herd Pro"
+        );
         assert_eq!(detect_php_source("/usr/bin/php"), "System");
-        assert_eq!(detect_php_source("/Users/test/Library/Application Support/Burd/bin/php/8.4.12/php"), "Burd");
+        assert_eq!(
+            detect_php_source("/Users/test/Library/Application Support/Burd/bin/php/8.4.12/php"),
+            "Burd"
+        );
     }
 
     #[test]

@@ -50,7 +50,8 @@ impl KeyValueService {
             version_source: VersionSource::Static(vec!["9.0.1"]),
             download_config: KeyValueDownloadConfig {
                 s3_bucket_prefix: "valkey",
-                fallback_url_template: "https://github.com/valkey-io/valkey/releases/download/{0}/valkey-{0}.tar.gz",
+                fallback_url_template:
+                    "https://github.com/valkey-io/valkey/releases/download/{0}/valkey-{0}.tar.gz",
             },
         }
     }
@@ -93,7 +94,10 @@ impl ServiceDefinition for KeyValueService {
         } else {
             // Fallback to source build for other architectures
             DownloadMethod::Direct {
-                url: self.download_config.fallback_url_template.replace("{}", version)
+                url: self
+                    .download_config
+                    .fallback_url_template
+                    .replace("{}", version)
                     .replace("{0}", version), // Support both {0} and {} templates
                 is_archive: true,
                 checksum: None, // TODO: Add SHA256 checksums for binary verification
@@ -218,7 +222,9 @@ mod tests {
         let method = service.download_method("8.4.0", "aarch64");
 
         match method {
-            DownloadMethod::Direct { url, is_archive, .. } => {
+            DownloadMethod::Direct {
+                url, is_archive, ..
+            } => {
                 assert!(url.contains("burdbin.s3.fr-par.scw.cloud"));
                 assert!(url.contains("redis/8.4.0/redis-8.4.0-arm64.tar.gz"));
                 assert!(is_archive);
@@ -233,7 +239,9 @@ mod tests {
         let method = service.download_method("8.4.0", "x86_64");
 
         match method {
-            DownloadMethod::Direct { url, is_archive, .. } => {
+            DownloadMethod::Direct {
+                url, is_archive, ..
+            } => {
                 assert!(url.contains("download.redis.io"));
                 assert!(url.contains("redis-8.4.0.tar.gz"));
                 assert!(is_archive);

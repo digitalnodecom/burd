@@ -14,8 +14,8 @@ use uuid::Uuid;
 /// and a domain based on the directory name.
 pub fn run_init() -> Result<(), String> {
     // 1. Get current directory
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     let project_name = current_dir
         .file_name()
@@ -52,12 +52,14 @@ pub fn run_init() -> Result<(), String> {
     }
 
     // 5. Get installed FrankenPHP version
-    let version = config.binaries
+    let version = config
+        .binaries
         .get(&ServiceType::FrankenPHP)
         .and_then(|versions| versions.keys().next())
         .ok_or_else(|| {
             "No FrankenPHP versions installed.\n\
-             Please download FrankenPHP in the Burd app first.".to_string()
+             Please download FrankenPHP in the Burd app first."
+                .to_string()
         })?
         .clone();
 
@@ -101,7 +103,10 @@ pub fn run_init() -> Result<(), String> {
     };
 
     println!();
-    println!("✓ Created instance '{}' (FrankenPHP on port {})", project_name, port);
+    println!(
+        "✓ Created instance '{}' (FrankenPHP on port {})",
+        project_name, port
+    );
     println!("✓ Created domain '{}.{}'", subdomain, config.tld);
     println!();
     println!("  URL: {}", url);
@@ -116,8 +121,8 @@ pub fn run_init() -> Result<(), String> {
 
 /// Check if burd is already initialized in the current directory
 pub fn is_initialized() -> Result<Option<Instance>, String> {
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     let document_root = current_dir.to_string_lossy().to_string();
 

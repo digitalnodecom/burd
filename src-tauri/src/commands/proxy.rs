@@ -59,7 +59,8 @@ pub async fn setup_proxy(app: AppHandle, state: State<'_, AppState>) -> Result<(
             .get_available_versions(ServiceType::Caddy)
             .await?;
 
-        let version = versions.first()
+        let version = versions
+            .first()
             .ok_or("No Caddy versions available")?
             .version
             .clone();
@@ -73,7 +74,9 @@ pub async fn setup_proxy(app: AppHandle, state: State<'_, AppState>) -> Result<(
                 .clone()
         };
 
-        let binary_info = binary_manager.download(ServiceType::Caddy, &version, app).await?;
+        let binary_info = binary_manager
+            .download(ServiceType::Caddy, &version, app)
+            .await?;
 
         // Update config with the binary info
         let config_store = lock!(state.config_store)?;
@@ -81,35 +84,42 @@ pub async fn setup_proxy(app: AppHandle, state: State<'_, AppState>) -> Result<(
     }
 
     // Install Caddy binary to system location for daemon use
-    tokio::task::spawn_blocking(|| {
-        caddy::install_caddy_for_daemon()
-    }).await.map_err(|e| format!("Task error: {}", e))??;
+    tokio::task::spawn_blocking(caddy::install_caddy_for_daemon)
+        .await
+        .map_err(|e| format!("Task error: {}", e))??;
 
     // Write initial Caddyfile with current routes
     let routes = {
         let proxy = state.proxy_server.lock().await;
-        proxy.list_routes()
+        proxy
+            .list_routes()
             .into_iter()
             .map(|r| match r.route_type {
                 crate::proxy::ProxyRouteType::ReverseProxy { port } => {
                     caddy::RouteEntry::reverse_proxy(r.domain, port, r.instance_id, r.ssl_enabled)
                 }
                 crate::proxy::ProxyRouteType::FileServer { path, browse } => {
-                    caddy::RouteEntry::file_server(r.domain, path, browse, r.instance_id, r.ssl_enabled)
+                    caddy::RouteEntry::file_server(
+                        r.domain,
+                        path,
+                        browse,
+                        r.instance_id,
+                        r.ssl_enabled,
+                    )
                 }
             })
             .collect::<Vec<_>>()
     };
 
     let tld_for_caddyfile = tld.clone();
-    tokio::task::spawn_blocking(move || {
-        caddy::write_caddyfile(&tld_for_caddyfile, &routes)
-    }).await.map_err(|e| format!("Task error: {}", e))??;
+    tokio::task::spawn_blocking(move || caddy::write_caddyfile(&tld_for_caddyfile, &routes))
+        .await
+        .map_err(|e| format!("Task error: {}", e))??;
 
     // Install and start launchd daemon (this will start Caddy)
-    tokio::task::spawn_blocking(|| {
-        launchd::install()
-    }).await.map_err(|e| format!("Task error: {}", e))??;
+    tokio::task::spawn_blocking(launchd::install)
+        .await
+        .map_err(|e| format!("Task error: {}", e))??;
 
     // Wait a moment for Caddy to initialize and create directories
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
@@ -117,13 +127,17 @@ pub async fn setup_proxy(app: AppHandle, state: State<'_, AppState>) -> Result<(
     // Fix permissions on Caddy data directory so user can read CA certs
     tokio::task::spawn_blocking(|| {
         let _ = fix_caddy_data_permissions();
-    }).await.map_err(|e| format!("Task error: {}", e))?;
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))?;
 
     // Auto-trust CA if it exists but isn't trusted yet
     // Note: CA may not exist yet if no HTTPS domain has been accessed
     tokio::task::spawn_blocking(|| {
         let _ = auto_trust_ca_if_needed();
-    }).await.map_err(|e| format!("Task error: {}", e))?;
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))?;
 
     // Update config to reflect installation
     {
@@ -139,9 +153,9 @@ pub async fn setup_proxy(app: AppHandle, state: State<'_, AppState>) -> Result<(
 #[tauri::command]
 pub async fn disable_proxy(state: State<'_, AppState>) -> Result<(), String> {
     // Uninstall launchd plist (run in blocking task for osascript)
-    tokio::task::spawn_blocking(|| {
-        launchd::uninstall()
-    }).await.map_err(|e| format!("Task error: {}", e))??;
+    tokio::task::spawn_blocking(launchd::uninstall)
+        .await
+        .map_err(|e| format!("Task error: {}", e))??;
 
     // Update config to reflect uninstallation
     let config_store = lock!(state.config_store)?;
@@ -254,8 +268,7 @@ pub struct CATrustStatus {
 /// Get the path to Caddy's root CA certificate
 fn get_caddy_ca_path() -> PathBuf {
     // When running as daemon with XDG_DATA_HOME set to user space, Caddy stores PKI here
-    launchd::get_caddy_data_dir()
-        .join("caddy/pki/authorities/local/root.crt")
+    launchd::get_caddy_data_dir().join("caddy/pki/authorities/local/root.crt")
 }
 
 /// Parse certificate metadata using openssl (for user-accessible paths only)
@@ -272,7 +285,9 @@ fn get_cert_metadata_local(cert_path: &std::path::Path) -> (Option<String>, Opti
         .and_then(|o| {
             if o.status.success() {
                 let output = String::from_utf8_lossy(&o.stdout);
-                output.split("CN = ").nth(1)
+                output
+                    .split("CN = ")
+                    .nth(1)
                     .or_else(|| output.split("CN=").nth(1))
                     .map(|s| s.trim().to_string())
             } else {
@@ -313,8 +328,14 @@ pub fn get_ca_trust_status_internal() -> Result<CATrustStatus, String> {
                 } else if response.message.starts_with("exists|") {
                     // Parse "exists|name|expiry" format
                     let parts: Vec<&str> = response.message.splitn(3, '|').collect();
-                    let name = parts.get(1).filter(|s| !s.is_empty()).map(|s| s.to_string());
-                    let expiry = parts.get(2).filter(|s| !s.is_empty()).map(|s| s.to_string());
+                    let name = parts
+                        .get(1)
+                        .filter(|s| !s.is_empty())
+                        .map(|s| s.to_string());
+                    let expiry = parts
+                        .get(2)
+                        .filter(|s| !s.is_empty())
+                        .map(|s| s.to_string());
                     (true, name, expiry)
                 } else {
                     (false, None, None)
@@ -339,9 +360,11 @@ pub fn get_ca_trust_status_internal() -> Result<CATrustStatus, String> {
         std::process::Command::new("security")
             .args([
                 "verify-cert",
-                "-c", &ca_path_str,
-                "-p", "ssl",
-                "-l",  // use only local keychains
+                "-c",
+                &ca_path_str,
+                "-p",
+                "ssl",
+                "-l", // use only local keychains
             ])
             .output()
             .map(|o| o.status.success())
@@ -379,8 +402,10 @@ pub fn trust_caddy_ca_internal() -> Result<(), String> {
     let output = std::process::Command::new("security")
         .args([
             "add-trusted-cert",
-            "-r", "trustRoot",
-            "-p", "ssl",
+            "-r",
+            "trustRoot",
+            "-p",
+            "ssl",
             ca_path.to_str().ok_or("Invalid path")?,
         ])
         .output()
@@ -416,9 +441,8 @@ pub fn fix_caddy_data_permissions() -> Result<(), String> {
     let caddy_data_path = launchd::get_caddy_data_dir();
     let path_str = caddy_data_path.to_string_lossy().to_string();
 
-    let response = HelperClient::send_request(HelperRequest::FixCaddyPermissions {
-        path: path_str,
-    })?;
+    let response =
+        HelperClient::send_request(HelperRequest::FixCaddyPermissions { path: path_str })?;
 
     if response.success {
         Ok(())

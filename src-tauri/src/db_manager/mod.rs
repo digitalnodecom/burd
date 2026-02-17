@@ -61,9 +61,7 @@ pub fn find_db_instance(config: &Config, db_type: Option<DbType>) -> Option<&Ins
     config.instances.iter().find(|i| match db_type {
         Some(DbType::MariaDB) => i.service_type == ServiceType::MariaDB,
         Some(DbType::PostgreSQL) => i.service_type == ServiceType::PostgreSQL,
-        None => {
-            i.service_type == ServiceType::MariaDB || i.service_type == ServiceType::PostgreSQL
-        }
+        None => i.service_type == ServiceType::MariaDB || i.service_type == ServiceType::PostgreSQL,
     })
 }
 
@@ -79,7 +77,9 @@ pub fn find_all_db_instances(config: &Config) -> Vec<&Instance> {
 }
 
 /// Create a database manager for an instance
-pub fn create_manager_for_instance(instance: &Instance) -> Result<Box<dyn DatabaseManager>, String> {
+pub fn create_manager_for_instance(
+    instance: &Instance,
+) -> Result<Box<dyn DatabaseManager>, String> {
     match instance.service_type {
         ServiceType::MariaDB => {
             let socket = instance
@@ -154,7 +154,12 @@ pub fn sanitize_db_name(name: &str) -> Result<String, String> {
     }
 
     // Must start with letter or underscore
-    if !sanitized.chars().next().map(|c| c.is_alphabetic() || c == '_').unwrap_or(false) {
+    if !sanitized
+        .chars()
+        .next()
+        .map(|c| c.is_alphabetic() || c == '_')
+        .unwrap_or(false)
+    {
         return Err("Database name must start with a letter or underscore".to_string());
     }
 

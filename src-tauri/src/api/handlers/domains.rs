@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::api::{
     state::ApiState,
-    types::{ApiResponse, CreateDomainRequest, UpdateDomainRequest, ToggleSslRequest},
+    types::{ApiResponse, CreateDomainRequest, ToggleSslRequest, UpdateDomainRequest},
 };
 use crate::config::DomainTarget;
 
@@ -45,9 +45,7 @@ pub async fn list(State(state): State<ApiState>) -> Json<ApiResponse<Vec<DomainI
                 let (target_type, target_value) = match &d.target {
                     DomainTarget::Instance(id) => ("instance".to_string(), id.to_string()),
                     DomainTarget::Port(p) => ("port".to_string(), p.to_string()),
-                    DomainTarget::StaticFiles { path, .. } => {
-                        ("static".to_string(), path.clone())
-                    }
+                    DomainTarget::StaticFiles { path, .. } => ("static".to_string(), path.clone()),
                 };
 
                 DomainInfo {
@@ -137,7 +135,11 @@ pub async fn create(
                     Err(e) => return Json(ApiResponse::err(e)),
                 }
             }
-            _ => return Json(ApiResponse::err("Invalid target_type. Use 'instance', 'port', or 'static'")),
+            _ => {
+                return Json(ApiResponse::err(
+                    "Invalid target_type. Use 'instance', 'port', or 'static'",
+                ))
+            }
         };
 
         let (target_type, target_value) = match &domain.target {
@@ -191,7 +193,9 @@ pub async fn update(
         };
 
         // Build new target if target_type/target_value provided
-        let new_target = if let (Some(target_type), Some(target_value)) = (&req.target_type, &req.target_value) {
+        let new_target = if let (Some(target_type), Some(target_value)) =
+            (&req.target_type, &req.target_value)
+        {
             match target_type.as_str() {
                 "instance" => {
                     let instance_id = match Uuid::parse_str(target_value) {
@@ -207,12 +211,10 @@ pub async fn update(
                     };
                     Some(DomainTarget::Port(port))
                 }
-                "static" => {
-                    Some(DomainTarget::StaticFiles {
-                        path: target_value.clone(),
-                        browse: false,
-                    })
-                }
+                "static" => Some(DomainTarget::StaticFiles {
+                    path: target_value.clone(),
+                    browse: false,
+                }),
                 _ => return Json(ApiResponse::err("Invalid target_type")),
             }
         } else {
@@ -267,7 +269,11 @@ pub async fn remove(
         };
 
         let tld = config.tld.clone();
-        config.domains.iter().find(|d| d.id == uuid).map(|d| d.full_domain(&tld))
+        config
+            .domains
+            .iter()
+            .find(|d| d.id == uuid)
+            .map(|d| d.full_domain(&tld))
     };
 
     // Delete from config

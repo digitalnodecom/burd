@@ -16,7 +16,9 @@ impl PostgreSQLService {
         let service_dir = get_service_bin_dir(ServiceType::PostgreSQL)?;
 
         if !service_dir.exists() {
-            return Err("PostgreSQL not installed. Download it from the Services page.".to_string());
+            return Err(
+                "PostgreSQL not installed. Download it from the Services page.".to_string(),
+            );
         }
 
         // Find the first version directory that has the binary
@@ -80,8 +82,7 @@ log_directory = 'log'
 timezone = 'GMT'
 log_timezone = 'GMT'
 "#,
-            instance.port,
-            socket_dir,
+            instance.port, socket_dir,
         );
 
         // Read existing config if present (initdb creates one)
@@ -128,7 +129,11 @@ impl ServiceDefinition for PostgreSQLService {
 
     fn download_method(&self, version: &str, _arch: &str) -> DownloadMethod {
         // Direct download from S3
-        let arch = if cfg!(target_arch = "aarch64") { "arm64" } else { "x64" };
+        let arch = if cfg!(target_arch = "aarch64") {
+            "arm64"
+        } else {
+            "x64"
+        };
         DownloadMethod::Direct {
             url: format!(
                 "https://burdbin.s3.fr-par.scw.cloud/postgresql/{}/postgresql-{}-{}.tar.gz",
@@ -150,18 +155,21 @@ impl ServiceDefinition for PostgreSQLService {
         if let Ok(basedir) = Self::get_basedir() {
             let share_dir = basedir.join("share");
             let lib_dir = basedir.join("lib");
-            vars.push(("PGSHAREDIR".to_string(), share_dir.to_string_lossy().to_string()));
-            vars.push(("PKGLIBDIR".to_string(), lib_dir.to_string_lossy().to_string()));
+            vars.push((
+                "PGSHAREDIR".to_string(),
+                share_dir.to_string_lossy().to_string(),
+            ));
+            vars.push((
+                "PKGLIBDIR".to_string(),
+                lib_dir.to_string_lossy().to_string(),
+            ));
         }
 
         vars
     }
 
     fn start_args(&self, _instance: &Instance, data_dir: &Path) -> Vec<String> {
-        vec![
-            "-D".to_string(),
-            data_dir.to_string_lossy().to_string(),
-        ]
+        vec!["-D".to_string(), data_dir.to_string_lossy().to_string()]
     }
 
     fn needs_init(&self) -> bool {

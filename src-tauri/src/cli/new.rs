@@ -50,8 +50,8 @@ pub fn run_new(template: &str, name: &str) -> Result<(), String> {
         )
     })?;
 
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     let project_dir = current_dir.join(name);
 
@@ -64,7 +64,11 @@ pub fn run_new(template: &str, name: &str) -> Result<(), String> {
     }
 
     println!();
-    println!("Creating {} project '{}'...", project_type.display_name(), name);
+    println!(
+        "Creating {} project '{}'...",
+        project_type.display_name(),
+        name
+    );
     println!();
 
     // Create the project based on type
@@ -119,7 +123,9 @@ fn create_laravel_project(target: &Path, name: &str) -> Result<(), String> {
         .map_err(|e| format!("Failed to generate app key: {}", e))?;
 
     if !key_status.success() {
-        eprintln!("Warning: Failed to generate application key. Run 'php artisan key:generate' manually.");
+        eprintln!(
+            "Warning: Failed to generate application key. Run 'php artisan key:generate' manually."
+        );
     }
 
     Ok(())
@@ -139,8 +145,7 @@ fn create_wordpress_project(target: &Path, name: &str) -> Result<(), String> {
     }
 
     // Create target directory
-    std::fs::create_dir_all(target)
-        .map_err(|e| format!("Failed to create directory: {}", e))?;
+    std::fs::create_dir_all(target).map_err(|e| format!("Failed to create directory: {}", e))?;
 
     let archive_path = target.join("wordpress.tar.gz");
 
@@ -197,10 +202,14 @@ fn create_wordpress_project(target: &Path, name: &str) -> Result<(), String> {
         content = content.replace("localhost", "127.0.0.1");
 
         // Generate unique keys (simple version - WordPress will regenerate on first load)
-        let unique_phrase = format!("burd-{}-{}", name, std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs());
+        let unique_phrase = format!(
+            "burd-{}-{}",
+            name,
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs()
+        );
 
         content = content.replace("put your unique phrase here", &unique_phrase);
 
@@ -211,7 +220,9 @@ fn create_wordpress_project(target: &Path, name: &str) -> Result<(), String> {
     println!();
     println!("WordPress installed.");
     println!();
-    println!("Configure database settings in wp-config.php or run 'burd link' for automatic setup.");
+    println!(
+        "Configure database settings in wp-config.php or run 'burd link' for automatic setup."
+    );
 
     Ok(())
 }
@@ -265,8 +276,7 @@ fn create_bedrock_project(target: &Path, name: &str) -> Result<(), String> {
             &format!("WP_HOME=https://{}.test", slug::slugify(name)),
         );
 
-        std::fs::write(&env_path, content)
-            .map_err(|e| format!("Failed to write .env: {}", e))?;
+        std::fs::write(&env_path, content).map_err(|e| format!("Failed to write .env: {}", e))?;
     }
 
     Ok(())

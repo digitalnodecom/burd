@@ -4,7 +4,7 @@
 
 use crate::constants::{
     HELPER_BINARY_NAME, HELPER_INSTALL_PATH, HELPER_PLIST_PATH, HELPER_SOCKET_PATH,
-    PRIVILEGED_HELPER_DIR, LAUNCH_DAEMONS_DIR, SYSTEM_LOGS_DIR,
+    LAUNCH_DAEMONS_DIR, PRIVILEGED_HELPER_DIR, SYSTEM_LOGS_DIR,
 };
 use serde::{Deserialize, Serialize};
 use std::io::{BufRead, BufReader, Write};
@@ -142,9 +142,7 @@ rm -f '{}'
 rm -f '{}'
 rm -f /var/run/com.burd.helper.sock
 " with administrator privileges"#,
-            HELPER_PLIST_PATH,
-            HELPER_PLIST_PATH,
-            HELPER_INSTALL_PATH
+            HELPER_PLIST_PATH, HELPER_PLIST_PATH, HELPER_INSTALL_PATH
         );
 
         let output = Command::new("osascript")
@@ -203,8 +201,7 @@ rm -f /var/run/com.burd.helper.sock
             .read_line(&mut response_line)
             .map_err(|e| format!("Failed to read response: {}", e))?;
 
-        serde_json::from_str(&response_line)
-            .map_err(|e| format!("Failed to parse response: {}", e))
+        serde_json::from_str(&response_line).map_err(|e| format!("Failed to parse response: {}", e))
     }
 
     /// Find the helper binary in the app bundle or build directory

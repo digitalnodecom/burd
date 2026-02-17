@@ -33,7 +33,7 @@ impl ServiceDefinition for MailpitService {
                     version, version
                 ),
                 is_archive: true,
-                    checksum: None, // TODO: Add SHA256 checksums for binary verification
+                checksum: None, // TODO: Add SHA256 checksums for binary verification
             }
         } else {
             DownloadMethod::Direct {
@@ -54,7 +54,9 @@ impl ServiceDefinition for MailpitService {
     }
 
     fn start_args(&self, instance: &Instance, _data_dir: &Path) -> Vec<String> {
-        let smtp_port = instance.config.get("smtp_port")
+        let smtp_port = instance
+            .config
+            .get("smtp_port")
             .and_then(|v| v.as_str())
             .unwrap_or("1025");
 

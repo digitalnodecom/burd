@@ -1,5 +1,7 @@
 use crate::config::{Instance, ServiceType};
-use crate::services::{DownloadMethod, HealthCheck, ProcessManager, ServiceDefinition, VersionSource};
+use crate::services::{
+    DownloadMethod, HealthCheck, ProcessManager, ServiceDefinition, VersionSource,
+};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -137,10 +139,7 @@ impl NodeRedService {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             let stdout = String::from_utf8_lossy(&output.stdout);
-            return Err(format!(
-                "npm install failed:\n{}\n{}",
-                stderr, stdout
-            ));
+            return Err(format!("npm install failed:\n{}\n{}", stderr, stdout));
         }
 
         // Create .initialized marker
@@ -160,8 +159,8 @@ impl NodeRedService {
         fs::create_dir_all(dst)
             .map_err(|e| format!("Failed to create destination directory: {}", e))?;
 
-        for entry in fs::read_dir(src)
-            .map_err(|e| format!("Failed to read source directory: {}", e))?
+        for entry in
+            fs::read_dir(src).map_err(|e| format!("Failed to read source directory: {}", e))?
         {
             let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
             let src_path = entry.path();

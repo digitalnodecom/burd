@@ -38,7 +38,10 @@ pub fn run_env_check() -> Result<(), String> {
     let project = analyze_with_burd_config(&current_dir, &config)?;
 
     if !project.project_type.uses_env_file() {
-        println!("This project type ({}) doesn't use .env files.", project.project_type);
+        println!(
+            "This project type ({}) doesn't use .env files.",
+            project.project_type
+        );
         return Ok(());
     }
 
@@ -67,7 +70,10 @@ pub fn run_env_fix() -> Result<(), String> {
     let project = analyze_with_burd_config(&current_dir, &config)?;
 
     if !project.project_type.uses_env_file() {
-        println!("This project type ({}) doesn't use .env files.", project.project_type);
+        println!(
+            "This project type ({}) doesn't use .env files.",
+            project.project_type
+        );
         return Ok(());
     }
 
@@ -92,8 +98,14 @@ pub fn run_env_fix() -> Result<(), String> {
 
     for issue in &issues {
         println!("[{}] {}", issue.category, issue.key);
-        println!("  Current:   {}", mask_sensitive(&issue.key, &issue.current));
-        println!("  Suggested: {}", mask_sensitive(&issue.key, &issue.suggested));
+        println!(
+            "  Current:   {}",
+            mask_sensitive(&issue.key, &issue.current)
+        );
+        println!(
+            "  Suggested: {}",
+            mask_sensitive(&issue.key, &issue.suggested)
+        );
         println!("  Reason:    {}", issue.reason);
         println!();
 
@@ -133,7 +145,10 @@ pub fn run_env_show() -> Result<(), String> {
     let project = analyze_with_burd_config(&current_dir, &config)?;
 
     if !project.project_type.uses_env_file() {
-        println!("This project type ({}) doesn't use .env files.", project.project_type);
+        println!(
+            "This project type ({}) doesn't use .env files.",
+            project.project_type
+        );
         return Ok(());
     }
 
@@ -185,13 +200,14 @@ pub fn run_env_show() -> Result<(), String> {
 
     // Search settings (Laravel)
     if matches!(project.project_type, ProjectType::Laravel { .. })
-        && env_vars.contains_key("SCOUT_DRIVER") {
-            println!();
-            println!("Search:");
-            print_env_var(&env_vars, "SCOUT_DRIVER", None);
-            print_env_var(&env_vars, "MEILISEARCH_HOST", None);
-            print_env_var(&env_vars, "MEILISEARCH_KEY", Some("********"));
-        }
+        && env_vars.contains_key("SCOUT_DRIVER")
+    {
+        println!();
+        println!("Search:");
+        print_env_var(&env_vars, "SCOUT_DRIVER", None);
+        print_env_var(&env_vars, "MEILISEARCH_HOST", None);
+        print_env_var(&env_vars, "MEILISEARCH_KEY", Some("********"));
+    }
 
     println!();
     Ok(())
@@ -373,15 +389,17 @@ fn check_mail_env(
 
     // Check host
     if mail_config.mailer == "smtp"
-        && mail_config.host != "127.0.0.1" && mail_config.host != "localhost" {
-            issues.push(EnvIssue {
-                key: "MAIL_HOST".to_string(),
-                current: mail_config.host.clone(),
-                suggested: "127.0.0.1".to_string(),
-                reason: "Burd's Mailpit runs locally".to_string(),
-                category: "mail".to_string(),
-            });
-        }
+        && mail_config.host != "127.0.0.1"
+        && mail_config.host != "localhost"
+    {
+        issues.push(EnvIssue {
+            key: "MAIL_HOST".to_string(),
+            current: mail_config.host.clone(),
+            suggested: "127.0.0.1".to_string(),
+            reason: "Burd's Mailpit runs locally".to_string(),
+            category: "mail".to_string(),
+        });
+    }
 }
 
 /// Print environment check results
@@ -400,10 +418,7 @@ fn print_env_check_results(issues: &[EnvIssue]) {
     // Group by category
     let mut by_category: HashMap<&str, Vec<&EnvIssue>> = HashMap::new();
     for issue in issues {
-        by_category
-            .entry(&issue.category)
-            .or_default()
-            .push(issue);
+        by_category.entry(&issue.category).or_default().push(issue);
     }
 
     for (category, cat_issues) in by_category {

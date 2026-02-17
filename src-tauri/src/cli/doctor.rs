@@ -65,7 +65,11 @@ pub fn run_doctor() -> Result<(), String> {
     for instance in &config.instances {
         let port_open = check_port(instance.port);
         let status = if port_open { Status::Ok } else { Status::Error };
-        let status_text = if port_open { "running" } else { "not responding" };
+        let status_text = if port_open {
+            "running"
+        } else {
+            "not responding"
+        };
 
         println!(
             "  {} {:?} '{}' (port {}) - {}",
@@ -112,7 +116,11 @@ pub fn run_doctor() -> Result<(), String> {
 
     if config.proxy_installed {
         let proxy_running = check_port(443);
-        let status = if proxy_running { Status::Ok } else { Status::Warning };
+        let status = if proxy_running {
+            Status::Ok
+        } else {
+            Status::Warning
+        };
         println!(
             "  {} Caddy proxy installed (HTTPS on port 443)",
             status.symbol()
@@ -121,8 +129,14 @@ pub fn run_doctor() -> Result<(), String> {
             println!("      Proxy may not be running. Check System Preferences > Burd.");
         }
     } else {
-        println!("  {} Caddy proxy not installed", Status::NotInstalled.symbol());
-        println!("      Sites accessible via http://site.{}:{}", config.tld, config.proxy_port);
+        println!(
+            "  {} Caddy proxy not installed",
+            Status::NotInstalled.symbol()
+        );
+        println!(
+            "      Sites accessible via http://site.{}:{}",
+            config.tld, config.proxy_port
+        );
         println!("      Install proxy in Burd app for HTTPS support.");
     }
 
@@ -131,13 +145,16 @@ pub fn run_doctor() -> Result<(), String> {
     println!("Current Project");
     println!("---------------");
 
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     match analyze_project(&current_dir) {
         Ok(project) => {
             if matches!(project.project_type, ProjectType::Unknown) {
-                println!("  {} No recognized project in current directory", Status::NotInstalled.symbol());
+                println!(
+                    "  {} No recognized project in current directory",
+                    Status::NotInstalled.symbol()
+                );
                 println!("      Supported: Laravel, WordPress, Bedrock, Symfony");
             } else {
                 println!("  Type: {}", project.project_type);
@@ -155,7 +172,12 @@ pub fn run_doctor() -> Result<(), String> {
 
                 if is_linked {
                     let subdomain = slug::slugify(&project.name);
-                    println!("  {} Linked to {}.{}", Status::Ok.symbol(), subdomain, config.tld);
+                    println!(
+                        "  {} Linked to {}.{}",
+                        Status::Ok.symbol(),
+                        subdomain,
+                        config.tld
+                    );
                 } else {
                     println!("  {} Not linked", Status::Warning.symbol());
                     println!("      Run 'burd link' or 'burd setup' to link this project.");
@@ -169,7 +191,10 @@ pub fn run_doctor() -> Result<(), String> {
             }
         }
         Err(_) => {
-            println!("  {} No project detected in current directory", Status::NotInstalled.symbol());
+            println!(
+                "  {} No project detected in current directory",
+                Status::NotInstalled.symbol()
+            );
         }
     }
 
@@ -182,8 +207,16 @@ pub fn run_doctor() -> Result<(), String> {
 
 /// Print service installation status
 fn print_service_status(name: &str, installed: bool) {
-    let status = if installed { Status::Ok } else { Status::NotInstalled };
-    let text = if installed { "configured" } else { "not configured" };
+    let status = if installed {
+        Status::Ok
+    } else {
+        Status::NotInstalled
+    };
+    let text = if installed {
+        "configured"
+    } else {
+        "not configured"
+    };
     println!("  {} {} - {}", status.symbol(), name, text);
 }
 
@@ -220,14 +253,20 @@ fn check_project_database(
     let db_config = match db_config {
         Some(db) => db,
         None => {
-            println!("    {} No database configuration found", Status::Warning.symbol());
+            println!(
+                "    {} No database configuration found",
+                Status::Warning.symbol()
+            );
             return Ok(());
         }
     };
 
     // SQLite doesn't need server
     if db_config.is_sqlite() {
-        println!("    {} Using SQLite (no server needed)", Status::Ok.symbol());
+        println!(
+            "    {} Using SQLite (no server needed)",
+            Status::Ok.symbol()
+        );
         return Ok(());
     }
 
@@ -248,7 +287,11 @@ fn check_project_database(
             if let Ok(manager) = create_manager_for_instance(instance) {
                 match manager.database_exists(&db_config.database) {
                     Ok(true) => {
-                        println!("    {} Database '{}' exists", Status::Ok.symbol(), db_config.database);
+                        println!(
+                            "    {} Database '{}' exists",
+                            Status::Ok.symbol(),
+                            db_config.database
+                        );
                     }
                     Ok(false) => {
                         println!(
@@ -336,7 +379,11 @@ fn check_project_cache(
             Some(instance) => {
                 if let Some(cache) = cache_config {
                     if cache.port == Some(instance.port) {
-                        println!("    {} Using Redis on port {}", Status::Ok.symbol(), instance.port);
+                        println!(
+                            "    {} Using Redis on port {}",
+                            Status::Ok.symbol(),
+                            instance.port
+                        );
                     } else {
                         println!(
                             "    {} Config uses port {:?}, Burd's Redis is on port {}",
@@ -359,7 +406,11 @@ fn check_project_cache(
             }
         }
     } else {
-        println!("    {} Using '{}' cache driver", Status::Ok.symbol(), cache_driver);
+        println!(
+            "    {} Using '{}' cache driver",
+            Status::Ok.symbol(),
+            cache_driver
+        );
     }
 
     Ok(())
@@ -448,7 +499,10 @@ fn check_project_mail(
             }
         }
     } else if mail_mailer == "log" {
-        println!("    {} Using 'log' mailer (emails logged, not sent)", Status::Ok.symbol());
+        println!(
+            "    {} Using 'log' mailer (emails logged, not sent)",
+            Status::Ok.symbol()
+        );
     } else {
         println!("    {} Using '{}' mailer", Status::Ok.symbol(), mail_mailer);
     }

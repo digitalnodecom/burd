@@ -31,8 +31,8 @@ use uuid::Uuid;
 /// - Configures Mailpit for local mail
 /// - Runs migrations (for Laravel)
 pub fn run_setup() -> Result<(), String> {
-    let current_dir = env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    let current_dir =
+        env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
     let project_name = current_dir
         .file_name()
@@ -50,19 +50,17 @@ pub fn run_setup() -> Result<(), String> {
     println!();
     println!("Analyzing project...");
 
-    let project = analyze_project(&current_dir)
-        .map_err(|e| format!("Failed to analyze project: {}", e))?;
+    let project =
+        analyze_project(&current_dir).map_err(|e| format!("Failed to analyze project: {}", e))?;
 
     if matches!(project.project_type, ProjectType::Unknown) {
-        return Err(
-            "Could not detect project type.\n\
+        return Err("Could not detect project type.\n\
              Supported: Laravel, WordPress, Bedrock, Symfony\n\n\
              Make sure you're in a project directory with:\n  \
              - artisan (Laravel)\n  \
              - wp-config.php (WordPress)\n  \
              - web/wp/ directory (Bedrock)"
-                .to_string(),
-        );
+            .to_string());
     }
 
     println!("Detected: {}", project.project_type);
@@ -77,11 +75,7 @@ pub fn run_setup() -> Result<(), String> {
     println!("[1/5] FrankenPHP Instance");
     println!("-------------------------");
 
-    let instance_created = setup_frankenphp_instance(
-        &current_dir,
-        &project_name,
-        &config_store,
-    )?;
+    let instance_created = setup_frankenphp_instance(&current_dir, &project_name, &config_store)?;
 
     if instance_created {
         setup_steps.push(format!("Created FrankenPHP instance '{}'", project_name));
@@ -155,13 +149,20 @@ pub fn run_setup() -> Result<(), String> {
         let url = if config.proxy_installed {
             format!("https://{}.{}", domain.subdomain, config.tld)
         } else {
-            format!("http://{}.{}:{}", domain.subdomain, config.tld, config.proxy_port)
+            format!(
+                "http://{}.{}:{}",
+                domain.subdomain, config.tld, config.proxy_port
+            )
         };
         println!("  URL: {}", url);
     }
 
     // Show Mailpit if configured
-    if let Some(mailpit) = config.instances.iter().find(|i| i.service_type == ServiceType::Mailpit) {
+    if let Some(mailpit) = config
+        .instances
+        .iter()
+        .find(|i| i.service_type == ServiceType::Mailpit)
+    {
         let web_port = mailpit
             .config
             .get("web_port")
@@ -206,7 +207,10 @@ fn setup_frankenphp_instance(
         return Ok(false);
     }
 
-    print!("Create instance '{}' on {}.{}? [Y/n] ", project_name, subdomain, config.tld);
+    print!(
+        "Create instance '{}' on {}.{}? [Y/n] ",
+        project_name, subdomain, config.tld
+    );
     io::stdout().flush().unwrap();
 
     let mut input = String::new();
@@ -226,12 +230,14 @@ fn setup_frankenphp_instance(
     }
 
     // Get installed FrankenPHP version
-    let version = config.binaries
+    let version = config
+        .binaries
         .get(&ServiceType::FrankenPHP)
         .and_then(|versions| versions.keys().next())
         .ok_or_else(|| {
             "No FrankenPHP versions installed.\n\
-             Please download FrankenPHP in the Burd app first.".to_string()
+             Please download FrankenPHP in the Burd app first."
+                .to_string()
         })?
         .clone();
 
@@ -266,7 +272,10 @@ fn setup_frankenphp_instance(
 
     config_store.save(&config)?;
 
-    println!("Created instance '{}' -> {}.{}", project_name, subdomain, config.tld);
+    println!(
+        "Created instance '{}' -> {}.{}",
+        project_name, subdomain, config.tld
+    );
     Ok(true)
 }
 
@@ -304,7 +313,9 @@ fn setup_database(
         .as_ref()
         .filter(|d| !d.database.is_empty() && !d.is_sqlite())
         .map(|d| d.database.clone())
-        .unwrap_or_else(|| sanitize_db_name(&project.name).unwrap_or_else(|_| project.name.clone()));
+        .unwrap_or_else(|| {
+            sanitize_db_name(&project.name).unwrap_or_else(|_| project.name.clone())
+        });
 
     let db_instance = db_instances[0];
     let manager = create_manager_for_instance(db_instance)?;
@@ -313,7 +324,10 @@ fn setup_database(
     let exists = manager.database_exists(&db_name).unwrap_or(false);
 
     if exists {
-        println!("Database '{}' already exists on {:?}.", db_name, db_instance.service_type);
+        println!(
+            "Database '{}' already exists on {:?}.",
+            db_name, db_instance.service_type
+        );
 
         // Still offer to fix .env if port doesn't match
         fix_database_env(project_dir, project, db_instance)?;
@@ -452,7 +466,10 @@ fn setup_cache(
         // Already using Redis, check port
         if let Some(cache) = cache_config {
             if cache.port == Some(redis_instance.port) {
-                println!("Already configured for Redis on port {}.", redis_instance.port);
+                println!(
+                    "Already configured for Redis on port {}.",
+                    redis_instance.port
+                );
                 return Ok(false);
             }
         }

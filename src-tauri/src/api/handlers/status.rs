@@ -2,13 +2,14 @@
 
 use axum::{extract::State, Json};
 
-use crate::api::{state::ApiState, types::{ApiResponse, StatusResponse}};
+use crate::api::{
+    state::ApiState,
+    types::{ApiResponse, StatusResponse},
+};
 use crate::launchd;
 
 /// GET /status - Get overall system status
-pub async fn get_status(
-    State(state): State<ApiState>,
-) -> Json<ApiResponse<StatusResponse>> {
+pub async fn get_status(State(state): State<ApiState>) -> Json<ApiResponse<StatusResponse>> {
     // Get config and count instances
     let (tld, instance_count, running_instances, dns_running) = {
         let config_store = match state.inner.config_store.lock() {
@@ -26,7 +27,9 @@ pub async fn get_status(
             Err(_) => return Json(ApiResponse::err("Failed to acquire process manager lock")),
         };
 
-        let running = config.instances.iter()
+        let running = config
+            .instances
+            .iter()
             .filter(|inst| process_manager.get_status(inst).running)
             .count();
 

@@ -3,8 +3,8 @@
 //! Tauri commands for log aggregation and streaming.
 
 use crate::logs::{
-    get_caddy_log_path, get_last_lines, get_log_sources, parse_caddy_json,
-    read_new_lines, LogEntry, LogFileState, LogSourceInfo,
+    get_caddy_log_path, get_last_lines, get_log_sources, parse_caddy_json, read_new_lines,
+    LogEntry, LogFileState, LogSourceInfo,
 };
 use std::time::Duration;
 use tauri::ipc::Channel;
@@ -52,20 +52,14 @@ pub async fn get_recent_logs(
 /// Stream logs in real-time via Channel
 /// This command runs continuously, sending log entries as they appear
 #[tauri::command]
-pub async fn stream_logs(
-    sources: Vec<String>,
-    on_log: Channel<LogEntry>,
-) -> Result<(), String> {
+pub async fn stream_logs(sources: Vec<String>, on_log: Channel<LogEntry>) -> Result<(), String> {
     let mut file_state = LogFileState::new();
 
     // For Caddy, start at end of file to only get new logs
     let caddy_path = get_caddy_log_path();
     if caddy_path.exists() {
         if let Ok(metadata) = std::fs::metadata(&caddy_path) {
-            file_state.set_position(
-                caddy_path.to_str().unwrap_or(""),
-                metadata.len(),
-            );
+            file_state.set_position(caddy_path.to_str().unwrap_or(""), metadata.len());
         }
     }
 
