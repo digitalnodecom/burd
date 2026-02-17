@@ -234,37 +234,20 @@ jobs:
           cat cli/latest.json
 
       - name: Upload CLI assets to release
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const { data: releases } = await github.rest.repos.listReleases({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
-            const release = releases.find(r => r.tag_name === 'v${{ needs.prepare.outputs.version }}');
-
-            const files = [
-              'burd-darwin-x64',
-              'burd-darwin-x64.sha256',
-              'cli/latest.json',
-            ];
-            for (const file of files) {
-              const content = fs.readFileSync(file);
-              const name = file.includes('/') ? file.split('/').pop() : file;
-              await github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: release.id,
-                name: name,
-                data: content,
-              });
-            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ needs.prepare.outputs.version }}"
+          gh release upload "$TAG" \
+            burd-darwin-x64 \
+            burd-darwin-x64.sha256 \
+            cli/latest.json \
+            --clobber
 
   # Publish the GitHub release (remove draft status)
   publish-release:
     needs: [prepare, build-tauri-x64, build-cli, publish-updates]
-    if: ${{ always() && needs.build-cli.result == 'success' && needs.publish-updates.result == 'success' }}
+    if: ${{ always() && needs.publish-updates.result == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
