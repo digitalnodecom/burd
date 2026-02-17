@@ -7,8 +7,7 @@
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
-    "frontendDist": "../build",
-    "beforeBundleCommand": "sh -c 'for bin in target/*/release/bundle/macos/Burd.app/Contents/MacOS/*; do [ -f \"$bin\" ] && file \"$bin\" | grep -q Mach-O && codesign --force --sign - \"$bin\" && echo \"Ad-hoc signed: $bin\"; done; true'"
+    "frontendDist": "../build"
   },
   "mainBinaryName": "burd-app",
   "app": {

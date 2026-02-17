@@ -19,19 +19,19 @@ jobs:
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-  # Build the Tauri app for macOS (native builds on matching hardware)
-  build-tauri:
-    needs: prepare
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: aarch64-apple-darwin
-            runner: macos-latest
-          - target: x86_64-apple-darwin
-            runner: macos-15-intel
+  # TODO: Re-enable aarch64 build once x86_64 signing is verified
+  # build-tauri-aarch64:
+  #   needs: prepare
+  #   runs-on: macos-latest
+  #   (temporarily disabled)
 
-    runs-on: ${{ matrix.runner }}
+  # Build the Tauri app for macOS x86_64 (native Intel, manually signed)
+  # tauri-action's codesign fails because Tauri only signs binaries it
+  # knows about (main + externalBin) but not burd-helper. We build
+  # unsigned, then ad-hoc sign all binaries and real-sign ourselves.
+  build-tauri-x64:
+    needs: prepare
+    runs-on: macos-15-intel
 
     steps:
       - name: Checkout
@@ -54,23 +54,83 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
+      - name: Build Tauri app (unsigned)
+        run: npm run tauri build -- --target x86_64-apple-darwin
+
+      - name: Import signing certificate
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 12)
+
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain
+
+      - name: Sign x86_64 app bundle
+        env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          APP="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Burd.app"
+
+          # Sign all binaries inside the bundle with the Developer ID
+          for bin in "$APP/Contents/MacOS/"*; do
+            if [ -f "$bin" ] && file "$bin" | grep -q Mach-O; then
+              codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp --options runtime "$bin"
+              echo "Signed: $bin"
+            fi
+          done
+
+          # Sign the app bundle itself
+          codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp --options runtime "$APP"
+          echo "Signed: $APP"
+
+          # Verify
+          codesign --verify --deep --strict "$APP"
+          echo "Verification passed"
+
+      - name: Create DMG
+        run: |
+          DMG_NAME="Burd_${{ needs.prepare.outputs.version }}_x64.dmg"
+          APP="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Burd.app"
+          hdiutil create -volname "Burd" -srcfolder "$APP" -ov -format UDZO "$DMG_NAME"
+          echo "DMG_NAME=$DMG_NAME" >> $GITHUB_ENV
+
+      - name: Notarize DMG
+        env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        with:
-          tagName: v__VERSION__
-          releaseName: 'Burd v__VERSION__'
-          releaseBody: 'See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.'
-          releaseDraft: true
-          prerelease: false
-          args: --target ${{ matrix.target }}
+        run: |
+          xcrun notarytool submit "$DMG_NAME" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple "$DMG_NAME"
+
+      - name: Upload DMG to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ needs.prepare.outputs.version }}"
+          for i in $(seq 1 30); do
+            if gh release view "$TAG" > /dev/null 2>&1; then
+              echo "Found release $TAG"
+              break
+            fi
+            echo "Waiting for release $TAG... (attempt $i/30)"
+            sleep 10
+          done
+          gh release upload "$TAG" "$DMG_NAME" --clobber
 
   # Build CLI binary separately (native builds on matching hardware)
   build-cli:
@@ -79,9 +139,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - target: aarch64-apple-darwin
-            name: burd-darwin-aarch64
-            runner: macos-latest
           - target: x86_64-apple-darwin
             name: burd-darwin-x64
             runner: macos-15-intel
@@ -133,35 +190,24 @@ jobs:
           pattern: cli-*
           merge-multiple: true
 
-      - name: Wait for release to exist
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const tag = 'v${{ needs.prepare.outputs.version }}';
-            for (let i = 0; i < 30; i++) {
-              const { data: releases } = await github.rest.repos.listReleases({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-              });
-              const release = releases.find(r => r.tag_name === tag);
-              if (release) {
-                console.log(`Found release ${tag} (id: ${release.id})`);
-                return;
-              }
-              console.log(`Release ${tag} not found yet, waiting 10s... (attempt ${i + 1}/30)`);
-              await new Promise(r => setTimeout(r, 10000));
-            }
-            throw new Error(`Release ${tag} not found after 5 minutes`);
+      - name: Create draft release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ needs.prepare.outputs.version }}"
+          gh release create "$TAG" \
+            --title "Burd $TAG" \
+            --notes "See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." \
+            --draft || echo "Release already exists"
 
       - name: Generate update manifests
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
 
           # Read checksums
-          AARCH64_SHA256=$(cat burd-darwin-aarch64.sha256)
           X64_SHA256=$(cat burd-darwin-x64.sha256)
 
-          # Generate CLI manifest
+          # Generate CLI manifest (x64 only for now)
           mkdir -p cli
           cat > cli/latest.json << EOF
           {
@@ -169,10 +215,6 @@ jobs:
             "notes": "See https://github.com/${{ github.repository }}/releases/tag/v$VERSION for details.",
             "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "platforms": {
-              "darwin-aarch64": {
-                "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/burd-darwin-aarch64",
-                "sha256": "$AARCH64_SHA256"
-              },
               "darwin-x64": {
                 "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/burd-darwin-x64",
                 "sha256": "$X64_SHA256"
@@ -195,8 +237,6 @@ jobs:
             const release = releases.find(r => r.tag_name === 'v${{ needs.prepare.outputs.version }}');
 
             const files = [
-              'burd-darwin-aarch64',
-              'burd-darwin-aarch64.sha256',
               'burd-darwin-x64',
               'burd-darwin-x64.sha256',
               'cli/latest.json',
@@ -215,7 +255,7 @@ jobs:
 
   # Publish the GitHub release (remove draft status)
   publish-release:
-    needs: [prepare, build-tauri, build-cli, publish-updates]
+    needs: [prepare, build-tauri-x64, build-cli, publish-updates]
     if: ${{ always() && needs.build-cli.result == 'success' && needs.publish-updates.result == 'success' }}
     runs-on: ubuntu-latest
 
