@@ -19,16 +19,54 @@ jobs:
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-  # TODO: Re-enable aarch64 build once x86_64 signing is verified
-  # build-tauri-aarch64:
-  #   needs: prepare
-  #   runs-on: macos-latest
-  #   (temporarily disabled)
+  # Build the Tauri app for macOS aarch64 (native ARM, signed via tauri-action)
+  build-tauri-aarch64:
+    needs: prepare
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'Burd v__VERSION__'
+          releaseBody: 'See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.'
+          releaseDraft: true
+          prerelease: false
+          args: --target aarch64-apple-darwin
 
   # Build the Tauri app for macOS x86_64 (native Intel, manually signed)
   # tauri-action's codesign fails because Tauri only signs binaries it
   # knows about (main + externalBin) but not burd-helper. We build
-  # unsigned, then ad-hoc sign all binaries and real-sign ourselves.
+  # unsigned, then sign all binaries ourselves.
   build-tauri-x64:
     needs: prepare
     runs-on: macos-15-intel
@@ -147,6 +185,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - target: aarch64-apple-darwin
+            name: burd-darwin-aarch64
+            runner: macos-latest
           - target: x86_64-apple-darwin
             name: burd-darwin-x64
             runner: macos-15-intel
@@ -213,9 +254,10 @@ jobs:
           VERSION="${{ needs.prepare.outputs.version }}"
 
           # Read checksums
+          AARCH64_SHA256=$(cat burd-darwin-aarch64.sha256)
           X64_SHA256=$(cat burd-darwin-x64.sha256)
 
-          # Generate CLI manifest (x64 only for now)
+          # Generate CLI manifest
           mkdir -p cli
           cat > cli/latest.json << EOF
           {
@@ -223,6 +265,10 @@ jobs:
             "notes": "See https://github.com/${{ github.repository }}/releases/tag/v$VERSION for details.",
             "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "platforms": {
+              "darwin-aarch64": {
+                "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/burd-darwin-aarch64",
+                "sha256": "$AARCH64_SHA256"
+              },
               "darwin-x64": {
                 "url": "https://github.com/${{ github.repository }}/releases/download/v$VERSION/burd-darwin-x64",
                 "sha256": "$X64_SHA256"
@@ -239,6 +285,8 @@ jobs:
         run: |
           TAG="v${{ needs.prepare.outputs.version }}"
           gh release upload "$TAG" \
+            burd-darwin-aarch64 \
+            burd-darwin-aarch64.sha256 \
             burd-darwin-x64 \
             burd-darwin-x64.sha256 \
             cli/latest.json \
@@ -246,26 +294,18 @@ jobs:
 
   # Publish the GitHub release (remove draft status)
   publish-release:
-    needs: [prepare, build-tauri-x64, build-cli, publish-updates]
+    needs: [prepare, build-tauri-aarch64, build-tauri-x64, build-cli, publish-updates]
     if: ${{ always() && needs.publish-updates.result == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Publish release
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: releases } = await github.rest.repos.listReleases({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
-            const release = releases.find(r => r.tag_name === 'v${{ needs.prepare.outputs.version }}');
-            if (release && release.draft) {
-              await github.rest.repos.updateRelease({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: release.id,
-                draft: false
-              });
-              console.log('Release published!');
-            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ needs.prepare.outputs.version }}"
+          CURRENT=$(gh release view "$TAG" --json isDraft --jq '.isDraft')
+          if [ "$CURRENT" = "true" ]; then
+            gh release edit "$TAG" --draft=false
+            echo "Release published!"
+          fi
