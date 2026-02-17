@@ -38,6 +38,7 @@ impl std::fmt::Display for ProjectType {
 
 /// A project that can run tinker commands
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct TinkerProject {
     pub id: String,
     pub path: String,

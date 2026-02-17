@@ -197,6 +197,7 @@ impl RouteEntry {
 
 /// Routes configuration (for Caddyfile generation)
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[allow(dead_code)]
 pub struct RoutesConfig {
     pub tld: String,
     pub routes: HashMap<String, RouteEntry>,
