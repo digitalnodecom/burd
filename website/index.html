@@ -1,0 +1,1955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burd - The Ultimate Local Dev Environment for PHP Developers</title>
+    <meta name="description" content="18+ integrated services. Zero Docker. Zero complexity. One native macOS app. MariaDB, PostgreSQL, MongoDB, Redis, Meilisearch, and more.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Burd - Local Development Environment Manager">
+    <meta property="og:description" content="18+ integrated services. Zero Docker. Zero complexity. One native macOS app.">
+    <meta property="og:image" content="burd.png">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Burd - Local Development Environment Manager">
+    <meta name="twitter:description" content="18+ integrated services. Zero Docker. Zero complexity. One native macOS app.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* Dark Theme (default) */
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a24;
+            --bg-card: #16161f;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #a78bfa;
+            --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            --green: #22c55e;
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --border: #27272a;
+            --border-light: #3f3f46;
+            --nav-bg: rgba(10, 10, 15, 0.8);
+            --code-bg: rgba(139, 92, 246, 0.1);
+        }
+
+        /* Light Theme */
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --accent-primary: #7c3aed;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+            --green: #16a34a;
+            --red: #dc2626;
+            --amber: #d97706;
+            --border: #e2e8f0;
+            --border-light: #cbd5e1;
+            --nav-bg: rgba(255, 255, 255, 0.9);
+            --code-bg: rgba(139, 92, 246, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        html, body, nav, .problem-card, .service-card, .feature-card,
+        .pricing-card, .cli-window, .comparison-table, .faq-question {
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Utility Classes */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .gradient-text {
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 16px 0;
+            background: var(--nav-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 20px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .logo img {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .theme-toggle:hover {
+            background: var(--bg-card);
+            border-color: var(--border-light);
+            color: var(--text-primary);
+        }
+
+        .theme-toggle svg {
+            width: 20px;
+            height: 20px;
+            transition: transform 0.3s;
+        }
+
+        .theme-toggle:hover svg {
+            transform: rotate(15deg);
+        }
+
+        .theme-toggle .sun-icon {
+            display: none;
+        }
+
+        .theme-toggle .moon-icon {
+            display: block;
+        }
+
+        [data-theme="light"] .theme-toggle .sun-icon {
+            display: block;
+        }
+
+        [data-theme="light"] .theme-toggle .moon-icon {
+            display: none;
+        }
+
+        /* Light theme adjustments */
+        [data-theme="light"] .hero::before {
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%);
+        }
+
+        [data-theme="light"] .cta::before {
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%);
+        }
+
+        [data-theme="light"] .problem-card.solution {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%);
+        }
+
+        [data-theme="light"] .pricing-card.featured {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%);
+        }
+
+        [data-theme="light"] .comparison-table .burd-col {
+            background: rgba(124, 58, 237, 0.04);
+        }
+
+        [data-theme="light"] .comparison-table .highlight-row {
+            background: rgba(124, 58, 237, 0.06);
+        }
+
+        [data-theme="light"] .comparison-table .highlight-row .burd-col {
+            background: rgba(124, 58, 237, 0.1);
+        }
+
+        [data-theme="light"] .badge {
+            background: rgba(124, 58, 237, 0.1);
+            border-color: rgba(124, 58, 237, 0.2);
+        }
+
+        [data-theme="light"] .btn-primary {
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+        }
+
+        [data-theme="light"] .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        [data-theme="light"] .service-card {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="light"] .service-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] .feature-card {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="light"] .pricing-card {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="light"] .cli-window {
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            border-color: var(--border-light);
+        }
+
+        .btn-large {
+            padding: 16px 32px;
+            font-size: 16px;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 160px 0 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            font-size: clamp(40px, 6vw, 72px);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero p {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 48px;
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            flex-wrap: wrap;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--accent-secondary);
+        }
+
+        .hero-stat-label {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .platform-note {
+            margin-top: 32px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .platform-note span {
+            color: var(--amber);
+        }
+
+        /* Section Styles */
+        section {
+            padding: 100px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .section-header h2 {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .section-header p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Problem Section */
+        .problem {
+            background: var(--bg-secondary);
+        }
+
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .problem-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+        }
+
+        .problem-card.solution {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .problem-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .problem-card:not(.solution) .problem-icon {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .problem-card.solution .problem-icon {
+            background: rgba(34, 197, 94, 0.15);
+        }
+
+        .problem-card h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .problem-card p {
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        /* Services Grid */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .service-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .service-card:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-4px);
+        }
+
+        .service-icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 16px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            background: var(--bg-tertiary);
+        }
+
+        .service-card h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .service-card p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Project Types Section */
+        .project-types {
+            background: var(--bg-secondary);
+        }
+
+        .project-types-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .project-type-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .project-type-card:hover {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .project-type-card.custom {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .project-type-card span {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .project-type-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        /* Framework colors */
+        .project-type-icon.laravel { background: linear-gradient(135deg, #ff2d20 0%, #e6342b 100%); }
+        .project-type-icon.symfony { background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); }
+        .project-type-icon.wordpress { background: linear-gradient(135deg, #21759b 0%, #1e6a8d 100%); }
+        .project-type-icon.bedrock { background: linear-gradient(135deg, #525ddc 0%, #4a54c9 100%); }
+        .project-type-icon.statamic { background: linear-gradient(135deg, #ff269e 0%, #e6228e 100%); }
+        .project-type-icon.craft { background: linear-gradient(135deg, #e5422b 0%, #cc3a26 100%); }
+        .project-type-icon.drupal { background: linear-gradient(135deg, #0678be 0%, #0569a8 100%); }
+        .project-type-icon.magento { background: linear-gradient(135deg, #f26322 0%, #d9581e 100%); }
+        .project-type-icon.joomla { background: linear-gradient(135deg, #5091cd 0%, #4782b8 100%); }
+        .project-type-icon.cakephp { background: linear-gradient(135deg, #d33c44 0%, #bd363d 100%); }
+        .project-type-icon.slim { background: linear-gradient(135deg, #719e40 0%, #648c39 100%); }
+        .project-type-icon.kirby { background: linear-gradient(135deg, #ff6b6b 0%, #e66060 100%); }
+        .project-type-icon.october { background: linear-gradient(135deg, #e67e22 0%, #cc701e 100%); }
+        .project-type-icon.concrete { background: linear-gradient(135deg, #29b0c6 0%, #249db1 100%); }
+        .project-type-icon.contao { background: linear-gradient(135deg, #f47c00 0%, #db6f00 100%); }
+        .project-type-icon.ee { background: linear-gradient(135deg, #1d1d1d 0%, #333333 100%); }
+        .project-type-icon.jigsaw { background: linear-gradient(135deg, #e7455b 0%, #cf3e52 100%); }
+        .project-type-icon.sculpin { background: linear-gradient(135deg, #4fa3bd 0%, #4692a9 100%); }
+        .project-type-icon.katana { background: linear-gradient(135deg, #00d4aa 0%, #00bf99 100%); }
+        .project-type-icon.static { background: linear-gradient(135deg, #6b7280 0%, #5f6672 100%); }
+        .project-type-icon.php { background: linear-gradient(135deg, #777bb4 0%, #6a6ea2 100%); }
+        .project-type-icon.custom { background: var(--accent-gradient); }
+
+        .project-types-note {
+            text-align: center;
+            margin-top: 32px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        [data-theme="light"] .project-type-card.custom {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%);
+        }
+
+        [data-theme="light"] .project-type-icon.symfony { background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%); }
+        [data-theme="light"] .project-type-icon.ee { background: linear-gradient(135deg, #333333 0%, #4d4d4d 100%); }
+
+        /* CLI Section */
+        .cli-section {
+            background: var(--bg-secondary);
+        }
+
+        .cli-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .cli-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .cli-content h2 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .cli-content p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .cli-features {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .cli-feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+        }
+
+        .cli-feature svg {
+            color: var(--green);
+            flex-shrink: 0;
+        }
+
+        .cli-window {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .cli-header {
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cli-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .cli-dot.red { background: #ff5f57; }
+        .cli-dot.yellow { background: #febc2e; }
+        .cli-dot.green { background: #28c840; }
+
+        .cli-body {
+            padding: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 2;
+        }
+
+        .cli-prompt {
+            color: var(--accent-secondary);
+        }
+
+        .cli-command {
+            color: var(--text-primary);
+        }
+
+        .cli-comment {
+            color: var(--text-muted);
+        }
+
+        /* Features Deep Dive */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+        }
+
+        .feature-card h3 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .feature-card h3 span {
+            font-size: 28px;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .feature-list li svg {
+            color: var(--green);
+            flex-shrink: 0;
+        }
+
+        /* Comparison Table */
+        .comparison {
+            background: var(--bg-secondary);
+        }
+
+        .comparison-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 20px 24px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-table th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .comparison-table th:not(:first-child) {
+            text-align: center;
+        }
+
+        .comparison-table td:not(:first-child) {
+            text-align: center;
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .comparison-table .burd-col {
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .comparison-table .feature-name {
+            font-weight: 500;
+        }
+
+        .comparison-table .highlight-row {
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .comparison-table .highlight-row .burd-col {
+            background: rgba(139, 92, 246, 0.15);
+        }
+
+        .check {
+            color: var(--green);
+            font-size: 20px;
+        }
+
+        .cross {
+            color: var(--red);
+            font-size: 20px;
+        }
+
+        .partial {
+            color: var(--amber);
+            font-size: 13px;
+        }
+
+        /* Pricing Section */
+        .pricing {
+            text-align: center;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .pricing-cards {
+                grid-template-columns: 1fr;
+                max-width: 400px;
+            }
+        }
+
+        .pricing-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .pricing-card.featured {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%);
+            border-color: var(--accent-primary);
+            transform: scale(1.02);
+        }
+
+        .pricing-card.featured::before {
+            content: 'Most Popular';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-gradient);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .pricing-card.team {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+            border-color: var(--green);
+        }
+
+        .pricing-card.team::before {
+            content: 'Best for Teams';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        [data-theme="light"] .pricing-card.team {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.04) 100%);
+        }
+
+        .pricing-card h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .pricing-card .price {
+            font-size: 56px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .pricing-card .price-period {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .pricing-card .savings {
+            display: inline-block;
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--green);
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .pricing-features {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 32px;
+        }
+
+        .pricing-features li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .pricing-features li svg {
+            color: var(--green);
+            flex-shrink: 0;
+        }
+
+        .pricing-card .btn {
+            width: 100%;
+        }
+
+        .pricing-comparison {
+            margin-top: 48px;
+            padding: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .pricing-comparison h4 {
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+
+        .pricing-comparison-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .pricing-comparison-row span:last-child {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .pricing-comparison-row.savings span:last-child {
+            color: var(--green);
+        }
+
+        /* FAQ Section */
+        .faq {
+            background: var(--bg-secondary);
+        }
+
+        .faq-list {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .faq-question {
+            width: 100%;
+            padding: 24px 0;
+            background: none;
+            border: none;
+            text-align: left;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: inherit;
+        }
+
+        .faq-question:hover {
+            color: var(--accent-secondary);
+        }
+
+        .faq-question svg {
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .faq-item.active .faq-question svg {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+        }
+
+        .faq-answer p {
+            padding-bottom: 24px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* CTA Section */
+        .cta {
+            text-align: center;
+            padding: 120px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .cta h2 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .cta p {
+            font-size: 20px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            position: relative;
+        }
+
+        /* Footer */
+        footer {
+            padding: 48px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-copyright {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Mobile Theme Toggle */
+        .mobile-theme-toggle {
+            display: none;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-theme-toggle {
+                display: flex;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
+
+            .hero-stats {
+                gap: 24px;
+            }
+
+            section {
+                padding: 60px 0;
+            }
+
+            .section-header h2 {
+                font-size: 28px;
+            }
+
+            .cta h2 {
+                font-size: 32px;
+            }
+
+            .pricing-card.featured {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="container">
+            <a href="#" class="logo">
+                <img src="burd.png" alt="Burd">
+                Burd
+            </a>
+            <button class="theme-toggle mobile-theme-toggle" id="mobile-theme-toggle" aria-label="Toggle theme">
+                <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+                <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+            </button>
+            <div class="nav-links">
+                <a href="#services">Services</a>
+                <a href="#features">Features</a>
+                <a href="#comparison">Compare</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#faq">FAQ</a>
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/>
+                        <line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/>
+                        <line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                </button>
+                <a href="#pricing" class="btn btn-primary">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <span class="badge hero-badge">Now Available for macOS</span>
+            <h1>The Ultimate Local Dev<br>Environment for <span class="gradient-text">PHP Developers</span></h1>
+            <p>18+ integrated services. Zero Docker. Zero complexity. One native app that just works.</p>
+            <div class="hero-buttons">
+                <a href="#pricing" class="btn btn-primary btn-large">Get Lifetime Access - $199</a>
+                <a href="#features" class="btn btn-secondary btn-large">See Features</a>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-value">18+</div>
+                    <div class="hero-stat-label">Integrated Services</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">21+</div>
+                    <div class="hero-stat-label">Project Types Detected</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">60%</div>
+                    <div class="hero-stat-label">Cheaper Than Herd Pro</div>
+                </div>
+            </div>
+            <p class="platform-note">Available now on macOS. <span>Windows & Linux coming soon.</span></p>
+        </div>
+    </section>
+
+    <!-- Problem/Solution Section -->
+    <section class="problem">
+        <div class="container">
+            <div class="section-header">
+                <h2>Development Should Be Simple</h2>
+                <p>Stop fighting your tools and start building</p>
+            </div>
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <div class="problem-icon">🐳</div>
+                    <h3>Docker Complexity</h3>
+                    <p>Juggling docker-compose files, volume mounts, and network configurations for every project.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">🧩</div>
+                    <h3>Tool Sprawl</h3>
+                    <p>Installing separate apps for databases, caching, mail, search, queues, and more.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">⚙️</div>
+                    <h3>Configuration Hell</h3>
+                    <p>Spending hours configuring ports, hosts, and environment variables across tools.</p>
+                </div>
+                <div class="problem-card solution">
+                    <div class="problem-icon">✨</div>
+                    <h3>Burd: Everything in One</h3>
+                    <p>A single native app with 18+ services, automatic HTTPS, database management, and instant setup.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services">
+        <div class="container">
+            <div class="section-header">
+                <h2>18+ Integrated Services</h2>
+                <p>Everything you need, pre-configured and ready to go</p>
+            </div>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">🐘</div>
+                    <h4>FrankenPHP</h4>
+                    <p>Modern PHP Server</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🗄️</div>
+                    <h4>MariaDB</h4>
+                    <p>MySQL Compatible</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🐘</div>
+                    <h4>PostgreSQL</h4>
+                    <p>Advanced SQL</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🍃</div>
+                    <h4>MongoDB</h4>
+                    <p>NoSQL Database</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">⚡</div>
+                    <h4>Redis</h4>
+                    <p>Cache & Sessions</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">💎</div>
+                    <h4>Valkey</h4>
+                    <p>Redis Alternative</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🧠</div>
+                    <h4>Memcached</h4>
+                    <p>Memory Cache</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🔍</div>
+                    <h4>Meilisearch</h4>
+                    <p>Fast Search</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🎯</div>
+                    <h4>Typesense</h4>
+                    <p>Vector Search</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">📬</div>
+                    <h4>Beanstalkd</h4>
+                    <p>Job Queue</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">📡</div>
+                    <h4>Centrifugo</h4>
+                    <p>Real-time</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🔴</div>
+                    <h4>Node-RED</h4>
+                    <p>Workflow Automation</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">📦</div>
+                    <h4>MinIO</h4>
+                    <p>S3 Storage</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">📧</div>
+                    <h4>Mailpit</h4>
+                    <p>Email Testing</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🌐</div>
+                    <h4>frpc Tunnels</h4>
+                    <p>Public Sharing</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🔒</div>
+                    <h4>Local HTTPS</h4>
+                    <p>Auto SSL</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Project Types Section -->
+    <section class="project-types" id="project-types">
+        <div class="container">
+            <div class="section-header">
+                <h2>21+ Project Types Detected</h2>
+                <p>Automatic detection and configuration for all major PHP frameworks and CMS platforms</p>
+            </div>
+            <div class="project-types-grid">
+                <div class="project-type-card">
+                    <div class="project-type-icon laravel"></div>
+                    <span>Laravel</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon symfony"></div>
+                    <span>Symfony</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon wordpress"></div>
+                    <span>WordPress</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon bedrock"></div>
+                    <span>Bedrock</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon statamic"></div>
+                    <span>Statamic</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon craft"></div>
+                    <span>Craft CMS</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon drupal"></div>
+                    <span>Drupal</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon magento"></div>
+                    <span>Magento</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon joomla"></div>
+                    <span>Joomla</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon cakephp"></div>
+                    <span>CakePHP</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon slim"></div>
+                    <span>Slim</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon kirby"></div>
+                    <span>Kirby</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon october"></div>
+                    <span>OctoberCMS</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon concrete"></div>
+                    <span>ConcreteCMS</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon contao"></div>
+                    <span>Contao</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon ee"></div>
+                    <span>ExpressionEngine</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon jigsaw"></div>
+                    <span>Jigsaw</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon sculpin"></div>
+                    <span>Sculpin</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon katana"></div>
+                    <span>Katana</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon static"></div>
+                    <span>Static HTML</span>
+                </div>
+                <div class="project-type-card">
+                    <div class="project-type-icon php"></div>
+                    <span>Generic PHP</span>
+                </div>
+                <div class="project-type-card custom">
+                    <div class="project-type-icon custom"></div>
+                    <span>Custom Drivers</span>
+                </div>
+            </div>
+            <p class="project-types-note">Don't see your framework? Create a custom driver with a simple TOML config file.</p>
+        </div>
+    </section>
+
+    <!-- CLI Section -->
+    <section class="cli-section" id="cli">
+        <div class="container">
+            <div class="cli-container">
+                <div class="cli-content">
+                    <h2>Powerful CLI Included</h2>
+                    <p>Every feature available from your terminal. Perfect for automation, scripting, and keyboard-driven workflows.</p>
+                    <div class="cli-features">
+                        <div class="cli-feature">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>Instant domain setup with <code>burd link</code></span>
+                        </div>
+                        <div class="cli-feature">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>Auto-discover projects with <code>burd park</code></span>
+                        </div>
+                        <div class="cli-feature">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>Database management built-in</span>
+                        </div>
+                        <div class="cli-feature">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>Share sites publicly with tunnels</span>
+                        </div>
+                        <div class="cli-feature">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>Health diagnostics with <code>burd doctor</code></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="cli-window">
+                    <div class="cli-header">
+                        <div class="cli-dot red"></div>
+                        <div class="cli-dot yellow"></div>
+                        <div class="cli-dot green"></div>
+                    </div>
+                    <div class="cli-body">
+                        <div><span class="cli-prompt">$</span> <span class="cli-command">burd link myapp</span></div>
+                        <div><span class="cli-comment"># https://myapp.burd ready</span></div>
+                        <div><span class="cli-prompt">$</span> <span class="cli-command">burd park</span></div>
+                        <div><span class="cli-comment"># 12 projects discovered</span></div>
+                        <div><span class="cli-prompt">$</span> <span class="cli-command">burd share</span></div>
+                        <div><span class="cli-comment"># https://myapp.tunnel.dev</span></div>
+                        <div><span class="cli-prompt">$</span> <span class="cli-command">burd db create myapp</span></div>
+                        <div><span class="cli-comment"># Database created</span></div>
+                        <div><span class="cli-prompt">$</span> <span class="cli-command">burd setup</span></div>
+                        <div><span class="cli-comment"># Full project wizard...</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Deep Dive -->
+    <section id="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>Features That Set Burd Apart</h2>
+                <p>Thoughtfully designed for real developer workflows</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3><span>📁</span> Park Directories</h3>
+                    <p>Drop projects in a folder and they're instantly available. Just like Laravel Valet, but better.</p>
+                    <ul class="feature-list">
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Auto-detect 21+ project types</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Smart document root detection</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Live project discovery</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Laravel, WordPress, Symfony...</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span>🚀</span> Built-in Tunneling</h3>
+                    <p>Share your local sites publicly in seconds. No ngrok subscription needed.</p>
+                    <ul class="feature-list">
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Instant public URLs</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Custom subdomains</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Multiple tunnel servers</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Auto-start on launch</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span>💻</span> Tinker Console</h3>
+                    <p>Interactive PHP REPL with Laravel Tinker integration and execution history.</p>
+                    <ul class="feature-list">
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Execute PHP code instantly</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Laravel model access</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Execution history export</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Project-aware snippets</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <h3><span>🔧</span> Custom Drivers</h3>
+                    <p>Extend project detection with simple TOML configuration files. No code required.</p>
+                    <ul class="feature-list">
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Local or global drivers</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> File/directory detection</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Regex pattern matching</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Custom document roots</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="comparison" id="comparison">
+        <div class="container">
+            <div class="section-header">
+                <h2>Burd vs Laravel Herd Pro</h2>
+                <p>More features, better price, lifetime option</p>
+            </div>
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th class="burd-col">Burd</th>
+                            <th>Herd Pro</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="highlight-row">
+                            <td class="feature-name">Yearly Price</td>
+                            <td class="burd-col"><strong>$39/year</strong></td>
+                            <td>$99/year</td>
+                        </tr>
+                        <tr class="highlight-row">
+                            <td class="feature-name">Lifetime Option</td>
+                            <td class="burd-col"><strong>$199 one-time</strong></td>
+                            <td><span class="cross">✕</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">5-Year Total Cost</td>
+                            <td class="burd-col"><strong>$199</strong></td>
+                            <td>$495</td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Integrated Services</td>
+                            <td class="burd-col"><strong>18+</strong></td>
+                            <td>~8</td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Built-in Tunneling</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="cross">✕</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">PHP Console (Tinker)</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="cross">✕</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Custom Project Drivers</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="cross">✕</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">MongoDB</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="cross">✕</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Beanstalkd Queue</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="cross">✕</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Centrifugo Real-time</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="cross">✕</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Node-RED Automation</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="cross">✕</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Full CLI Tool</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="partial">Limited</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Park Directories</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">PHP Version Manager</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Local HTTPS</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Mail Capture</td>
+                            <td class="burd-col"><span class="check">✓</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Dump Inspection</td>
+                            <td class="burd-col"><span class="cross">✕</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                        <tr>
+                            <td class="feature-name">Xdebug Auto-detect</td>
+                            <td class="burd-col"><span class="cross">✕</span></td>
+                            <td><span class="check">✓</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-header">
+                <h2>Simple, Fair Pricing</h2>
+                <p>Pay once and own it forever, or go yearly for flexibility</p>
+            </div>
+            <div class="pricing-cards">
+                <div class="pricing-card">
+                    <h3>Pro Yearly</h3>
+                    <div class="price">$39</div>
+                    <div class="price-period">per year</div>
+                    <div class="savings">60% cheaper than Herd Pro</div>
+                    <ul class="pricing-features">
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> All 18+ services</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Unlimited instances</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Built-in tunneling</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Full CLI access</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Priority support</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> All future updates</li>
+                    </ul>
+                    <a href="#" class="btn btn-secondary btn-large">Get Pro Yearly</a>
+                </div>
+                <div class="pricing-card featured">
+                    <h3>Pro Lifetime</h3>
+                    <div class="price">$199</div>
+                    <div class="price-period">one-time payment</div>
+                    <div class="savings">Never pay again</div>
+                    <ul class="pricing-features">
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Everything in Pro Yearly</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> <strong>Lifetime updates forever</strong></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> <strong>Pay once, own forever</strong></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Pays for itself in 2 years</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Best long-term value</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> <strong>Source code guarantee</strong></li>
+                    </ul>
+                    <a href="#" class="btn btn-primary btn-large">Get Lifetime Access</a>
+                </div>
+                <div class="pricing-card team">
+                    <h3>Team Lifetime</h3>
+                    <div class="price">€299</div>
+                    <div class="price-period">one-time for 10 seats</div>
+                    <div class="savings">Only €29.90 per developer</div>
+                    <ul class="pricing-features">
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Everything in Pro Lifetime</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> <strong>10 team member licenses</strong></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> <strong>Centralized license management</strong></li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Transfer seats as team changes</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Priority team support</li>
+                        <li><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M16.667 5L7.5 14.167 3.333 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> <strong>Source code guarantee</strong></li>
+                    </ul>
+                    <a href="#" class="btn btn-secondary btn-large">Get Team License</a>
+                </div>
+            </div>
+            <div class="pricing-comparison">
+                <h4>Long-term Savings vs Herd Pro ($99/year)</h4>
+                <div class="pricing-comparison-row">
+                    <span>After 2 years</span>
+                    <span>Save $0 (Burd: $199, Herd: $198)</span>
+                </div>
+                <div class="pricing-comparison-row savings">
+                    <span>After 5 years</span>
+                    <span>Save $296 (Burd: $199, Herd: $495)</span>
+                </div>
+                <div class="pricing-comparison-row savings">
+                    <span>After 10 years</span>
+                    <span>Save $791 (Burd: $199, Herd: $990)</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq" id="faq">
+        <div class="container">
+            <div class="section-header">
+                <h2>Frequently Asked Questions</h2>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-question">
+                        What PHP versions are supported?
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Burd supports PHP versions 7.4 through 8.4 via FrankenPHP. You can easily switch between versions or run different versions for different projects using the built-in PHP Version Manager.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Does it work with Laravel, WordPress, and Symfony?
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! Burd automatically detects 21+ project types including Laravel, WordPress, Bedrock, Symfony, Drupal, Magento, CakePHP, Craft CMS, Statamic, and many more. Each project type gets the correct document root automatically configured.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        How is Burd different from Docker?
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Burd runs native binaries directly on your Mac, not in containers. This means faster startup times, lower memory usage, and native file system performance. No more docker-compose files, volume mounts, or network configuration. Just click and go.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Can I use Burd alongside Herd or Valet?
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>We recommend using one tool at a time to avoid port conflicts. However, Burd uses a configurable TLD (default: .burd) so you can run it alongside other tools if you configure them to use different ports and domains.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Is there a money-back guarantee?
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! We offer a 14-day money-back guarantee. If Burd doesn't work for your workflow, just email us within 14 days of purchase for a full refund, no questions asked.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        When will Windows and Linux versions be available?
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Windows and Linux versions are in active development. Lifetime license holders will get access to all platforms at no extra cost when they're released. Sign up for our newsletter to be notified when they're available.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        What happens to my lifetime license if Burd stops being maintained?
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p><strong>We've got you covered with our Lifetime Guarantee.</strong> If for any reason we're unable to continue maintaining Burd, we commit to releasing the full source code under an open-source license to all lifetime license holders. Your investment isn't just in the app as it exists today—it's in its future. You'll always have the ability to run, modify, and build upon Burd, ensuring your development workflow is never held hostage. This is our promise: when you buy lifetime, you're not just a customer, you're a stakeholder in Burd's future.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to Simplify Your Dev Setup?</h2>
+            <p>Join thousands of developers who've ditched Docker complexity for native simplicity.</p>
+            <div class="cta-buttons">
+                <a href="#pricing" class="btn btn-primary btn-large">Get Lifetime Access - $199</a>
+                <a href="#pricing" class="btn btn-secondary btn-large">Start with Yearly - $39</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <a href="#" class="logo">
+                    <img src="burd.png" alt="Burd">
+                    Burd
+                </a>
+                <div class="footer-links">
+                    <a href="#">Documentation</a>
+                    <a href="#">GitHub</a>
+                    <a href="#">Twitter</a>
+                    <a href="#">Discord</a>
+                </div>
+                <div class="footer-copyright">
+                    &copy; 2025 Burd. All rights reserved.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Theme & FAQ Script -->
+    <script>
+        // Theme Toggle
+        (function() {
+            const html = document.documentElement;
+            const themeToggle = document.getElementById('theme-toggle');
+            const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
+
+            // Check for saved theme preference, otherwise use system preference
+            function getPreferredTheme() {
+                const saved = localStorage.getItem('theme');
+                if (saved) {
+                    return saved;
+                }
+                return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            }
+
+            // Apply theme
+            function setTheme(theme) {
+                if (theme === 'light') {
+                    html.setAttribute('data-theme', 'light');
+                } else {
+                    html.removeAttribute('data-theme');
+                }
+                localStorage.setItem('theme', theme);
+            }
+
+            // Toggle theme
+            function toggleTheme() {
+                const current = html.getAttribute('data-theme');
+                const newTheme = current === 'light' ? 'dark' : 'light';
+                setTheme(newTheme);
+            }
+
+            // Initialize theme
+            setTheme(getPreferredTheme());
+
+            // Add click handlers
+            if (themeToggle) {
+                themeToggle.addEventListener('click', toggleTheme);
+            }
+            if (mobileThemeToggle) {
+                mobileThemeToggle.addEventListener('click', toggleTheme);
+            }
+
+            // Listen for system preference changes
+            window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+                if (!localStorage.getItem('theme')) {
+                    setTheme(e.matches ? 'light' : 'dark');
+                }
+            });
+        })();
+
+        // FAQ Toggle
+        document.querySelectorAll('.faq-question').forEach(button => {
+            button.addEventListener('click', () => {
+                const item = button.parentElement;
+                const isActive = item.classList.contains('active');
+
+                // Close all other items
+                document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+
+                // Toggle current item
+                if (!isActive) {
+                    item.classList.add('active');
+                }
+            });
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check Rust formatting
+        run: |
+          cd src-tauri
+          cargo fmt --check
+
+      - name: Clippy
+        run: |
+          cd src-tauri
+          cargo clippy -- -D warnings
+
+      - name: Build Rust
+        run: |
+          cd src-tauri
+          cargo build
+
+      - name: Build CLI
+        run: |
+          cd src-tauri
+          cargo build --bin burd
+
+      - name: Run tests
+        run: |
+          cd src-tauri
+          cargo test
+
+      - name: Check Svelte
+        run: npm run check
+
+      - name: Build frontend
+        run: npm run build
