@@ -31,6 +31,7 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         .route("/instances", get(handlers::instances::list))
         .route("/instances", post(handlers::instances::create))
         .route("/instances/{id}", get(handlers::instances::get))
+        .route("/instances/{id}", put(handlers::instances::update))
         .route("/instances/{id}", delete(handlers::instances::remove))
         .route("/instances/{id}/start", post(handlers::instances::start))
         .route("/instances/{id}/stop", post(handlers::instances::stop))

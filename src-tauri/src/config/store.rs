@@ -197,6 +197,57 @@ impl ConfigStore {
             .ok_or_else(|| format!("Instance {} not found", id))
     }
 
+    /// Update an instance's editable fields (name, port, version, domain, config)
+    pub fn update_instance(
+        &self,
+        id: Uuid,
+        name: Option<String>,
+        port: Option<u16>,
+        version: Option<String>,
+        domain: Option<Option<String>>,
+        domain_enabled: Option<bool>,
+        config_update: Option<serde_json::Value>,
+    ) -> Result<Instance, String> {
+        let mut config = self.load()?;
+
+        // Check port uniqueness before mutating
+        if let Some(new_port) = port {
+            if config.instances.iter().any(|i| i.id != id && i.port == new_port) {
+                return Err(format!("Port {} is already used by another instance", new_port));
+            }
+        }
+
+        let instance = config
+            .instances
+            .iter_mut()
+            .find(|i| i.id == id)
+            .ok_or_else(|| format!("Instance {} not found", id))?;
+
+        if let Some(n) = name {
+            instance.name = n;
+        }
+        if let Some(p) = port {
+            instance.port = p;
+        }
+        if let Some(v) = version {
+            instance.version = v;
+        }
+        if let Some(d) = domain {
+            instance.domain = d;
+        }
+        if let Some(e) = domain_enabled {
+            instance.domain_enabled = e;
+        }
+        if let Some(c) = config_update {
+            instance.config = c;
+        }
+
+        let updated = instance.clone();
+        self.save(&config)?;
+
+        Ok(updated)
+    }
+
     /// Update instance domain settings
     pub fn update_instance_domain(
         &self,

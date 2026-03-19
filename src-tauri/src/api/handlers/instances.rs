@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::api::{
     state::ApiState,
-    types::{ApiResponse, CreateInstanceRequest},
+    types::{ApiResponse, CreateInstanceRequest, UpdateInstanceRequest},
 };
 use crate::commands::{generate_env_for_service, parse_service_type};
 use crate::process::ProcessManager;
@@ -305,6 +305,81 @@ pub async fn create(
         running: false,
         pid: None,
         healthy: None,
+        has_config,
+        domain,
+        domain_enabled: instance.domain_enabled,
+        process_manager: "binary".to_string(),
+    }))
+}
+
+/// PUT /instances/:id - Update an instance
+pub async fn update(
+    State(state): State<ApiState>,
+    Path(id): Path<String>,
+    Json(req): Json<UpdateInstanceRequest>,
+) -> Json<ApiResponse<InstanceWithHealth>> {
+    let uuid = match Uuid::parse_str(&id) {
+        Ok(u) => u,
+        Err(_) => return Json(ApiResponse::err("Invalid instance ID")),
+    };
+
+    let result = {
+        let config_store = match state.inner.config_store.lock() {
+            Ok(cs) => cs,
+            Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
+        };
+
+        let instance = match config_store.update_instance(
+            uuid,
+            req.name,
+            req.port,
+            req.version,
+            req.domain,
+            req.domain_enabled,
+            req.config,
+        ) {
+            Ok(i) => i,
+            Err(e) => return Json(ApiResponse::err(e)),
+        };
+
+        let config = match config_store.load() {
+            Ok(c) => c,
+            Err(e) => return Json(ApiResponse::err(format!("Failed to load config: {}", e))),
+        };
+
+        let process_manager = match state.inner.process_manager.lock() {
+            Ok(pm) => pm,
+            Err(_) => return Json(ApiResponse::err("Failed to acquire process manager lock")),
+        };
+
+        let status = process_manager.get_status(&instance);
+        (instance, status.running, status.pid, config.tld)
+    };
+
+    let (instance, running, pid, tld) = result;
+    let healthy = if running {
+        Some(check_health_for_service(instance.port, instance.service_type).await)
+    } else {
+        None
+    };
+
+    let service = get_service(instance.service_type);
+    let has_config = !instance.config.is_null() && instance.config != serde_json::json!({});
+    let domain = if instance.domain.is_some() {
+        instance.full_domain(&tld)
+    } else {
+        String::new()
+    };
+
+    Json(ApiResponse::ok(InstanceWithHealth {
+        id: instance.id.to_string(),
+        name: instance.name,
+        port: instance.port,
+        service_type: service.display_name().to_string(),
+        version: instance.version,
+        running,
+        pid,
+        healthy,
         has_config,
         domain,
         domain_enabled: instance.domain_enabled,

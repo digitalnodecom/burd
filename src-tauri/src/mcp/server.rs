@@ -229,6 +229,21 @@ fn execute_tool(client: &BurdApiClient, name: &str, args: Option<Value>) -> Resu
         // Instance tools
         "list_instances" => client.get("/instances"),
         "create_instance" => client.post("/instances", &args),
+        "update_instance" => {
+            let id = args
+                .get("id")
+                .and_then(|v| v.as_str())
+                .ok_or("Missing 'id' parameter")?;
+            // Build update body from provided fields (exclude id)
+            let mut body = serde_json::Map::new();
+            if let Some(v) = args.get("name") { body.insert("name".to_string(), v.clone()); }
+            if let Some(v) = args.get("port") { body.insert("port".to_string(), v.clone()); }
+            if let Some(v) = args.get("version") { body.insert("version".to_string(), v.clone()); }
+            if let Some(v) = args.get("domain") { body.insert("domain".to_string(), v.clone()); }
+            if let Some(v) = args.get("domain_enabled") { body.insert("domain_enabled".to_string(), v.clone()); }
+            if let Some(v) = args.get("config") { body.insert("config".to_string(), v.clone()); }
+            client.put(&format!("/instances/{}", id), &Value::Object(body))
+        }
         "start_instance" => {
             let id = args
                 .get("id")

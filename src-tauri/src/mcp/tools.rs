@@ -59,6 +59,44 @@ pub fn get_tools() -> Vec<Tool> {
             }),
         },
         Tool {
+            name: "update_instance".to_string(),
+            description: "Update a service instance's settings (name, port, version, domain, config). Only provide fields you want to change.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Instance UUID"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "New instance name (optional)"
+                    },
+                    "port": {
+                        "type": "integer",
+                        "description": "New port number (optional)"
+                    },
+                    "version": {
+                        "type": "string",
+                        "description": "New version (optional, must be installed)"
+                    },
+                    "domain": {
+                        "type": ["string", "null"],
+                        "description": "Custom domain slug (optional, set to null to clear)"
+                    },
+                    "domain_enabled": {
+                        "type": "boolean",
+                        "description": "Enable/disable domain routing (optional)"
+                    },
+                    "config": {
+                        "type": "object",
+                        "description": "Service-specific config object (optional, replaces entire config)"
+                    }
+                },
+                "required": ["id"]
+            }),
+        },
+        Tool {
             name: "start_instance".to_string(),
             description: "Start a service instance by ID".to_string(),
             input_schema: json!({

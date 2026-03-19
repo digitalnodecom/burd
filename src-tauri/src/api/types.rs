@@ -55,6 +55,33 @@ pub struct CreateInstanceRequest {
     pub custom_domain: Option<String>,
 }
 
+/// Update instance request
+#[derive(Deserialize)]
+pub struct UpdateInstanceRequest {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub port: Option<u16>,
+    #[serde(default)]
+    pub version: Option<String>,
+    /// Set to null to clear, or a string to set
+    #[serde(default, deserialize_with = "deserialize_optional_nullable")]
+    pub domain: Option<Option<String>>,
+    #[serde(default)]
+    pub domain_enabled: Option<bool>,
+    #[serde(default)]
+    pub config: Option<serde_json::Value>,
+}
+
+/// Helper to deserialize a field that can be absent, null, or a value
+fn deserialize_optional_nullable<'de, D>(deserializer: D) -> Result<Option<Option<String>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt = Option::<Option<String>>::deserialize(deserializer)?;
+    Ok(opt)
+}
+
 /// Create domain request
 #[derive(Deserialize)]
 pub struct CreateDomainRequest {
