@@ -50,7 +50,7 @@ hickory-server = "0.24"
 hickory-proto = "0.24"
 
 # HTTP reverse proxy
-axum = "0.7"
+axum = "0.8"
 hyper = { version = "1.0", features = ["full"] }
 hyper-util = { version = "0.1", features = ["tokio", "server-auto", "http1"] }
 tower = { version = "0.4", features = ["util"] }

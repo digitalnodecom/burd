@@ -1,9 +1,0 @@
-# Secrets
-.s3config
-
-# Cache and output directories
-cache/
-output/
-
-# macOS
-.DS_Store
