@@ -161,7 +161,12 @@ impl ServiceDefinition for PostgreSQLService {
     }
 
     fn env_vars(&self, _instance: &Instance, _domain: Option<&str>) -> Vec<(String, String)> {
-        let mut vars = vec![("TZ".to_string(), "GMT".to_string())];
+        let mut vars = vec![
+            ("TZ".to_string(), "GMT".to_string()),
+            // Prevent macOS locale initialization from spawning threads,
+            // which causes "postmaster became multithreaded during startup"
+            ("LC_ALL".to_string(), "C".to_string()),
+        ];
 
         // Set PGSHAREDIR and PKGLIBDIR to override hardcoded Homebrew paths in binary
         if let Ok(basedir) = Self::get_basedir() {
