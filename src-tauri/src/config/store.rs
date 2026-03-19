@@ -36,6 +36,9 @@ impl ConfigStore {
         let content = fs::read_to_string(&self.config_path)
             .map_err(|e| format!("Failed to read config: {}", e))?;
 
+        // Pre-process: remove instances with removed service types (e.g., nodered)
+        let content = Self::migrate_removed_services(&content);
+
         let mut config: Config =
             serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
 
@@ -54,6 +57,34 @@ impl ConfigStore {
         }
 
         Ok(config)
+    }
+
+    /// Remove instances and binaries for service types that have been removed from the codebase.
+    /// This allows the app to load configs created before service removal.
+    fn migrate_removed_services(content: &str) -> String {
+        const REMOVED_SERVICES: &[&str] = &["nodered"];
+
+        let Ok(mut raw) = serde_json::from_str::<serde_json::Value>(content) else {
+            return content.to_string();
+        };
+
+        if let Some(instances) = raw.get_mut("instances").and_then(|v| v.as_array_mut()) {
+            instances.retain(|inst| {
+                let st = inst
+                    .get("service_type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                !REMOVED_SERVICES.contains(&st)
+            });
+        }
+
+        if let Some(binaries) = raw.get_mut("binaries").and_then(|v| v.as_object_mut()) {
+            for svc in REMOVED_SERVICES {
+                binaries.remove(*svc);
+            }
+        }
+
+        serde_json::to_string_pretty(&raw).unwrap_or_else(|_| content.to_string())
     }
 
     pub fn save(&self, config: &Config) -> Result<(), String> {

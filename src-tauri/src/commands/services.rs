@@ -28,7 +28,6 @@ pub fn parse_service_type(s: &str) -> Result<ServiceType, String> {
         "beanstalkd" => Ok(ServiceType::Beanstalkd),
         "memcached" => Ok(ServiceType::Memcached),
         "frpc" => Ok(ServiceType::Frpc),
-        "nodered" => Ok(ServiceType::NodeRed),
         "caddy" => Ok(ServiceType::Caddy),
         "centrifugo" => Ok(ServiceType::Centrifugo),
         "gitea" => Ok(ServiceType::Gitea),

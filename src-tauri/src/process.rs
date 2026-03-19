@@ -7,7 +7,7 @@ use crate::config::{
     get_app_dir, get_binary_path, get_instance_dir, get_pids_dir, get_versioned_binary_path,
     Instance, ServiceType, SubdomainConfig,
 };
-use crate::services::{get_service, ProcessManager as ServiceProcessManager};
+use crate::services::get_service;
 use crate::tunnel::{
     generate_frpc_config, get_frpc_binary_path, get_frpc_config_path, get_frpc_log_path,
     get_frpc_pid_path, get_tunnels_dir, FrpcAdminConfig,
@@ -115,21 +115,6 @@ impl ProcessManager {
     }
 
     pub fn is_running(&self, id: &Uuid) -> bool {
-        // Check if this is a PM2-managed process
-        if let Ok(data_dir) = get_instance_dir(id) {
-            let pm2_marker = data_dir.join(".pm2_name");
-            if pm2_marker.exists() {
-                if let Ok(pm2_name) = fs::read_to_string(&pm2_marker) {
-                    let pm2_name = pm2_name.trim();
-                    if let Ok(processes) = crate::pm2::list_processes() {
-                        return processes
-                            .iter()
-                            .any(|p| p.name == pm2_name && p.status == "online");
-                    }
-                }
-            }
-        }
-
         self.read_pid(id)
             .map(|pid| self.is_process_running(pid))
             .unwrap_or(false)
@@ -155,11 +140,6 @@ impl ProcessManager {
         }
 
         let service = get_service(instance.service_type);
-
-        // Handle PM2-managed services
-        if service.process_manager() == ServiceProcessManager::Pm2 {
-            return self.start_pm2(instance);
-        }
 
         // Get binary path using instance's version
         // For Homebrew-based services (MariaDB, PostgreSQL), use their specific paths
@@ -510,159 +490,7 @@ impl ProcessManager {
         Ok(pid)
     }
 
-    /// Start a PM2-managed service instance
-    fn start_pm2(&self, instance: &Instance) -> Result<u32, String> {
-        // Dispatch to service-specific PM2 start logic
-        match instance.service_type {
-            ServiceType::NodeRed => self.start_nodered_pm2_impl(instance),
-            _ => Err(format!(
-                "PM2 not supported for service type: {:?}",
-                instance.service_type
-            )),
-        }
-    }
-
-    /// Start a Node-RED instance via PM2 (implementation)
-    fn start_nodered_pm2_impl(&self, instance: &Instance) -> Result<u32, String> {
-        use crate::services::nodered::NodeRedService;
-
-        let data_dir = get_instance_dir(&instance.id)?;
-
-        // Check if initialized
-        if !NodeRedService::is_initialized(&data_dir) {
-            return Err(
-                "Node-RED not initialized. Please install it first using the 'Initialize' button."
-                    .to_string(),
-            );
-        }
-
-        // Generate settings.js with current port
-        NodeRedService::generate_settings(instance, &data_dir)?;
-
-        // Get the node-red script path
-        let node_red_script = NodeRedService::get_node_red_script(&data_dir);
-        if !node_red_script.exists() {
-            return Err("Node-RED not installed in this instance. Please reinstall.".to_string());
-        }
-
-        // Build PM2 process name
-        let pm2_name = NodeRedService::get_pm2_name(instance);
-
-        // Build args for node-red
-        let args = format!(
-            "--userDir \"{}\" --port {}",
-            data_dir.to_string_lossy(),
-            instance.port
-        );
-
-        // Start via PM2
-        let node_red_script_str = node_red_script
-            .to_str()
-            .ok_or_else(|| "Invalid Node-RED script path encoding".to_string())?;
-        let data_dir_str = data_dir
-            .to_str()
-            .ok_or_else(|| "Invalid data directory path encoding".to_string())?;
-        crate::pm2::start_app(
-            &pm2_name,
-            node_red_script_str,
-            Some(&args),
-            Some(data_dir_str),
-        )?;
-
-        // Wait briefly for PM2 to start
-        std::thread::sleep(Duration::from_millis(1000));
-
-        // Get PM2 process info to verify it started
-        let processes =
-            crate::pm2::list_processes().map_err(|e| format!("Failed to get PM2 status: {}", e))?;
-
-        let pm2_proc = processes
-            .iter()
-            .find(|p| p.name == pm2_name)
-            .ok_or_else(|| "Failed to find Node-RED process in PM2".to_string())?;
-
-        if pm2_proc.status != "online" {
-            // Try to get logs for error info
-            let logs = crate::pm2::get_logs(&pm2_name, 20).unwrap_or_default();
-            crate::pm2::delete_app(&pm2_name).ok();
-            return Err(format!(
-                "Node-RED failed to start. Status: {}. Logs:\n{}",
-                pm2_proc.status, logs
-            ));
-        }
-
-        // Write PM2 name to a marker file so stop() knows to use PM2
-        let pm2_marker = data_dir.join(".pm2_name");
-        fs::write(&pm2_marker, &pm2_name)
-            .map_err(|e| format!("Failed to write PM2 marker: {}", e))?;
-
-        // Write PM2 ID as PID for compatibility
-        self.write_pid(&instance.id, pm2_proc.pm_id)?;
-
-        Ok(pm2_proc.pm_id)
-    }
-
-    /// Restart a PM2-managed service instance
-    pub fn restart_pm2(&self, instance: &Instance) -> Result<(), String> {
-        let service = get_service(instance.service_type);
-        if service.process_manager() != ServiceProcessManager::Pm2 {
-            return Err("Service is not PM2-managed".to_string());
-        }
-
-        // Get PM2 name from marker file
-        let data_dir = get_instance_dir(&instance.id)?;
-        let pm2_marker = data_dir.join(".pm2_name");
-        if !pm2_marker.exists() {
-            return Err("PM2 marker not found - instance may not be running".to_string());
-        }
-
-        let pm2_name = fs::read_to_string(&pm2_marker)
-            .map_err(|e| format!("Failed to read PM2 marker: {}", e))?;
-        let pm2_name = pm2_name.trim();
-
-        crate::pm2::restart_app(pm2_name)?;
-        Ok(())
-    }
-
-    /// Read logs for a PM2-managed service instance
-    pub fn read_logs_pm2(id: &Uuid, lines: u32) -> Result<String, String> {
-        let data_dir = get_instance_dir(id)?;
-        let pm2_marker = data_dir.join(".pm2_name");
-
-        if !pm2_marker.exists() {
-            return Ok("No PM2 logs available - instance not running via PM2.".to_string());
-        }
-
-        let pm2_name = fs::read_to_string(&pm2_marker)
-            .map_err(|e| format!("Failed to read PM2 marker: {}", e))?;
-        let pm2_name = pm2_name.trim();
-
-        crate::pm2::get_logs(pm2_name, lines)
-    }
-
-    /// Check if an instance is PM2-managed (has .pm2_name marker)
-    pub fn is_pm2_managed(id: &Uuid) -> bool {
-        if let Ok(data_dir) = get_instance_dir(id) {
-            return data_dir.join(".pm2_name").exists();
-        }
-        false
-    }
-
     pub fn stop(&self, id: &Uuid) -> Result<(), String> {
-        // Check if this is a PM2-managed process
-        if let Ok(data_dir) = get_instance_dir(id) {
-            let pm2_marker = data_dir.join(".pm2_name");
-            if pm2_marker.exists() {
-                if let Ok(pm2_name) = fs::read_to_string(&pm2_marker) {
-                    let pm2_name = pm2_name.trim();
-                    crate::pm2::stop_app(pm2_name)?;
-                    let _ = fs::remove_file(&pm2_marker);
-                    self.remove_pid(id)?;
-                    return Ok(());
-                }
-            }
-        }
-
         let pid = self
             .read_pid(id)
             .ok_or_else(|| "Instance is not running (no PID file)".to_string())?;
@@ -699,35 +527,6 @@ impl ProcessManager {
 
     pub fn get_status(&self, instance: &Instance) -> InstanceStatus {
         let service = get_service(instance.service_type);
-
-        // Check if this is a PM2-managed process
-        if let Ok(data_dir) = get_instance_dir(&instance.id) {
-            let pm2_marker = data_dir.join(".pm2_name");
-            if pm2_marker.exists() {
-                if let Ok(pm2_name) = fs::read_to_string(&pm2_marker) {
-                    let pm2_name = pm2_name.trim().to_string();
-                    // Check PM2 for status
-                    if let Ok(processes) = crate::pm2::list_processes() {
-                        if let Some(proc) = processes.iter().find(|p| p.name == pm2_name) {
-                            let running = proc.status == "online";
-                            return InstanceStatus {
-                                id: instance.id,
-                                name: instance.name.clone(),
-                                port: instance.port,
-                                service_type: service.display_name().to_string(),
-                                version: instance.version.clone(),
-                                running,
-                                pid: if running { Some(proc.pm_id) } else { None },
-                                healthy: None,
-                            };
-                        }
-                    }
-                    // PM2 process not found, clean up marker
-                    let _ = fs::remove_file(&pm2_marker);
-                    let _ = self.remove_pid(&instance.id);
-                }
-            }
-        }
 
         let pid = self.read_pid(&instance.id);
         let running = pid.map(|p| self.is_process_running(p)).unwrap_or(false);

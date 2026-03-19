@@ -21,25 +21,78 @@ use super::AppState;
 // ============================================================================
 
 /// Combined proxy status
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct ProxyStatus {
     pub daemon_installed: bool,
     pub daemon_running: bool,
     pub daemon_pid: Option<u32>,
     pub caddy_installed: bool,
+    /// None if daemon not installed/running, Some(true) if Burd's Caddy responds, Some(false) if port hijacked
+    pub proxy_healthy: Option<bool>,
+}
+
+/// Check if Burd's Caddy is the one actually listening on port 80.
+/// Returns None if daemon not installed/running, Some(true) if healthy, Some(false) if port hijacked.
+pub fn check_health_sync() -> Option<bool> {
+    let daemon_status = launchd::get_status();
+    if !daemon_status.installed || !daemon_status.running {
+        return None;
+    }
+
+    // Make a quick HTTP request to the health endpoint on 127.0.0.1:80
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(2))
+        .build()
+        .ok()?;
+
+    match client
+        .get("http://127.0.0.1/_burd/health")
+        .header("Host", "health-check.burd")
+        .send()
+    {
+        Ok(resp) => {
+            let body = resp.text().unwrap_or_default();
+            Some(body.trim() == "burd-ok")
+        }
+        Err(_) => Some(false),
+    }
 }
 
 /// Get the status of the privileged proxy daemon (Caddy)
 #[tauri::command]
-pub fn get_proxy_status(_state: State<'_, AppState>) -> Result<ProxyStatus, String> {
+pub fn get_proxy_status(state: State<'_, AppState>) -> Result<ProxyStatus, String> {
     let daemon_status = launchd::get_status();
+
+    // Read cached health from AppState if available
+    let proxy_healthy = if daemon_status.installed && daemon_status.running {
+        let cached = state.proxy_healthy.load(std::sync::atomic::Ordering::Relaxed);
+        // 0 = unknown/not-checked, 1 = healthy, 2 = unhealthy
+        match cached {
+            1 => Some(true),
+            2 => Some(false),
+            _ => None,
+        }
+    } else {
+        None
+    };
 
     Ok(ProxyStatus {
         daemon_installed: daemon_status.installed,
         daemon_running: daemon_status.running,
         daemon_pid: daemon_status.pid,
         caddy_installed: caddy::is_caddy_installed(),
+        proxy_healthy,
     })
+}
+
+/// Manually check proxy health (for frontend polling)
+#[tauri::command]
+pub async fn check_proxy_health() -> Result<Option<bool>, String> {
+    let result =
+        tokio::task::spawn_blocking(check_health_sync)
+            .await
+            .map_err(|e| format!("Task error: {}", e))?;
+    Ok(result)
 }
 
 /// Setup the privileged proxy (download Caddy, install launchd daemon)

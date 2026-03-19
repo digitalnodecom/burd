@@ -14,6 +14,7 @@ use std::path::PathBuf;
 use uuid::Uuid;
 
 use crate::caddy::get_logs_dir;
+use crate::config::{get_app_dir, Instance};
 
 /// A single log entry from any source
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -218,7 +219,6 @@ pub fn parse_laravel_json(line: &str, instance_id: Option<&str>) -> Option<LogEn
 }
 
 /// Parse a plain text log line (fallback)
-#[allow(dead_code)]
 pub fn parse_plain_text(line: &str, source: &str, instance_id: Option<&str>) -> LogEntry {
     // Try to detect log level from common patterns
     let level = if line.contains("[ERROR]") || line.contains("ERROR:") || line.contains(" error ") {
@@ -310,21 +310,94 @@ pub fn get_caddy_log_path() -> PathBuf {
     get_logs_dir().join("caddy-access.json")
 }
 
-/// Get available log sources
-/// Currently only Caddy is implemented. FrankenPHP and PHP app logs
-/// will be added in a future update.
-pub fn get_log_sources() -> Vec<LogSourceInfo> {
-    vec![
+/// Get the log file path for an instance
+pub fn get_instance_log_path(instance_id: &str) -> Result<PathBuf, String> {
+    let log_dir = get_app_dir()?.join("logs");
+    Ok(log_dir.join(format!("{}.log", instance_id)))
+}
+
+/// Get a color for a given service type
+pub fn color_for_service_type(svc_type: &str) -> &'static str {
+    match svc_type {
+        "caddy" => "#3B82F6",           // Blue
+        "frankenphp" => "#8B5CF6",      // Purple
+        "frankenphp-park" => "#A78BFA", // Light purple
+        "mariadb" => "#F59E0B",         // Amber
+        "mysql" => "#EAB308",           // Yellow
+        "postgresql" => "#0EA5E9",      // Sky blue
+        "redis" => "#EF4444",           // Red
+        "valkey" => "#DC2626",          // Dark red
+        "meilisearch" => "#EC4899",     // Pink
+        "mongodb" => "#10B981",         // Emerald
+        "mailpit" => "#06B6D4",         // Cyan
+        "typesense" => "#F97316",       // Orange
+        "minio" => "#FB923C",           // Light orange
+        "beanstalkd" => "#84CC16",      // Lime
+        "memcached" => "#6366F1",       // Indigo
+        "frpc" => "#14B8A6",            // Teal
+        "centrifugo" => "#F43F5E",      // Rose
+        "gitea" => "#22C55E",           // Green
+        _ => "#8E8E93",                 // Gray
+    }
+}
+
+/// Get a display name for a service type string
+pub fn display_name_for_service_type(svc_type: &str) -> &'static str {
+    match svc_type {
+        "caddy" => "Caddy (Proxy)",
+        "frankenphp" => "PHP",
+        "frankenphp-park" => "PHP Park",
+        "mariadb" => "MariaDB",
+        "mysql" => "MySQL",
+        "postgresql" => "PostgreSQL",
+        "redis" => "Redis",
+        "valkey" => "Valkey",
+        "meilisearch" => "Meilisearch",
+        "mongodb" => "MongoDB",
+        "mailpit" => "Mailpit",
+        "typesense" => "Typesense",
+        "minio" => "MinIO",
+        "beanstalkd" => "Beanstalkd",
+        "memcached" => "Memcached",
+        "frpc" => "Tunnels (frpc)",
+        "centrifugo" => "Centrifugo",
+        "gitea" => "Gitea",
+        _ => "Unknown",
+    }
+}
+
+/// Get available log sources including per-instance-type sources
+pub fn get_log_sources_with_instances(instances: &[Instance]) -> Vec<LogSourceInfo> {
+    let mut sources = vec![
         LogSourceInfo {
             id: "caddy".to_string(),
             name: "Caddy (Proxy)".to_string(),
             log_type: "file".to_string(),
             path: Some(get_caddy_log_path().to_string_lossy().to_string()),
-            color: "#3B82F6".to_string(), // Blue
+            color: "#3B82F6".to_string(),
         },
-        // TODO: Add FrankenPHP stdout/stderr capture
-        // TODO: Add PHP app log file reading (Laravel, etc.)
-    ]
+    ];
+
+    // Collect unique service types from instances
+    let mut seen_types = std::collections::HashSet::new();
+    for instance in instances {
+        let svc_type = instance.service_type.as_str();
+        // Skip caddy instances (already included above)
+        if svc_type == "caddy" {
+            continue;
+        }
+        if seen_types.insert(svc_type.to_string()) {
+            sources.push(LogSourceInfo {
+                id: svc_type.to_string(),
+                name: display_name_for_service_type(svc_type).to_string(),
+                log_type: "file".to_string(),
+                path: None,
+                color: color_for_service_type(svc_type).to_string(),
+            });
+        }
+    }
+
+    sources
 }
 
 #[cfg(test)]

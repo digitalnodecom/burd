@@ -48,7 +48,7 @@ pub fn get_tools() -> Vec<Tool> {
                     },
                     "service_type": {
                         "type": "string",
-                        "description": "Service type: redis, mariadb, postgresql, frankenphp, meilisearch, typesense, mongodb, memcached, valkey, minio, mailpit, beanstalkd, nodered, centrifugo"
+                        "description": "Service type: redis, mariadb, postgresql, frankenphp, meilisearch, typesense, mongodb, memcached, valkey, minio, mailpit, beanstalkd, centrifugo"
                     },
                     "version": {
                         "type": "string",

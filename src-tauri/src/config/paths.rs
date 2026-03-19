@@ -47,7 +47,6 @@ pub fn get_binary_name(service_type: ServiceType) -> &'static str {
         ServiceType::Beanstalkd => "beanstalkd",
         ServiceType::Memcached => "memcached",
         ServiceType::Frpc => "frpc",
-        ServiceType::NodeRed => "node-red",
         ServiceType::Caddy => "caddy",
         ServiceType::Centrifugo => "centrifugo",
         ServiceType::Gitea => "gitea",

@@ -56,6 +56,7 @@
     daemon_running: boolean;
     daemon_pid: number | null;
     caddy_installed: boolean;
+    proxy_healthy: boolean | null;
   }
 
   interface CliStatus {
@@ -265,6 +266,13 @@
             {#if proxyStatus?.daemon_installed}
               {#if proxyStatus.daemon_running}
                 <span class="status-badge running">Running{#if proxyStatus.daemon_pid} (PID {proxyStatus.daemon_pid}){/if}</span>
+                {#if proxyStatus.proxy_healthy === true}
+                  <span class="status-badge healthy">Healthy</span>
+                {:else if proxyStatus.proxy_healthy === false}
+                  <span class="status-badge port-conflict">Port Conflict</span>
+                {:else}
+                  <span class="status-badge checking">Checking...</span>
+                {/if}
               {:else}
                 <span class="status-badge stopped">Installed (Not Running)</span>
               {/if}
@@ -310,6 +318,10 @@
       {#if !proxyStatus?.daemon_installed}
         <p class="network-hint">
           Enable the reverse proxy to access services via <code>http://my-service.{networkStatus.tld}</code> (requires admin password).
+        </p>
+      {:else if proxyStatus?.daemon_running && proxyStatus?.proxy_healthy === false}
+        <p class="network-hint warning">
+          Another service is using port 80. Burd's reverse proxy cannot serve your sites. Stop the conflicting service and restart the daemon.
         </p>
       {/if}
     </section>
@@ -763,6 +775,27 @@
     color: #6b7280;
   }
 
+  .status-badge.healthy {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .status-badge.port-conflict {
+    background: #fee2e2;
+    color: #dc2626;
+    animation: pulse-conflict 2s ease-in-out infinite;
+  }
+
+  .status-badge.checking {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  @keyframes pulse-conflict {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
   @media (prefers-color-scheme: dark) {
     .status-badge.installed,
     .status-badge.running {
@@ -774,6 +807,21 @@
     .status-badge.not-installed {
       background: #27272a;
       color: #a1a1aa;
+    }
+
+    .status-badge.healthy {
+      background: #14532d;
+      color: #86efac;
+    }
+
+    .status-badge.port-conflict {
+      background: #7f1d1d;
+      color: #fca5a5;
+    }
+
+    .status-badge.checking {
+      background: #78350f;
+      color: #fde68a;
     }
   }
 
@@ -1053,6 +1101,38 @@
   :global(:root[data-theme="dark"]) .status-badge.not-installed {
     background: #27272a !important;
     color: #a1a1aa !important;
+  }
+
+  /* Light mode health badge overrides */
+  :global(:root[data-theme="light"]) .status-badge.healthy {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+  }
+
+  :global(:root[data-theme="light"]) .status-badge.port-conflict {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+  }
+
+  :global(:root[data-theme="light"]) .status-badge.checking {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+  }
+
+  /* Dark mode health badge overrides */
+  :global(:root[data-theme="dark"]) .status-badge.healthy {
+    background: #14532d !important;
+    color: #86efac !important;
+  }
+
+  :global(:root[data-theme="dark"]) .status-badge.port-conflict {
+    background: #7f1d1d !important;
+    color: #fca5a5 !important;
+  }
+
+  :global(:root[data-theme="dark"]) .status-badge.checking {
+    background: #78350f !important;
+    color: #fde68a !important;
   }
 
   /* Card header with button */

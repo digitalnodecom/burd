@@ -70,8 +70,6 @@
     loading = false,
     resolverInstalled = false,
     actionLoading = {},
-    initializingInstances = {},
-    initializedInstances = {},
     tld = "burd",
     // Event handlers
     onStart,
@@ -87,7 +85,6 @@
     onOpenDomain,
     onServiceTypeChange,
     onRefresh,
-    onInitialize,
     // Stack event handlers
     onCreateStack,
     onDeleteStack,
@@ -104,8 +101,6 @@
     loading: boolean;
     resolverInstalled: boolean;
     actionLoading: Record<string, boolean>;
-    initializingInstances: Record<string, boolean>;
-    initializedInstances: Record<string, boolean>;
     tld?: string;
     onStart: (id: string) => void;
     onStop: (id: string) => void;
@@ -120,7 +115,6 @@
     onOpenDomain: (instance: Instance) => void;
     onServiceTypeChange: (serviceType: string) => { port: number };
     onRefresh: () => void;
-    onInitialize: (id: string) => void;
     // Stack event handlers
     onCreateStack?: (name: string, description: string | null, instanceIds: string[]) => void;
     onDeleteStack?: (id: string) => void;
@@ -383,10 +377,6 @@
       color: "#00ADD8",
       icon: `<path d="M1.811 10.231c-.047 0-.058-.023-.035-.059l.246-.315c.023-.035.081-.058.128-.058h4.172c.046 0 .058.035.035.07l-.199.303c-.023.036-.082.07-.117.07zM.047 11.306c-.047 0-.059-.023-.035-.058l.245-.316c.023-.035.082-.058.129-.058h5.328c.047 0 .07.035.058.07l-.093.28c-.012.047-.058.07-.105.07zm2.828 1.075c-.047 0-.059-.035-.035-.07l.163-.292c.023-.035.07-.07.117-.07h2.337c.047 0 .07.035.07.082l-.023.28c0 .047-.047.082-.082.082zm12.129-2.36c-.736.187-1.239.327-1.963.514-.176.046-.187.058-.34-.117-.174-.199-.303-.327-.548-.444-.737-.362-1.45-.257-2.115.175-.795.514-1.204 1.274-1.192 2.22.011.935.654 1.706 1.577 1.835.795.105 1.46-.175 1.987-.77.105-.13.198-.27.315-.434H10.47c-.245 0-.304-.152-.222-.35.152-.362.432-.97.596-1.274a.315.315 0 01.292-.187h4.253c-.023.316-.023.631-.07.947a4.983 4.983 0 01-.958 2.29c-.841 1.11-1.94 1.8-3.33 1.986-1.145.152-2.209-.07-3.143-.77-.865-.655-1.356-1.52-1.484-2.595-.152-1.274.222-2.419.993-3.424.83-1.086 1.928-1.776 3.272-2.02 1.098-.2 2.15-.07 3.096.571.62.41 1.063.97 1.356 1.648.07.105.023.164-.117.2m3.868 6.461c-1.064-.024-2.034-.328-2.852-1.029a3.665 3.665 0 01-1.262-2.255c-.21-1.32.152-2.489.947-3.529.853-1.122 1.881-1.706 3.272-1.95 1.192-.21 2.314-.095 3.33.595.923.63 1.496 1.484 1.648 2.605.198 1.578-.257 2.863-1.344 3.962-.771.783-1.718 1.273-2.805 1.495-.315.06-.63.07-.934.106zm2.78-4.72c-.011-.153-.011-.27-.034-.387-.21-1.157-1.274-1.81-2.384-1.554-1.087.245-1.788.935-2.045 2.033-.21.912.234 1.835 1.075 2.21.643.28 1.285.244 1.905-.07.923-.48 1.425-1.228 1.484-2.233z"/>`
     },
-    nodered: {
-      color: "#8F0000",
-      icon: `<path d="M3 0C1.338 0 0 1.338 0 3v6.107h2.858c1.092 0 1.97.868 1.964 1.96v.021c.812-.095 1.312-.352 1.674-.683.416-.382.69-.91 1.016-1.499.325-.59.71-1.244 1.408-1.723.575-.395 1.355-.644 2.384-.686v-.45c0-1.092.88-1.976 1.972-1.976h7.893c1.091 0 1.974.884 1.974 1.976v1.942c0 1.091-.883 2.029-1.974 2.029h-7.893c-1.092 0-1.972-.938-1.972-2.03v-.453c-.853.037-1.408.236-1.798.504-.48.33-.774.802-1.086 1.368-.312.565-.63 1.22-1.222 1.763l-.077.069c3.071.415 4.465 1.555 5.651 2.593 1.39 1.215 2.476 2.275 6.3 2.288v-.46c0-1.092.894-1.946 1.986-1.946H24V3c0-1.662-1.338-3-3-3zm10.276 5.41c-.369 0-.687.268-.687.637v1.942c0 .368.318.636.687.636h7.892a.614.614 0 0 0 .635-.636V6.047a.614.614 0 0 0-.635-.636zM0 10.448v3.267h2.858a.696.696 0 0 0 .678-.69v-1.942c0-.368-.31-.635-.678-.635zm4.821 1.67v.907A1.965 1.965 0 0 1 2.858 15H0v6c0 1.662 1.338 3 3 3h18c1.662 0 3-1.338 3-3v-1.393h-2.942c-1.092 0-1.986-.913-1.986-2.005v-.445c-4.046-.032-5.598-1.333-6.983-2.544-1.437-1.257-2.751-2.431-7.268-2.496zM21.058 15a.644.644 0 0 0-.647.66v1.942c0 .368.278.612.647.612H24V15z"/>`
-    },
     caddy: {
       color: "#1F88C0",
       icon: `<path d="M11.094.47c-.842 0-1.696.092-2.552.288a11.37 11.37 0 0 0-4.87 2.423 10.632 10.632 0 0 0-2.36 2.826A10.132 10.132 0 0 0 .305 8.582c-.398 1.62-.4 3.336-.043 5.048.085.405.183.809.31 1.212a11.85 11.85 0 0 0 1.662 3.729 3.273 3.273 0 0 0-.086.427 3.323 3.323 0 0 0 2.848 3.71 3.279 3.279 0 0 0 1.947-.346c1.045.51 2.17.864 3.339 1.04a11.66 11.66 0 0 0 4.285-.155 11.566 11.566 0 0 0 4.936-2.485 10.643 10.643 0 0 0 2.352-2.894 11.164 11.164 0 0 0 1.356-4.424 11.214 11.214 0 0 0-.498-4.335c.175-.077.338-.175.486-.293a.444.444 89.992 0 0 .001 0c.402-.322.693-.794.777-1.342a2.146 2.146 0 0 0-1.79-2.434 2.115 2.115 0 0 0-1.205.171c-.038-.043-.078-.086-.113-.13a11.693 11.693 0 0 0-3.476-2.93 13.348 13.348 0 0 0-1.76-.81 13.55 13.55 0 0 0-2.06-.613A12.121 12.121 0 0 0 11.093.47Zm.714.328c.345-.004.688.01 1.028.042a9.892 9.892 0 0 1 2.743.639c.984.39 1.89.958 2.707 1.632.803.662 1.502 1.45 2.091 2.328.026.039.048.08.07.12a2.12 2.12 0 0 0-.435 2.646c-.158.114-.97.692-1.634 1.183-.414.308-.733.557-.733.557l.581.68s.296-.276.665-.638c.572-.562 1.229-1.233 1.395-1.403a2.122 2.122 0 0 0 1.907.677 11.229 11.229 0 0 1-.013 4.046 11.41 11.41 0 0 1-1.475 3.897 12.343 12.343 0 0 1-2.079 2.587c-1.19 1.125-2.633 2.022-4.306 2.531a10.826 10.826 0 0 1-3.973.484 11.04 11.04 0 0 1-3.057-.652 3.304 3.304 0 0 0 1.417-2.294 3.275 3.275 0 0 0-.294-1.842c.18-.162.403-.363.656-.6 1.015-.955 2.353-2.303 2.353-2.303l-.47-.599s-1.63.972-2.801 1.728c-.307.198-.573.378-.777.517a3.273 3.273 0 0 0-1.516-.611c-1.507-.198-2.927.672-3.487 2.017a10.323 10.323 0 0 1-.695-1.078A10.92 10.92 0 0 1 .728 14.8a10.35 10.35 0 0 1-.2-1.212c-.164-1.653.103-3.258.629-4.754a12.95 12.95 0 0 1 1.087-2.288c.57-.968 1.248-1.872 2.069-2.656A11.013 11.013 0 0 1 11.808.797Zm-.147 3.257a3.838 3.838 0 0 0-3.82 3.82v2.36h-.94c-.751 0-1.377.625-1.377 1.377v3.8h1.46v-3.718h9.354v6.264H10.02v1.46h6.4c.751 0 1.377-.625 1.377-1.377v-6.43c0-.751-.626-1.377-1.377-1.377h-.94v-2.36a3.838 3.838 0 0 0-3.82-3.819zm0 1.46a2.371 2.371 0 0 1 2.36 2.36v2.36H9.3v-2.36a2.372 2.372 0 0 1 2.36-2.36zm10.141.392a1.253 1.253 0 0 1 1.296 1.434c-.049.319-.217.59-.453.78-.266.213-.61.318-.968.264a1.253 1.253 0 0 1-1.045-1.42 1.255 1.255 0 0 1 1.17-1.058zM5.384 17.425a2.02 2.02 0 0 1 1.917 1.298c.116.3.159.628.114.967a2.015 2.015 0 0 1-2.249 1.728 2.016 2.016 0 0 1-1.727-2.25 2.017 2.017 0 0 1 1.945-1.743z"/>`
@@ -394,7 +384,7 @@
   };
 
   function getServiceStyle(serviceId: string) {
-    // Normalize: "Meilisearch" -> "meilisearch", "frp Client" -> "frpc", "Node-RED" -> "nodered"
+    // Normalize: "Meilisearch" -> "meilisearch", "frp Client" -> "frpc"
     const normalized = serviceId.toLowerCase().replace(/[\s-]+/g, '').replace('frpclient', 'frpc');
     return serviceStyles[normalized] || { color: '#6b7280', icon: '<circle cx="12" cy="12" r="10"/>' };
   }
@@ -602,40 +592,22 @@
     return binaryStatuses.some(b => b.installed);
   }
 
-  function isNodeRed(serviceType: string): boolean {
-    const lower = serviceType.toLowerCase();
-    return lower === 'nodered' || lower === 'node-red';
-  }
-
-  function isPm2Managed(instance: Instance): boolean {
-    return instance.process_manager === 'pm2';
-  }
-
-  function needsInitialization(instance: Instance): boolean {
-    if (!isNodeRed(instance.service_type)) return false;
-    // If we don't have status yet, assume needs initialization
-    if (initializedInstances[instance.id] === undefined) return true;
-    return !initializedInstances[instance.id];
-  }
-
   // Get the reason why the start button is disabled (if any)
   function getStartDisabledReason(instance: Instance): string | null {
     if (actionLoading[instance.id]) {
       return "Action in progress...";
     }
-    if (!isNodeRed(instance.service_type)) {
-      const status = getBinaryStatus(instance.service_type);
-      if (!status?.installed) {
-        const serviceName = serviceTypes.find(s => s.id === instance.service_type)?.display_name || instance.service_type;
-        return `${serviceName} binary not installed. Go to Services section to download it.`;
-      }
+    const status = getBinaryStatus(instance.service_type);
+    if (!status?.installed) {
+      const serviceName = serviceTypes.find(s => s.id === instance.service_type)?.display_name || instance.service_type;
+      return `${serviceName} binary not installed. Go to Services section to download it.`;
     }
     return null;
   }
 
   // Check if start button should be disabled
   function isStartDisabled(instance: Instance): boolean {
-    return actionLoading[instance.id] || (!isNodeRed(instance.service_type) && !getBinaryStatus(instance.service_type)?.installed);
+    return actionLoading[instance.id] || !getBinaryStatus(instance.service_type)?.installed;
   }
 </script>
 
@@ -1089,8 +1061,8 @@
                   <span class="domain-disabled">—</span>
                 {/if}
               </div>
-              <div class="grid-cell port" title="Port">{instance.port}</div>
               <div class="grid-cell pid" title="Process ID">{instance.pid ?? "-"}</div>
+              <div class="grid-cell port" title="Port">{instance.port}</div>
               <div class="grid-cell actions">
                 {#if instance.running}
                   <button
@@ -1102,40 +1074,6 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
                       <rect x="6" y="6" width="12" height="12" rx="1"></rect>
                     </svg>
-                  </button>
-                  {#if isPm2Managed(instance)}
-                    <button
-                      class="icon-btn"
-                      onclick={() => onRestart(instance.id)}
-                      disabled={actionLoading[instance.id]}
-                      title="Restart"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 2v6h-6"></path>
-                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-                        <path d="M3 22v-6h6"></path>
-                        <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-                      </svg>
-                    </button>
-                  {/if}
-                {:else if needsInitialization(instance)}
-                  <button
-                    class="icon-btn warning"
-                    onclick={() => onInitialize(instance.id)}
-                    disabled={initializingInstances[instance.id]}
-                    title="Initialize (npm install)"
-                  >
-                    {#if initializingInstances[instance.id]}
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spinning">
-                        <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="8"></circle>
-                      </svg>
-                    {:else}
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                      </svg>
-                    {/if}
                   </button>
                 {:else}
                   {@const disabledReason = getStartDisabledReason(instance)}

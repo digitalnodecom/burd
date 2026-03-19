@@ -33,7 +33,6 @@ pub mod mcp;
 mod nvm;
 pub mod park;
 mod park_watcher;
-mod pm2;
 mod process;
 mod proxy;
 mod pvm;
@@ -54,6 +53,7 @@ use commands::{
     change_instance_version,
     check_frpc_installed,
     check_instance_health,
+    check_proxy_health,
     clear_logs,
     clear_tinker_history,
     configure_php_shell_integration,
@@ -105,8 +105,6 @@ use commands::{
     get_nvm_status,
     get_parked_projects,
     get_php_shell_integration_status,
-    // PM2 commands
-    get_pm2_status,
     get_proxy_config,
     get_proxy_status,
     // PVM commands
@@ -120,18 +118,13 @@ use commands::{
     get_tunnel_status,
     get_unread_count,
     import_stack,
-    // Node-RED commands
-    init_nodered_instance,
     install_cli,
     install_helper,
     install_node_version,
-    install_pm2,
     install_resolver,
-    is_nodered_initialized,
     is_nvm_installed,
     // Park commands
     is_park_enabled,
-    is_pm2_installed,
     list_domains,
     list_emails,
     // Tunnel commands
@@ -151,15 +144,6 @@ use commands::{
     move_instance_to_stack,
     open_keychain_access,
     park_directory,
-    pm2_delete,
-    pm2_delete_all,
-    pm2_list,
-    pm2_logs,
-    pm2_restart,
-    pm2_save,
-    pm2_start,
-    pm2_stop,
-    pm2_stop_all,
     preview_stack_import,
     refresh_all_parked_directories,
     refresh_parked_directory,
@@ -210,7 +194,7 @@ use process::ProcessManager;
 use proxy::ProxyServer;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tokio::sync::Mutex as AsyncMutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -239,6 +223,7 @@ pub fn run() {
         binary_manager: Arc::new(Mutex::new(binary_manager)),
         dns_server: Arc::new(Mutex::new(dns_server)),
         proxy_server: Arc::new(AsyncMutex::new(proxy_server)),
+        proxy_healthy: Arc::new(std::sync::atomic::AtomicU8::new(0)),
     };
 
     // Check if privileged daemon is installed - if so, skip port 8080 proxy
@@ -345,6 +330,38 @@ pub fn run() {
                 }
             });
 
+            // Start background proxy health poller
+            {
+                let proxy_healthy = app.state::<AppState>().proxy_healthy.clone();
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    use std::sync::atomic::Ordering;
+                    loop {
+                        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+
+                        let health = tokio::task::spawn_blocking({
+                            let _ph = proxy_healthy.clone();
+                            commands::check_health_sync
+                        })
+                        .await
+                        .ok()
+                        .flatten();
+
+                        let new_val: u8 = match health {
+                            Some(true) => 1,
+                            Some(false) => 2,
+                            None => 0,
+                        };
+                        let old_val = proxy_healthy.swap(new_val, Ordering::Relaxed);
+
+                        // Emit event when health status changes
+                        if old_val != new_val {
+                            let _ = app_handle.emit("proxy-health-changed", health);
+                        }
+                    }
+                });
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -393,6 +410,8 @@ pub fn run() {
             get_ca_trust_status,
             trust_caddy_ca,
             untrust_caddy_ca,
+            // Proxy health check
+            check_proxy_health,
             // Domain commands
             list_domains,
             create_domain,
@@ -450,22 +469,6 @@ pub fn run() {
             check_frpc_installed,
             get_frpc_connection_status,
             get_frpc_config,
-            // PM2 commands
-            get_pm2_status,
-            is_pm2_installed,
-            install_pm2,
-            pm2_list,
-            pm2_start,
-            pm2_stop,
-            pm2_restart,
-            pm2_delete,
-            pm2_logs,
-            pm2_save,
-            pm2_stop_all,
-            pm2_delete_all,
-            // Node-RED commands
-            init_nodered_instance,
-            is_nodered_initialized,
             // Mail commands (Mailpit)
             get_mailpit_config,
             list_emails,

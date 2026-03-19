@@ -146,7 +146,6 @@ pub async fn list_instances(state: State<'_, AppState>) -> Result<Vec<InstanceWi
                     None
                 };
 
-                let service = get_service(instance.service_type);
                 let has_config =
                     !instance.config.is_null() && instance.config != serde_json::json!({});
 
@@ -171,11 +170,6 @@ pub async fn list_instances(state: State<'_, AppState>) -> Result<Vec<InstanceWi
                 };
                 let domain_enabled = instance.domain_enabled;
 
-                let process_manager = match service.process_manager() {
-                    crate::services::ProcessManager::Binary => "binary".to_string(),
-                    crate::services::ProcessManager::Pm2 => "pm2".to_string(),
-                };
-
                 InstanceWithHealth {
                     id: instance.id.to_string(),
                     name: instance.name,
@@ -188,7 +182,7 @@ pub async fn list_instances(state: State<'_, AppState>) -> Result<Vec<InstanceWi
                     has_config,
                     domain,
                     domain_enabled,
-                    process_manager,
+                    process_manager: "binary".to_string(),
                     stack_id: instance.stack_id.map(|id| id.to_string()),
                     mapped_domains,
                 }
@@ -279,7 +273,6 @@ pub fn create_instance(
         )?;
     }
 
-    let service = get_service(instance.service_type);
     let has_config = !instance.config.is_null() && instance.config != serde_json::json!({});
 
     // Get mapped domains for this new instance
@@ -304,10 +297,6 @@ pub fn create_instance(
         String::new()
     };
     let domain_enabled = instance.domain_enabled;
-    let process_manager = match service.process_manager() {
-        crate::services::ProcessManager::Binary => "binary".to_string(),
-        crate::services::ProcessManager::Pm2 => "pm2".to_string(),
-    };
 
     Ok(InstanceWithHealth {
         id: instance.id.to_string(),
@@ -321,7 +310,7 @@ pub fn create_instance(
         has_config,
         domain,
         domain_enabled,
-        process_manager,
+        process_manager: "binary".to_string(),
         stack_id: instance.stack_id.map(|id| id.to_string()),
         mapped_domains,
     })
@@ -465,27 +454,15 @@ pub async fn stop_instance(id: String, state: State<'_, AppState>) -> Result<(),
 pub async fn restart_instance(id: String, state: State<'_, AppState>) -> Result<(), String> {
     let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid instance ID")?;
 
-    let instance = {
-        let config_store = lock!(state.config_store)?;
-        config_store.get_instance(uuid)?
-    };
-
-    // Check if this is a PM2-managed service
-    let service = crate::services::get_service(instance.service_type);
-    if service.process_manager() == crate::services::ProcessManager::Pm2 {
+    // Stop and start
+    {
         let process_manager = lock!(state.process_manager)?;
-        process_manager.restart_pm2(&instance)?;
-    } else {
-        // For binary services, stop and start
-        {
-            let process_manager = lock!(state.process_manager)?;
-            process_manager.stop(&uuid)?;
-        }
-        // Small delay between stop and start
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-        // Restart by calling start_instance logic
-        start_instance(id.clone(), state.clone()).await?;
+        process_manager.stop(&uuid)?;
     }
+    // Small delay between stop and start
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    // Restart by calling start_instance logic
+    start_instance(id.clone(), state.clone()).await?;
 
     Ok(())
 }
@@ -553,13 +530,7 @@ pub async fn check_instance_health(port: u16, service_type: String) -> Result<bo
 #[tauri::command]
 pub fn get_instance_logs(id: String) -> Result<String, String> {
     let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid instance ID")?;
-
-    // Check if this is a PM2-managed instance
-    if ProcessManager::is_pm2_managed(&uuid) {
-        ProcessManager::read_logs_pm2(&uuid, 100)
-    } else {
-        ProcessManager::read_logs(&uuid)
-    }
+    ProcessManager::read_logs(&uuid)
 }
 
 // ============================================================================
@@ -664,7 +635,6 @@ pub fn generate_env_for_service(instance: &Instance) -> String {
             "# FrankenPHP Park serves parked directories - configure via Parks section".to_string()
         }
         ServiceType::Frpc => "# frpc is a tunneling service - no ENV needed".to_string(),
-        ServiceType::NodeRed => generate_nodered_env(instance),
         ServiceType::Caddy => "# Caddy is an internal service - no ENV needed".to_string(),
         ServiceType::Centrifugo => generate_centrifugo_env(instance),
         ServiceType::Gitea => generate_gitea_env(instance),
@@ -932,25 +902,6 @@ fn generate_frankenphp_env(instance: &Instance) -> String {
     )
 }
 
-fn generate_nodered_env(instance: &Instance) -> String {
-    let flow_file = instance
-        .config
-        .get("flow_file")
-        .and_then(|v| v.as_str())
-        .unwrap_or("flows.json");
-
-    format!(
-        "# Node-RED\n\
-         # Admin UI: http://127.0.0.1:{}\n\
-         # API Root: http://127.0.0.1:{}/api\n\
-         # Flow File: {}\n\
-         \n\
-         NODE_RED_URL=http://127.0.0.1:{}\n\
-         NODE_RED_PORT={}\n",
-        instance.port, instance.port, flow_file, instance.port, instance.port
-    )
-}
-
 fn generate_centrifugo_env(instance: &Instance) -> String {
     let api_key = instance
         .config
@@ -1050,7 +1001,6 @@ fn generate_info_for_service(
         ServiceType::Typesense => categories.push(create_typesense_category(instance)),
         ServiceType::MinIO => categories.push(create_minio_category(instance)),
         ServiceType::Mailpit => categories.push(create_mailpit_category(instance)),
-        ServiceType::NodeRed => categories.push(create_nodered_category(instance)),
         ServiceType::Gitea => categories.push(create_gitea_category(instance)),
         ServiceType::Centrifugo => categories.push(create_centrifugo_category(instance)),
         _ => {}
@@ -1486,32 +1436,6 @@ fn create_mailpit_category(instance: &Instance) -> InfoCategory {
 
     InfoCategory {
         title: "Mailpit Configuration".to_string(),
-        items,
-    }
-}
-
-fn create_nodered_category(instance: &Instance) -> InfoCategory {
-    let flow_file = instance
-        .config
-        .get("flow_file")
-        .and_then(|v| v.as_str())
-        .unwrap_or("flows.json");
-
-    let items = vec![
-        InfoItem {
-            label: "Admin UI".to_string(),
-            value: format!("http://127.0.0.1:{}", instance.port),
-            copyable: true,
-        },
-        InfoItem {
-            label: "Flow File".to_string(),
-            value: flow_file.to_string(),
-            copyable: false,
-        },
-    ];
-
-    InfoCategory {
-        title: "Node-RED Configuration".to_string(),
         items,
     }
 }

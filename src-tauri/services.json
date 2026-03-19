@@ -837,53 +837,6 @@
         }
       }
     },
-    "nodered": {
-      "display_name": "Node-RED",
-      "binary_name": "node-red",
-      "default_port": 1880,
-      "auto_create_domain": true,
-      "health_check": {
-        "type": "http",
-        "path": "/"
-      },
-      "config_fields": [
-        {
-          "key": "flow_file",
-          "label": "Flow File Name",
-          "type": "text",
-          "required": false,
-          "default": "flows.json"
-        }
-      ],
-      "start_args": [],
-      "versions": {
-        "source": "github_releases",
-        "github_repo": "node-red/node-red"
-      },
-      "platforms": {
-        "darwin-arm64": {
-          "download": {
-            "type": "github_asset",
-            "asset_pattern": ".zip"
-          },
-          "is_archive": true
-        },
-        "darwin-x64": {
-          "download": {
-            "type": "github_asset",
-            "asset_pattern": ".zip"
-          },
-          "is_archive": true
-        },
-        "linux-x64": {
-          "download": {
-            "type": "github_asset",
-            "asset_pattern": ".zip"
-          },
-          "is_archive": true
-        }
-      }
-    },
 
     "caddy": {
       "display_name": "Caddy Server",

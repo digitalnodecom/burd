@@ -329,7 +329,7 @@ pub struct ServiceInfo {
     pub auto_create_domain: bool,
     /// Maximum number of instances allowed (None = unlimited)
     pub max_instances: Option<usize>,
-    /// Process manager type: "binary" or "pm2"
+    /// Process manager type: "binary"
     pub process_manager: String,
 }
 
@@ -368,12 +368,7 @@ impl ServiceRegistry {
                     .map(|p| matches!(p.download, DownloadConfig::Npm { .. }))
                     .unwrap_or(false);
 
-                // Get process manager type - Node-RED uses PM2, others use binary
-                let process_manager = if id == "nodered" {
-                    "pm2".to_string()
-                } else {
-                    "binary".to_string()
-                };
+                let process_manager = "binary".to_string();
 
                 Some(ServiceInfo {
                     id: id.clone(),

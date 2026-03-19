@@ -18,11 +18,11 @@
     onNavigate: (id: string) => void;
     mailpitExists?: boolean;
     unreadMailCount?: number;
-    frpcInstanceExists?: boolean;
+    frpcDownloaded?: boolean;
     parkEnabled?: boolean;
   }
 
-  let { activeSection = $bindable(), onNavigate, mailpitExists = false, unreadMailCount = 0, frpcInstanceExists = false, parkEnabled = false }: Props = $props();
+  let { activeSection = $bindable(), onNavigate, mailpitExists = false, unreadMailCount = 0, frpcDownloaded = false, parkEnabled = false }: Props = $props();
 
   let theme = $state<Theme>('system');
 
@@ -107,8 +107,8 @@
     if (mailpitExists) {
       result.splice(3, 0, mailSection);
     }
-    // Insert tunnels after services (index 4, or 5 if mail was added) - only when instance exists
-    if (frpcInstanceExists) {
+    // Insert tunnels after services (index 4, or 5 if mail was added) - only when frpc is downloaded
+    if (frpcDownloaded) {
       const tunnelsIndex = mailpitExists ? 5 : 4;
       result.splice(tunnelsIndex, 0, tunnelsSection);
     }

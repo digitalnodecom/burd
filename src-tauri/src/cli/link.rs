@@ -147,8 +147,8 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
 
     config.instances.push(instance.clone());
 
-    // Create domain for the instance (SSL disabled by default)
-    let domain = Domain::for_instance(subdomain.clone(), instance.id, false);
+    // Create domain for the instance with SSL enabled
+    let domain = Domain::for_instance(subdomain.clone(), instance.id, true);
     config.domains.push(domain);
 
     // Save config

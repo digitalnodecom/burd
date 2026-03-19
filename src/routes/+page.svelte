@@ -76,6 +76,7 @@
     daemon_running: boolean;
     daemon_pid: number | null;
     caddy_installed: boolean;
+    proxy_healthy: boolean | null;
   }
 
   interface CliStatus {
@@ -189,10 +190,6 @@
   // Action states
   let actionLoading = $state<Record<string, boolean>>({});
 
-  // Node-RED initialization states
-  let initializingInstances = $state<Record<string, boolean>>({});
-  let initializedInstances = $state<Record<string, boolean>>({});
-
   // Logs modal
   let showLogs = $state(false);
   let logsContent = $state("");
@@ -246,8 +243,8 @@
   let mailpitExists = $derived(instances.some(i => i.service_type.toLowerCase() === 'mailpit'));
   let unreadMailCount = $state(0);
 
-  // Tunnel status (derived from instances)
-  let frpcInstanceExists = $derived(instances.some(i => i.service_type.toLowerCase() === 'frpc'));
+  // Tunnel status (show when frpc binary is downloaded)
+  let frpcDownloaded = $derived((installedVersions['frpc']?.length ?? 0) > 0);
 
   // Burd Nest (easter egg terminal)
   let showBurdNest = $state(false);
@@ -324,16 +321,6 @@
           installedVersions = { ...installedVersions, [svc.id]: versions };
         } catch {
           installedVersions = { ...installedVersions, [svc.id]: [] };
-        }
-      }
-      // Check initialization status for Node-RED instances
-      const noderedInstances = instancesResult.filter(i => i.service_type.toLowerCase() === 'nodered');
-      for (const instance of noderedInstances) {
-        try {
-          const isInit = await invoke<boolean>("is_nodered_initialized", { id: instance.id });
-          initializedInstances = { ...initializedInstances, [instance.id]: isInit };
-        } catch {
-          initializedInstances = { ...initializedInstances, [instance.id]: false };
         }
       }
     } catch (e) {
@@ -458,20 +445,6 @@
       error = String(e);
     } finally {
       actionLoading = { ...actionLoading, [id]: false };
-    }
-  }
-
-  async function initializeNoderedInstance(id: string) {
-    try {
-      initializingInstances = { ...initializingInstances, [id]: true };
-      error = null;
-      await invoke("init_nodered_instance", { id });
-      initializedInstances = { ...initializedInstances, [id]: true };
-      await loadData();
-    } catch (e) {
-      error = String(e);
-    } finally {
-      initializingInstances = { ...initializingInstances, [id]: false };
     }
   }
 
@@ -1137,6 +1110,11 @@
     const unlistenPromise = listen<DownloadProgress>("download-progress", (event) => {
       downloadProgress = { ...downloadProgress, [event.payload.service_type]: event.payload };
     });
+    const healthUnlistenPromise = listen<boolean | null>("proxy-health-changed", (event) => {
+      if (proxyStatus) {
+        proxyStatus = { ...proxyStatus, proxy_healthy: event.payload };
+      }
+    });
     const interval = setInterval(loadData, 10000);
 
     // Easter egg: Konami Code reveals The Burd Nest
@@ -1147,13 +1125,14 @@
     return () => {
       clearInterval(interval);
       unlistenPromise.then((unlisten) => unlisten());
+      healthUnlistenPromise.then((unlisten) => unlisten());
       konamiListener.destroy();
     };
   });
 </script>
 
 <div class="app-layout">
-  <Sidebar bind:activeSection onNavigate={handleNavigate} {parkEnabled} {mailpitExists} {unreadMailCount} {frpcInstanceExists} />
+  <Sidebar bind:activeSection onNavigate={handleNavigate} {parkEnabled} {mailpitExists} {unreadMailCount} {frpcDownloaded} />
 
   <main class="main-content">
     {#if error}
@@ -1225,8 +1204,6 @@
         resolverInstalled={networkStatus?.resolver_installed || false}
         tld={networkStatus?.tld || "burd"}
         {actionLoading}
-        {initializingInstances}
-        {initializedInstances}
         onStart={startInstance}
         onStop={stopInstance}
         onRestart={restartInstance}
@@ -1240,7 +1217,6 @@
         onOpenDomain={openDomain}
         onServiceTypeChange={handleServiceTypeChange}
         onRefresh={loadData}
-        onInitialize={initializeNoderedInstance}
         onCreateStack={createStack}
         onDeleteStack={deleteStack}
         onExportStack={exportStack}

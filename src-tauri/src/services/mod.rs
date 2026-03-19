@@ -12,7 +12,6 @@ pub mod memcached;
 pub mod minio;
 pub mod mongodb;
 pub mod mysql;
-pub mod nodered;
 pub mod postgresql;
 pub mod redis;
 pub mod typesense;
@@ -64,8 +63,6 @@ pub enum VersionSource {
 pub enum ProcessManager {
     /// Direct process spawning (default for most services)
     Binary,
-    /// Node.js PM2 process manager
-    Pm2,
     // Future: Docker, Systemd, etc.
 }
 
@@ -138,7 +135,6 @@ pub fn get_service(service_type: ServiceType) -> Box<dyn ServiceDefinition> {
         ServiceType::Beanstalkd => Box::new(beanstalkd::BeanstalkdService),
         ServiceType::Memcached => Box::new(memcached::MemcachedService),
         ServiceType::Frpc => Box::new(frpc::FrpcService),
-        ServiceType::NodeRed => Box::new(nodered::NodeRedService),
         ServiceType::Caddy => {
             panic!("Caddy is an internal service and cannot be instantiated as a user service")
         }

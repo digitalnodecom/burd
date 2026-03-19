@@ -29,7 +29,7 @@
   // State
   let logs = $state<LogEntry[]>([]);
   let sources = $state<LogSourceInfo[]>([]);
-  let selectedSources = $state<string[]>(["caddy"]);
+  let sourceFilter = $state("");
   let minLevel = $state("INFO");
   let searchTerm = $state("");
   let domainFilter = $state("");
@@ -44,8 +44,8 @@
   // Filtered logs
   let filteredLogs = $derived.by(() => {
     return logs.filter(log => {
-      // Filter by source
-      if (!selectedSources.includes(log.source)) return false;
+      // Filter by source type
+      if (sourceFilter && log.source !== sourceFilter) return false;
 
       // Filter by log level
       const logLevelIndex = logLevels.indexOf(log.level);
@@ -64,11 +64,15 @@
     });
   });
 
-  // Unique domains from logs
+  // Unique domains from logs (respects source filter)
   let uniqueDomains = $derived.by(() => {
     const domains = new Set<string>();
     for (const log of logs) {
-      if (log.domain) domains.add(log.domain);
+      if (log.domain) {
+        if (!sourceFilter || log.source === sourceFilter) {
+          domains.add(log.domain);
+        }
+      }
     }
     return Array.from(domains).sort();
   });
@@ -89,7 +93,7 @@
     error = null;
     try {
       const recentLogs = await invoke<LogEntry[]>("get_recent_logs", {
-        sources: selectedSources,
+        sources: [],
         limit: 500,
       });
       logs = recentLogs;
@@ -117,9 +121,9 @@
         }
       };
 
-      // Start streaming (this runs until we cancel)
+      // Stream all sources, filter on frontend
       invoke("stream_logs", {
-        sources: selectedSources,
+        sources: [],
         onLog: streamChannel,
       }).catch((e: unknown) => {
         console.error("Stream ended:", e);
@@ -157,6 +161,12 @@
   function getSourceColor(sourceId: string): string {
     const source = sources.find(s => s.id === sourceId);
     return source?.color || "#888";
+  }
+
+  function getSourceBadgeLabel(sourceId: string): string {
+    const source = sources.find(s => s.id === sourceId);
+    if (!source) return sourceId.toUpperCase();
+    return source.name.replace(" (Proxy)", "").toUpperCase();
   }
 
   function getLevelClass(level: string): string {
@@ -209,7 +219,7 @@
   <div class="section-header">
     <div class="title-row">
       <h2>Logs</h2>
-      <button class="refresh-btn" onclick={() => loadRecentLogs()} title="Refresh">
+      <button class="refresh-btn" onclick={() => { loadSources(); loadRecentLogs(); }} title="Refresh">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 2v6h-6"></path>
           <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
@@ -230,21 +240,16 @@
   <!-- Filters -->
   <div class="filters">
     <div class="filter-row">
-      <div class="filter-group sources">
-        <span class="filter-label">Sources:</span>
-        <div class="source-checkboxes">
+      <div class="filter-group">
+        <label for="source-filter">Source:</label>
+        <select id="source-filter" bind:value={sourceFilter}>
+          <option value="">All Sources</option>
           {#each sources as source}
-            <label class="source-checkbox">
-              <input
-                type="checkbox"
-                bind:group={selectedSources}
-                value={source.id}
-              />
-              <span class="source-dot" style="background: {source.color}"></span>
+            <option value={source.id}>
               {source.name}
-            </label>
+            </option>
           {/each}
-        </div>
+        </select>
       </div>
 
       <div class="filter-group">
@@ -307,7 +312,7 @@
     {:else if filteredLogs.length === 0}
       <div class="empty">
         {#if logs.length === 0}
-          No logs yet. Make some requests to see them here.
+          No logs yet. Start some instances to see their logs here.
         {:else}
           No logs match your filters.
         {/if}
@@ -320,7 +325,7 @@
               class="source-badge"
               style="background: {getSourceColor(log.source)}"
             >
-              {log.source.toUpperCase()}
+              {getSourceBadgeLabel(log.source)}
             </span>
             <span class="level">{log.level}</span>
             <span class="timestamp">{formatTimestamp(log.timestamp)}</span>
@@ -452,30 +457,6 @@
     font-size: 0.85rem;
     font-weight: 500;
     white-space: nowrap;
-  }
-
-  .filter-group.sources {
-    flex-wrap: wrap;
-  }
-
-  .source-checkboxes {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .source-checkbox {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-weight: normal;
-    cursor: pointer;
-  }
-
-  .source-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
   }
 
   .filter-group.search {

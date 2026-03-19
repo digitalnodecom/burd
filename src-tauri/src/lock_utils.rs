@@ -229,6 +229,7 @@ mod tests {
             binary_manager: Arc::new(std::sync::Mutex::new(binary_manager)),
             dns_server: Arc::new(std::sync::Mutex::new(dns_server)),
             proxy_server: Arc::new(AsyncMutex::new(proxy_server)),
+            proxy_healthy: Arc::new(std::sync::atomic::AtomicU8::new(0)),
         }
     }
 

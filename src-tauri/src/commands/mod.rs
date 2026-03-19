@@ -22,12 +22,10 @@ pub use tunnels::{
     update_frp_server, update_tunnel,
 };
 
-// Re-export node commands (NVM, PM2, Node-RED)
+// Re-export node commands (NVM)
 pub use node::{
-    get_nvm_status, get_pm2_status, init_nodered_instance, install_node_version, install_pm2,
-    is_nodered_initialized, is_nvm_installed, is_pm2_installed, list_installed_node_versions,
-    list_remote_node_versions, pm2_delete, pm2_delete_all, pm2_list, pm2_logs, pm2_restart,
-    pm2_save, pm2_start, pm2_stop, pm2_stop_all, set_default_node_version, uninstall_node_version,
+    get_nvm_status, install_node_version, is_nvm_installed, list_installed_node_versions,
+    list_remote_node_versions, set_default_node_version, uninstall_node_version,
 };
 
 // Re-export PHP/PVM commands
@@ -66,9 +64,9 @@ pub use dns::{
 
 // Re-export proxy commands
 pub use proxy::{
-    auto_trust_ca_if_needed, disable_proxy, get_ca_trust_status, get_proxy_config,
-    get_proxy_status, restart_proxy_daemon, restart_proxy_for_certs, setup_proxy,
-    start_proxy_daemon, trust_caddy_ca, untrust_caddy_ca,
+    auto_trust_ca_if_needed, check_proxy_health, check_health_sync, disable_proxy,
+    get_ca_trust_status, get_proxy_config, get_proxy_status, restart_proxy_daemon,
+    restart_proxy_for_certs, setup_proxy, start_proxy_daemon, trust_caddy_ca, untrust_caddy_ca,
 };
 
 // Re-export system commands (settings, CLI, helper)
@@ -111,6 +109,7 @@ use crate::config::ConfigStore;
 use crate::dns::DnsServer;
 use crate::process::ProcessManager;
 use crate::proxy::ProxyServer;
+use std::sync::atomic::AtomicU8;
 use std::sync::{Arc, Mutex};
 use tokio::sync::Mutex as AsyncMutex;
 
@@ -124,4 +123,6 @@ pub struct AppState {
     pub binary_manager: Arc<Mutex<BinaryManager>>,
     pub dns_server: Arc<Mutex<DnsServer>>,
     pub proxy_server: Arc<AsyncMutex<ProxyServer>>,
+    /// Cached proxy health: 0 = unknown, 1 = healthy, 2 = unhealthy
+    pub proxy_healthy: Arc<AtomicU8>,
 }

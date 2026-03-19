@@ -106,11 +106,6 @@ pub async fn list(State(state): State<ApiState>) -> Json<ApiResponse<Vec<Instanc
             String::new()
         };
         let domain_enabled = instance.domain_enabled;
-        let pm = match service.process_manager() {
-            crate::services::ProcessManager::Binary => "binary".to_string(),
-            crate::services::ProcessManager::Pm2 => "pm2".to_string(),
-        };
-
         results.push(InstanceWithHealth {
             id: instance.id.to_string(),
             name: instance.name,
@@ -123,7 +118,7 @@ pub async fn list(State(state): State<ApiState>) -> Json<ApiResponse<Vec<Instanc
             has_config,
             domain,
             domain_enabled,
-            process_manager: pm,
+            process_manager: "binary".to_string(),
         });
     }
 
@@ -192,10 +187,7 @@ pub async fn get(
         has_config,
         domain,
         domain_enabled: instance.domain_enabled,
-        process_manager: match service.process_manager() {
-            crate::services::ProcessManager::Binary => "binary".to_string(),
-            crate::services::ProcessManager::Pm2 => "pm2".to_string(),
-        },
+        process_manager: "binary".to_string(),
     }))
 }
 
@@ -316,10 +308,7 @@ pub async fn create(
         has_config,
         domain,
         domain_enabled: instance.domain_enabled,
-        process_manager: match service.process_manager() {
-            crate::services::ProcessManager::Binary => "binary".to_string(),
-            crate::services::ProcessManager::Pm2 => "pm2".to_string(),
-        },
+        process_manager: "binary".to_string(),
     }))
 }
 
@@ -477,51 +466,27 @@ pub async fn restart(
         Err(_) => return Json(ApiResponse::err("Invalid instance ID")),
     };
 
-    let instance = {
-        let config_store = match state.inner.config_store.lock() {
-            Ok(cs) => cs,
-            Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
-        };
-
-        match config_store.get_instance(uuid) {
-            Ok(i) => i,
-            Err(e) => return Json(ApiResponse::err(e)),
-        }
-    };
-
-    // Check if PM2-managed
-    let service = crate::services::get_service(instance.service_type);
-    if service.process_manager() == crate::services::ProcessManager::Pm2 {
+    // Stop then start
+    {
         let process_manager = match state.inner.process_manager.lock() {
             Ok(pm) => pm,
             Err(_) => return Json(ApiResponse::err("Failed to acquire process manager lock")),
         };
-        if let Err(e) = process_manager.restart_pm2(&instance) {
-            return Json(ApiResponse::err(e));
-        }
-    } else {
-        // For binary services, stop then start
-        {
-            let process_manager = match state.inner.process_manager.lock() {
-                Ok(pm) => pm,
-                Err(_) => return Json(ApiResponse::err("Failed to acquire process manager lock")),
-            };
-            let _ = process_manager.stop(&uuid);
-        }
+        let _ = process_manager.stop(&uuid);
+    }
 
-        // Small delay
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    // Small delay
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
-        // Start again
-        let start_result = start(State(state.clone()), Path(id)).await;
-        if let Json(ApiResponse {
-            success: false,
-            error: Some(e),
-            ..
-        }) = &start_result
-        {
-            return Json(ApiResponse::err(e.clone()));
-        }
+    // Start again
+    let start_result = start(State(state.clone()), Path(id)).await;
+    if let Json(ApiResponse {
+        success: false,
+        error: Some(e),
+        ..
+    }) = &start_result
+    {
+        return Json(ApiResponse::err(e.clone()));
     }
 
     Json(ApiResponse::success())
@@ -600,12 +565,7 @@ pub async fn logs(
         Err(_) => return Json(ApiResponse::err("Invalid instance ID")),
     };
 
-    // Check if this is a PM2-managed instance
-    let result = if ProcessManager::is_pm2_managed(&uuid) {
-        ProcessManager::read_logs_pm2(&uuid, 100)
-    } else {
-        ProcessManager::read_logs(&uuid)
-    };
+    let result = ProcessManager::read_logs(&uuid);
 
     match result {
         Ok(logs) => Json(ApiResponse::ok(logs)),

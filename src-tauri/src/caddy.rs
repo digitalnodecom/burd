@@ -286,6 +286,9 @@ import domains/*.caddy
 # Default catch-all for *.{tld} (must be last) - HTTP only
 # Note: No HTTPS catch-all to avoid generating a wildcard certificate
 http://*.{tld} {{
+    handle /_burd/health {{
+        respond "burd-ok" 200
+    }}
     respond "No service configured for this domain" 404
 }}
 "#,
