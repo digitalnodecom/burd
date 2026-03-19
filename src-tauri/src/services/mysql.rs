@@ -66,6 +66,13 @@ impl MySQLService {
         let error_log = data_dir.join("error.log");
         let plugin_dir = basedir.join("lib/plugin");
 
+        // Create conf.d directory for user custom configs
+        let conf_d = data_dir.join("conf.d");
+        if !conf_d.exists() {
+            fs::create_dir_all(&conf_d)
+                .map_err(|e| format!("Failed to create conf.d directory: {}", e))?;
+        }
+
         let config_content = format!(
             r#"[mysqld]
 datadir="{}"
@@ -77,6 +84,9 @@ plugin-dir="{}"
 bind-address=127.0.0.1
 skip-log-bin
 mysqlx=0
+
+# User custom configuration (files in conf.d/ survive restarts)
+!includedir {}
 "#,
             data_dir.to_string_lossy(),
             basedir.to_string_lossy(),
@@ -84,6 +94,7 @@ mysqlx=0
             instance.port,
             error_log.to_string_lossy(),
             plugin_dir.to_string_lossy(),
+            conf_d.to_string_lossy(),
         );
 
         fs::write(&config_path, config_content)

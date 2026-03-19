@@ -71,6 +71,13 @@ impl MariaDBService {
         // Character sets and language files in share/mysql/
         let lc_messages_dir = basedir.join("share/mysql");
 
+        // Create conf.d directory for user custom configs
+        let conf_d = data_dir.join("conf.d");
+        if !conf_d.exists() {
+            fs::create_dir_all(&conf_d)
+                .map_err(|e| format!("Failed to create conf.d directory: {}", e))?;
+        }
+
         let config_content = format!(
             r#"[mysqld]
 datadir="{}"
@@ -83,6 +90,9 @@ lc-messages-dir="{}"
 bind-address=127.0.0.1
 disable_log_bin
 skip-grant-tables
+
+# User custom configuration (files in conf.d/ survive restarts)
+!includedir {}
 "#,
             data_dir.to_string_lossy(),
             basedir.to_string_lossy(),
@@ -91,6 +101,7 @@ skip-grant-tables
             error_log.to_string_lossy(),
             plugin_dir.to_string_lossy(),
             lc_messages_dir.to_string_lossy(),
+            conf_d.to_string_lossy(),
         );
 
         fs::write(&config_path, config_content)

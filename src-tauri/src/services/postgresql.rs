@@ -68,6 +68,13 @@ impl PostgreSQLService {
         let config_path = data_dir.join("postgresql.conf");
         let socket_dir = data_dir.to_string_lossy();
 
+        // Create conf.d directory for user custom configs
+        let conf_d = data_dir.join("conf.d");
+        if !conf_d.exists() {
+            fs::create_dir_all(&conf_d)
+                .map_err(|e| format!("Failed to create conf.d directory: {}", e))?;
+        }
+
         // Append our custom settings to postgresql.conf
         let custom_config = format!(
             r#"
@@ -81,8 +88,13 @@ log_directory = 'log'
 # Use GMT to avoid timezone data lookup issues with bundled binaries
 timezone = 'GMT'
 log_timezone = 'GMT'
+
+# User custom configuration (files in conf.d/ survive restarts)
+include_dir = '{}'
 "#,
-            instance.port, socket_dir,
+            instance.port,
+            socket_dir,
+            conf_d.to_string_lossy(),
         );
 
         // Read existing config if present (initdb creates one)
