@@ -642,11 +642,11 @@ fn generate_caddyfile_content(projects: &[(String, String, bool)], port: u16) ->
         // Quote the path to handle spaces and special characters
         content.push_str(&format!("        root * \"{}\"\n", document_root));
         if *requires_php {
-            // PHP projects use php_server with HTTPS env and try_files for pretty URLs
+            // php_server handles all PHP frameworks by default
+            // (try_files {path} {path}/index.php index.php with first_exist_fallback)
             content.push_str("        php_server {\n");
             content.push_str("            env HTTPS {https_env}\n");
             content.push_str("        }\n");
-            content.push_str("        try_files {path} {path}/ /index.php?{query}\n");
         } else {
             // Static projects use file_server
             content.push_str("        file_server\n");
