@@ -244,6 +244,9 @@ pub fn run() {
         .manage(MailNotifierState::default())
         .manage(ParkWatcherState::new())
         .setup(move |app| {
+            // Check if Laravel Herd is running (conflicts with DNS, proxy, PHP)
+            check_herd_conflict(app.handle());
+
             // Initialize park directory watchers
             if !parked_dirs_for_watcher.is_empty() {
                 let watcher_state = app.state::<ParkWatcherState>();
@@ -513,4 +516,29 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Check if Laravel Herd is running and emit a warning event to the frontend
+fn check_herd_conflict(handle: &tauri::AppHandle) {
+    use std::process::Command;
+
+    // Check for Herd app process or its privileged helper
+    let herd_app_running = Command::new("pgrep")
+        .args(["-x", "Herd"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    let herd_helper_running = Command::new("pgrep")
+        .args(["-f", "de.beyondco.herd.helper"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if herd_app_running || herd_helper_running {
+        let _ = handle.emit(
+            "herd-conflict",
+            "Laravel Herd is running and may conflict with Burd's DNS, proxy, and PHP services. Please quit Herd before using Burd.",
+        );
+    }
 }

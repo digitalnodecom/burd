@@ -1115,6 +1115,9 @@
         proxyStatus = { ...proxyStatus, proxy_healthy: event.payload };
       }
     });
+    const herdUnlistenPromise = listen<string>("herd-conflict", (event) => {
+      message(event.payload, { title: "Conflict Detected", kind: "warning" });
+    });
     const interval = setInterval(loadData, 10000);
 
     // Easter egg: Konami Code reveals The Burd Nest
@@ -1126,6 +1129,7 @@
       clearInterval(interval);
       unlistenPromise.then((unlisten) => unlisten());
       healthUnlistenPromise.then((unlisten) => unlisten());
+      herdUnlistenPromise.then((unlisten) => unlisten());
       konamiListener.destroy();
     };
   });
