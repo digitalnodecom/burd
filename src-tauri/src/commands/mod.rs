@@ -47,7 +47,7 @@ pub use instances::{
 // Re-export domain commands
 pub use domains::{
     create_domain, delete_domain, get_domain_config, list_domains, reinit_domain_ssl,
-    set_instance_domain, update_domain, update_domain_config, update_domain_ssl,
+    reorder_domains, set_instance_domain, update_domain, update_domain_config, update_domain_ssl,
 };
 
 // Re-export service commands

@@ -63,6 +63,68 @@
   let proxyConfig = $state<ProxyConfigInfo | null>(null);
   let loadingConfig = $state(false);
 
+  // Drag-and-drop reordering state
+  let isDragging = $state(false);
+  let draggedDomainId = $state<string | null>(null);
+  let dragOverIndex = $state<number | null>(null);
+  let draggedFromIndex = $state<number | null>(null);
+
+  // Mouse-based drag-and-drop for domain reordering
+  $effect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const elements = document.elementsFromPoint(e.clientX, e.clientY);
+      const row = elements.find(el => (el as HTMLElement).getAttribute?.('data-domain-id')) as HTMLElement;
+
+      if (row) {
+        const indexStr = row.getAttribute('data-index');
+        if (indexStr) {
+          dragOverIndex = parseInt(indexStr, 10);
+        }
+      } else {
+        dragOverIndex = null;
+      }
+    };
+
+    const handleMouseUp = async () => {
+      if (draggedFromIndex !== null && dragOverIndex !== null && draggedFromIndex !== dragOverIndex) {
+        try {
+          const newOrder = [...domains];
+          const [dragged] = newOrder.splice(draggedFromIndex, 1);
+          newOrder.splice(dragOverIndex, 0, dragged);
+          const orderedIds = newOrder.map(d => d.id);
+          await invoke('reorder_domains', { domainIds: orderedIds });
+          await loadDomains();
+        } catch (e) {
+          error = `Failed to reorder domains: ${e}`;
+        }
+      }
+
+      document.body.classList.remove('dragging-domain');
+      isDragging = false;
+      draggedDomainId = null;
+      dragOverIndex = null;
+      draggedFromIndex = null;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  });
+
+  function handleDomainDragStart(event: MouseEvent, domainId: string, index: number) {
+    event.preventDefault();
+    isDragging = true;
+    draggedDomainId = domainId;
+    draggedFromIndex = index;
+    document.body.classList.add('dragging-domain');
+  }
+
   async function loadDomains() {
     console.log("[DomainsSection] loadDomains called");
     loading = true;
@@ -425,16 +487,20 @@
       <table class="domains-table">
         <thead>
           <tr>
+            <th></th>
             <th>Domain</th>
             <th>Target</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {#each domains as domain}
-            <tr>
+          {#each domains as domain, i}
+            <tr data-domain-id={domain.id} data-index={i} class:dragging={draggedDomainId === domain.id} class:drag-over={dragOverIndex === i && draggedDomainId !== domain.id}>
+              <td class="drag-handle" onmousedown={(e) => handleDomainDragStart(e, domain.id, i)}>&#x2807;</td>
               <td>
-                <code class="domain-name">{domain.full_domain}</code>
+                <a class="url-link" href="{domain.ssl_enabled ? 'https' : 'http'}://{domain.full_domain}" target="_blank" rel="noopener noreferrer">
+                  <code class="domain-name">{domain.full_domain}</code>
+                </a>
               </td>
               <td class="target-cell">
                 <div class="target-info">
@@ -1440,4 +1506,11 @@
     background: #1c1c1e !important;
     color: #f5f5f7 !important;
   }
+
+  tr.dragging { opacity: 0.5; }
+  tr.drag-over { border-top: 2px solid var(--accent-color, #007aff); }
+  .drag-handle { cursor: grab; padding: 0 8px; color: var(--text-secondary, #666); user-select: none; }
+  .drag-handle:active { cursor: grabbing; }
+  .url-link { color: var(--accent-color, #007aff); text-decoration: none; }
+  .url-link:hover { text-decoration: underline; }
 </style>

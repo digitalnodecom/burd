@@ -151,6 +151,7 @@ use commands::{
     remove_instances_from_stack,
     remove_php_shell_integration,
     rename_instance,
+    reorder_domains,
     reorder_instances,
     restart_dns_server,
     restart_instance,
@@ -424,6 +425,7 @@ pub fn run() {
             update_domain_ssl,
             get_domain_config,
             update_domain_config,
+            reorder_domains,
             get_proxy_config,
             // NVM commands
             get_nvm_status,

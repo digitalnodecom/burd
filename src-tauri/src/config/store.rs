@@ -1057,6 +1057,31 @@ impl ConfigStore {
         Ok(())
     }
 
+    pub fn reorder_domains(&self, domain_ids: Vec<Uuid>) -> Result<(), String> {
+        let mut config = self.load()?;
+
+        // Create a map of domain IDs to their desired position
+        let position_map: std::collections::HashMap<Uuid, usize> = domain_ids
+            .iter()
+            .enumerate()
+            .map(|(idx, id)| (*id, idx))
+            .collect();
+
+        // Sort domains: first by whether they're in the position map and their position,
+        // then by existing order for domains not in the map
+        config.domains.sort_by(
+            |a, b| match (position_map.get(&a.id), position_map.get(&b.id)) {
+                (Some(pos_a), Some(pos_b)) => pos_a.cmp(pos_b),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => std::cmp::Ordering::Equal,
+            },
+        );
+
+        self.save(&config)?;
+        Ok(())
+    }
+
     /// Move an instance to a different stack (or to standalone if stack_id is None)
     pub fn move_instance_to_stack(
         &self,

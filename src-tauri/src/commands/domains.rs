@@ -722,3 +722,19 @@ pub fn get_domain_config(id: String, state: State<'_, AppState>) -> Result<Strin
     // Generate and return the Caddy config
     Ok(caddy::generate_domain_config(&route))
 }
+
+/// Reorder domains in the config (for drag-and-drop)
+#[tauri::command]
+pub async fn reorder_domains(
+    domain_ids: Vec<String>,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let domain_uuids: Vec<Uuid> = domain_ids
+        .iter()
+        .map(|id| Uuid::parse_str(id).map_err(|_| format!("Invalid domain ID: {}", id)))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let config_store = lock!(state.config_store)?;
+    config_store.reorder_domains(domain_uuids)?;
+    Ok(())
+}
