@@ -167,8 +167,10 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
         project_name, subdomain, config.tld
     );
     println!();
-    println!("  URL: {}", url);
-    println!("  Port: {}", port);
+    println!("  URL:      {}", url);
+    println!("  Port:     {}", port);
+    println!("  Instance: {}", instance.id);
+    println!("  Root:     {}", document_root);
 
     // === Project Analysis & Setup ===
     // Reload config to get the latest state
@@ -187,11 +189,24 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
         }
     }
 
+    // Start the instance via the Burd API
     println!();
-    println!("Start the server with:");
-    println!("  Open Burd app and click Start on '{}'", project_name);
+    match start_instance_via_api(&instance.id.to_string()) {
+        Ok(_) => {
+            println!("Instance started successfully.");
+            println!();
+            println!("Site is live at: {}", url);
+        }
+        Err(e) => {
+            eprintln!("Could not auto-start instance: {}", e);
+            println!();
+            println!("Start the server with:");
+            println!("  Open Burd app and click Start on '{}'", project_name);
+        }
+    }
+
     println!();
-    println!("Note: Use 'burd unlink' to remove this link.");
+    println!("Use 'burd unlink' to remove this link.");
 
     Ok(())
 }
@@ -630,4 +645,31 @@ pub fn run_links() -> Result<(), String> {
 
     println!();
     Ok(())
+}
+
+/// Start an instance by calling the Burd API
+fn start_instance_via_api(instance_id: &str) -> Result<(), String> {
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    let url = format!("http://127.0.0.1:19840/instances/{}/start", instance_id);
+    let response = client
+        .post(&url)
+        .json(&serde_json::json!({}))
+        .send()
+        .map_err(|e| format!("Burd API not available: {}", e))?;
+
+    if response.status().is_success() {
+        Ok(())
+    } else {
+        let body = response.text().unwrap_or_default();
+        if let Ok(api_resp) = serde_json::from_str::<serde_json::Value>(&body) {
+            if let Some(err) = api_resp.get("error").and_then(|v| v.as_str()) {
+                return Err(err.to_string());
+            }
+        }
+        Err(format!("API returned error: {}", body))
+    }
 }
