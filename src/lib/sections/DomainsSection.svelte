@@ -348,19 +348,37 @@
     return undefined;
   }
 
-  // Check if a port has something listening (simple TCP check via instance list)
+  // Port status cache: port -> active boolean
+  let portStatuses = $state<Record<number, boolean>>({});
+
+  // Check port statuses for all port-type domains
+  async function checkPortStatuses() {
+    const portDomains = domains.filter(d => d.target_type === "port");
+    for (const d of portDomains) {
+      const port = d.target_port ?? parseInt(d.target_value);
+      if (port > 0) {
+        try {
+          const active = await invoke<boolean>("check_port_status", { port });
+          portStatuses = { ...portStatuses, [port]: active };
+        } catch {
+          portStatuses = { ...portStatuses, [port]: false };
+        }
+      }
+    }
+  }
+
   function isPortActive(domain: DomainInfo): boolean {
     if (domain.target_type === "port") {
       const port = domain.target_port ?? parseInt(domain.target_value);
-      // Check if any running instance uses this port
-      return instances.some(i => i.port === port && i.running);
+      return portStatuses[port] ?? false;
     }
     return false;
   }
 
   onMount(() => {
-    console.log("[DomainsSection] onMount");
-    loadDomains();
+    loadDomains().then(() => checkPortStatuses());
+    const interval = setInterval(checkPortStatuses, 10000);
+    return () => clearInterval(interval);
   });
 </script>
 

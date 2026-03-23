@@ -527,6 +527,18 @@ pub async fn check_instance_health(port: u16, service_type: String) -> Result<bo
     Ok(check_health_for_service(port, svc_type).await)
 }
 
+/// Check if a port has something listening via TCP connect
+#[tauri::command]
+pub fn check_port_status(port: u16) -> bool {
+    use std::net::TcpStream;
+    use std::time::Duration;
+    let addr = match format!("127.0.0.1:{}", port).parse() {
+        Ok(a) => a,
+        Err(_) => return false,
+    };
+    TcpStream::connect_timeout(&addr, Duration::from_millis(200)).is_ok()
+}
+
 #[tauri::command]
 pub fn get_instance_logs(id: String) -> Result<String, String> {
     let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid instance ID")?;
