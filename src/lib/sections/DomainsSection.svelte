@@ -21,6 +21,9 @@
     id: string;
     name: string;
     port: number;
+    running: boolean;
+    pid: number | null;
+    healthy: boolean | null;
   }
 
   let {
@@ -74,12 +77,14 @@
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const elements = document.elementsFromPoint(e.clientX, e.clientY);
-      const row = elements.find(el => (el as HTMLElement).getAttribute?.('data-domain-id')) as HTMLElement;
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      // Walk up to find the <tr> with data-domain-id
+      const row = el?.closest?.('tr[data-domain-id]') as HTMLElement | null;
 
       if (row) {
         const indexStr = row.getAttribute('data-index');
-        if (indexStr) {
+        const domainId = row.getAttribute('data-domain-id');
+        if (indexStr && domainId !== draggedDomainId) {
           dragOverIndex = parseInt(indexStr, 10);
         }
       } else {
@@ -325,6 +330,34 @@
     }
   }
 
+  // Copy to clipboard
+  let copiedId = $state<string | null>(null);
+  async function copyToClipboard(text: string, id: string) {
+    await navigator.clipboard.writeText(text);
+    copiedId = id;
+    setTimeout(() => {
+      if (copiedId === id) copiedId = null;
+    }, 2000);
+  }
+
+  // Get instance info for a domain targeting an instance
+  function getInstanceForDomain(domain: DomainInfo): Instance | undefined {
+    if (domain.target_type === "instance") {
+      return instances.find(i => i.id === domain.target_value);
+    }
+    return undefined;
+  }
+
+  // Check if a port has something listening (simple TCP check via instance list)
+  function isPortActive(domain: DomainInfo): boolean {
+    if (domain.target_type === "port") {
+      const port = domain.target_port ?? parseInt(domain.target_value);
+      // Check if any running instance uses this port
+      return instances.some(i => i.port === port && i.running);
+    }
+    return false;
+  }
+
   onMount(() => {
     console.log("[DomainsSection] onMount");
     loadDomains();
@@ -495,41 +528,51 @@
         </thead>
         <tbody>
           {#each domains as domain, i}
+            {@const inst = getInstanceForDomain(domain)}
+            {@const portActive = isPortActive(domain)}
             <tr data-domain-id={domain.id} data-index={i} class:dragging={draggedDomainId === domain.id} class:drag-over={dragOverIndex === i && draggedDomainId !== domain.id}>
               <td class="drag-handle" onmousedown={(e) => handleDomainDragStart(e, domain.id, i)}>&#x2807;</td>
-              <td>
-                <a class="url-link" href="{domain.ssl_enabled ? 'https' : 'http'}://{domain.full_domain}" target="_blank" rel="noopener noreferrer">
-                  <code class="domain-name">{domain.full_domain}</code>
-                </a>
+              <td class="domain-cell">
+                <div class="domain-row">
+                  <a class="url-link" href="{domain.ssl_enabled ? 'https' : 'http'}://{domain.full_domain}" target="_blank" rel="noopener noreferrer">
+                    {domain.full_domain}
+                  </a>
+                  <button
+                    class="copy-btn"
+                    onclick={() => copyToClipboard(domain.full_domain, domain.id)}
+                    title="Copy domain"
+                  >
+                    {copiedId === domain.id ? "✓" : "⧉"}
+                  </button>
+                </div>
               </td>
               <td class="target-cell">
                 <div class="target-info">
-                  <div class="target-icon {domain.target_type}">
-                    {#if domain.target_type === "instance"}
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-                        <line x1="6" y1="6" x2="6.01" y2="6"></line>
-                        <line x1="6" y1="18" x2="6.01" y2="18"></line>
-                      </svg>
-                    {:else if domain.target_type === "port"}
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
-                        <path d="M12 16v-4"></path>
-                        <path d="M12 8h.01"></path>
-                      </svg>
+                  {#if domain.target_type === "instance"}
+                    {#if inst}
+                      {#if inst.running && inst.healthy}
+                        <span class="status-dot running" title="Running"></span>
+                      {:else if inst.running && inst.healthy === false}
+                        <span class="status-dot unhealthy" title="Unhealthy"></span>
+                      {:else if inst.running}
+                        <span class="status-dot starting" title="Starting"></span>
+                      {:else}
+                        <span class="status-dot stopped" title="Stopped"></span>
+                      {/if}
                     {:else}
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                      </svg>
+                      <span class="status-dot stopped" title="Unknown"></span>
                     {/if}
-                  </div>
+                  {:else if domain.target_type === "port"}
+                    <span class="status-dot {portActive ? 'running' : 'stopped'}" title="{portActive ? 'Port active' : 'Port inactive'}"></span>
+                  {:else}
+                    <span class="status-dot running" title="Static files"></span>
+                  {/if}
                   <div class="target-details">
                     <span class="target-name">
                       {#if domain.target_type === "instance"}
-                        {domain.target_name || "Unknown Instance"}
+                        Instance: {inst?.name || domain.target_name || "Unknown"}
                       {:else if domain.target_type === "port"}
-                        Custom Port
+                        Port: {domain.target_port ?? domain.target_value}
                       {:else}
                         Static Files {domain.static_browse ? "(browse)" : ""}
                       {/if}
@@ -865,17 +908,14 @@
     }
   }
 
-  .domain-name {
-    background: #f5f5f7;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.8125rem;
+  .domain-cell {
+    padding: 0.5rem 0.75rem !important;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .domain-name {
-      background: #1c1c1e;
-    }
+  .domain-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
   }
 
   /* Target cell with icon layout */
@@ -889,47 +929,7 @@
     gap: 0.75rem;
   }
 
-  .target-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .target-icon.instance {
-    background: #dbeafe;
-    color: #1d4ed8;
-  }
-
-  .target-icon.port {
-    background: #fef3c7;
-    color: #b45309;
-  }
-
-  .target-icon.static {
-    background: #dcfce7;
-    color: #166534;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .target-icon.instance {
-      background: #1e3a5f;
-      color: #93c5fd;
-    }
-
-    .target-icon.port {
-      background: #451a03;
-      color: #fcd34d;
-    }
-
-    .target-icon.static {
-      background: #14532d;
-      color: #86efac;
-    }
-  }
+  /* Target icon styles removed - using status dots instead */
 
   .target-details {
     display: flex;
@@ -1129,20 +1129,7 @@
     color: #1d1d1f !important;
   }
 
-  :global(:root[data-theme="light"]) .target-icon.instance {
-    background: #dbeafe !important;
-    color: #1d4ed8 !important;
-  }
-
-  :global(:root[data-theme="light"]) .target-icon.port {
-    background: #fef3c7 !important;
-    color: #b45309 !important;
-  }
-
-  :global(:root[data-theme="light"]) .target-icon.static {
-    background: #dcfce7 !important;
-    color: #166534 !important;
-  }
+  :global(:root[data-theme="light"]) .status-dot.running { background: #22c55e !important; }
 
   :global(:root[data-theme="light"]) .target-name {
     color: #1d1d1f !important;
@@ -1214,20 +1201,7 @@
     color: white !important;
   }
 
-  :global(:root[data-theme="dark"]) .target-icon.instance {
-    background: #1e3a5f !important;
-    color: #93c5fd !important;
-  }
-
-  :global(:root[data-theme="dark"]) .target-icon.port {
-    background: #451a03 !important;
-    color: #fcd34d !important;
-  }
-
-  :global(:root[data-theme="dark"]) .target-icon.static {
-    background: #14532d !important;
-    color: #86efac !important;
-  }
+  :global(:root[data-theme="dark"]) .status-dot.running { background: #22c55e !important; }
 
   :global(:root[data-theme="dark"]) .target-name {
     color: #f5f5f7 !important;
@@ -1260,8 +1234,8 @@
     background: rgba(255, 255, 255, 0.05) !important;
   }
 
-  :global(:root[data-theme="dark"]) .domain-name {
-    background: #1c1c1e !important;
+  :global(:root[data-theme="dark"]) .url-link {
+    color: #007aff !important;
   }
 
   :global(:root[data-theme="dark"]) .domains-table th {
@@ -1507,10 +1481,62 @@
     color: #f5f5f7 !important;
   }
 
-  tr.dragging { opacity: 0.5; }
-  tr.drag-over { border-top: 2px solid var(--accent-color, #007aff); }
-  .drag-handle { cursor: grab; padding: 0 8px; color: var(--text-secondary, #666); user-select: none; }
+  tr.dragging { opacity: 0.4; }
+  tr.drag-over td { box-shadow: inset 0 2px 0 #007aff; }
+  .drag-handle {
+    cursor: grab;
+    width: 28px;
+    padding: 0 6px !important;
+    color: #c7c7cc;
+    user-select: none;
+    font-size: 1rem;
+    text-align: center;
+  }
   .drag-handle:active { cursor: grabbing; }
-  .url-link { color: var(--accent-color, #007aff); text-decoration: none; }
+
+  .url-link {
+    color: #007aff;
+    text-decoration: none;
+    font-size: 0.8125rem;
+    font-family: 'SF Mono', Menlo, Monaco, 'Courier New', monospace;
+  }
   .url-link:hover { text-decoration: underline; }
+
+  .copy-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #86868b;
+    font-size: 0.75rem;
+    padding: 0.125rem 0.25rem;
+    border-radius: 3px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .copy-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: #1d1d1f;
+  }
+  @media (prefers-color-scheme: dark) {
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f5f5f7;
+    }
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-dot.running { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.5); }
+  .status-dot.stopped { background: #9ca3af; }
+  .status-dot.starting { background: #f59e0b; animation: pulse 1.5s ease-in-out infinite; }
+  .status-dot.unhealthy { background: #ef4444; animation: pulse 1s ease-in-out infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
 </style>
