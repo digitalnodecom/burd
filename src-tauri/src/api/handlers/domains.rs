@@ -70,7 +70,7 @@ pub async fn create(
     State(state): State<ApiState>,
     Json(req): Json<CreateDomainRequest>,
 ) -> Json<ApiResponse<DomainInfo>> {
-    let result = {
+    let (domain, tld, instance_port) = {
         let config_store = match state.inner.config_store.lock() {
             Ok(cs) => cs,
             Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
@@ -142,24 +142,66 @@ pub async fn create(
             }
         };
 
-        let (target_type, target_value) = match &domain.target {
-            DomainTarget::Instance(id) => ("instance".to_string(), id.to_string()),
-            DomainTarget::Port(p) => ("port".to_string(), p.to_string()),
-            DomainTarget::StaticFiles { path, .. } => ("static".to_string(), path.clone()),
+        // If targeting an instance, resolve its port for proxy registration
+        let instance_port = if let DomainTarget::Instance(instance_id) = &domain.target {
+            config.instances.iter().find(|i| &i.id == instance_id).map(|i| i.port)
+        } else {
+            None
         };
 
-        let full_domain = domain.full_domain(&tld);
-        DomainInfo {
-            id: domain.id.to_string(),
-            subdomain: domain.subdomain,
-            full_domain,
-            target_type,
-            target_value,
-            ssl_enabled: domain.ssl_enabled,
-        }
+        (domain, tld, instance_port)
     };
 
-    Json(ApiResponse::ok(result))
+    // Register with proxy so the Caddy domain file gets written
+    {
+        let proxy = state.inner.proxy_server.lock().await;
+        let full_domain = domain.full_domain(&tld);
+        match &domain.target {
+            DomainTarget::Instance(_) => {
+                if let Some(port) = instance_port {
+                    let _ = proxy.register_route(
+                        &full_domain,
+                        port,
+                        &domain.id.to_string(),
+                        domain.ssl_enabled,
+                    );
+                }
+            }
+            DomainTarget::Port(port) => {
+                let _ = proxy.register_route(
+                    &full_domain,
+                    *port,
+                    &domain.id.to_string(),
+                    domain.ssl_enabled,
+                );
+            }
+            DomainTarget::StaticFiles { path, browse } => {
+                let _ = proxy.register_static_route(
+                    &full_domain,
+                    path,
+                    *browse,
+                    &domain.id.to_string(),
+                    domain.ssl_enabled,
+                );
+            }
+        }
+    }
+
+    let (target_type, target_value) = match &domain.target {
+        DomainTarget::Instance(id) => ("instance".to_string(), id.to_string()),
+        DomainTarget::Port(p) => ("port".to_string(), p.to_string()),
+        DomainTarget::StaticFiles { path, .. } => ("static".to_string(), path.clone()),
+    };
+
+    let full_domain = domain.full_domain(&tld);
+    Json(ApiResponse::ok(DomainInfo {
+        id: domain.id.to_string(),
+        subdomain: domain.subdomain,
+        full_domain,
+        target_type,
+        target_value,
+        ssl_enabled: domain.ssl_enabled,
+    }))
 }
 
 /// PUT /domains/:id - Update a domain
@@ -173,7 +215,7 @@ pub async fn update(
         Err(_) => return Json(ApiResponse::err("Invalid domain ID")),
     };
 
-    let result = {
+    let (old_full_domain, updated, tld, instance_port) = {
         let config_store = match state.inner.config_store.lock() {
             Ok(cs) => cs,
             Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
@@ -186,11 +228,13 @@ pub async fn update(
 
         let tld = config.tld.clone();
 
-        // Find the current domain
-        let _current_domain = match config.domains.iter().find(|d| d.id == uuid) {
-            Some(d) => d.clone(),
-            None => return Json(ApiResponse::err("Domain not found")),
-        };
+        // Get old domain for proxy cleanup
+        let old_full_domain = config.domains.iter().find(|d| d.id == uuid)
+            .map(|d| d.full_domain(&tld));
+
+        if old_full_domain.is_none() {
+            return Json(ApiResponse::err("Domain not found"));
+        }
 
         // Build new target if target_type/target_value provided
         let new_target = if let (Some(target_type), Some(target_value)) =
@@ -226,24 +270,52 @@ pub async fn update(
             Err(e) => return Json(ApiResponse::err(e)),
         };
 
-        let (target_type, target_value) = match &updated.target {
-            DomainTarget::Instance(id) => ("instance".to_string(), id.to_string()),
-            DomainTarget::Port(p) => ("port".to_string(), p.to_string()),
-            DomainTarget::StaticFiles { path, .. } => ("static".to_string(), path.clone()),
+        let instance_port = if let DomainTarget::Instance(instance_id) = &updated.target {
+            config.instances.iter().find(|i| &i.id == instance_id).map(|i| i.port)
+        } else {
+            None
         };
 
-        let full_domain = updated.full_domain(&tld);
-        DomainInfo {
-            id: updated.id.to_string(),
-            subdomain: updated.subdomain.clone(),
-            full_domain,
-            target_type,
-            target_value,
-            ssl_enabled: updated.ssl_enabled,
-        }
+        (old_full_domain, updated, tld, instance_port)
     };
 
-    Json(ApiResponse::ok(result))
+    // Re-register with proxy (unregister old, register new)
+    {
+        let proxy = state.inner.proxy_server.lock().await;
+        if let Some(old) = &old_full_domain {
+            let _ = proxy.unregister_route(old);
+        }
+        let full_domain = updated.full_domain(&tld);
+        match &updated.target {
+            DomainTarget::Instance(_) => {
+                if let Some(port) = instance_port {
+                    let _ = proxy.register_route(&full_domain, port, &updated.id.to_string(), updated.ssl_enabled);
+                }
+            }
+            DomainTarget::Port(port) => {
+                let _ = proxy.register_route(&full_domain, *port, &updated.id.to_string(), updated.ssl_enabled);
+            }
+            DomainTarget::StaticFiles { path, browse } => {
+                let _ = proxy.register_static_route(&full_domain, path, *browse, &updated.id.to_string(), updated.ssl_enabled);
+            }
+        }
+    }
+
+    let (target_type, target_value) = match &updated.target {
+        DomainTarget::Instance(id) => ("instance".to_string(), id.to_string()),
+        DomainTarget::Port(p) => ("port".to_string(), p.to_string()),
+        DomainTarget::StaticFiles { path, .. } => ("static".to_string(), path.clone()),
+    };
+
+    let full_domain = updated.full_domain(&tld);
+    Json(ApiResponse::ok(DomainInfo {
+        id: updated.id.to_string(),
+        subdomain: updated.subdomain,
+        full_domain,
+        target_type,
+        target_value,
+        ssl_enabled: updated.ssl_enabled,
+    }))
 }
 
 /// DELETE /domains/:id - Delete a domain
@@ -308,7 +380,7 @@ pub async fn toggle_ssl(
         Err(_) => return Json(ApiResponse::err("Invalid domain ID")),
     };
 
-    let result = {
+    let (domain, tld, instance_port) = {
         let config_store = match state.inner.config_store.lock() {
             Ok(cs) => cs,
             Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
@@ -326,22 +398,47 @@ pub async fn toggle_ssl(
             Err(e) => return Json(ApiResponse::err(e)),
         };
 
-        let (target_type, target_value) = match &domain.target {
-            DomainTarget::Instance(id) => ("instance".to_string(), id.to_string()),
-            DomainTarget::Port(p) => ("port".to_string(), p.to_string()),
-            DomainTarget::StaticFiles { path, .. } => ("static".to_string(), path.clone()),
+        let instance_port = if let DomainTarget::Instance(instance_id) = &domain.target {
+            config.instances.iter().find(|i| &i.id == instance_id).map(|i| i.port)
+        } else {
+            None
         };
 
-        let full_domain = domain.full_domain(&tld);
-        DomainInfo {
-            id: domain.id.to_string(),
-            subdomain: domain.subdomain,
-            full_domain,
-            target_type,
-            target_value,
-            ssl_enabled: domain.ssl_enabled,
-        }
+        (domain, tld, instance_port)
     };
 
-    Json(ApiResponse::ok(result))
+    // Re-register with proxy to update SSL in Caddy config
+    {
+        let proxy = state.inner.proxy_server.lock().await;
+        let full_domain = domain.full_domain(&tld);
+        match &domain.target {
+            DomainTarget::Instance(_) => {
+                if let Some(port) = instance_port {
+                    let _ = proxy.register_route(&full_domain, port, &domain.id.to_string(), domain.ssl_enabled);
+                }
+            }
+            DomainTarget::Port(port) => {
+                let _ = proxy.register_route(&full_domain, *port, &domain.id.to_string(), domain.ssl_enabled);
+            }
+            DomainTarget::StaticFiles { path, browse } => {
+                let _ = proxy.register_static_route(&full_domain, path, *browse, &domain.id.to_string(), domain.ssl_enabled);
+            }
+        }
+    }
+
+    let (target_type, target_value) = match &domain.target {
+        DomainTarget::Instance(id) => ("instance".to_string(), id.to_string()),
+        DomainTarget::Port(p) => ("port".to_string(), p.to_string()),
+        DomainTarget::StaticFiles { path, .. } => ("static".to_string(), path.clone()),
+    };
+
+    let full_domain = domain.full_domain(&tld);
+    Json(ApiResponse::ok(DomainInfo {
+        id: domain.id.to_string(),
+        subdomain: domain.subdomain,
+        full_domain,
+        target_type,
+        target_value,
+        ssl_enabled: domain.ssl_enabled,
+    }))
 }
