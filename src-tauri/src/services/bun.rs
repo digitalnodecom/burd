@@ -59,11 +59,21 @@ impl ServiceDefinition for BunService {
         ]
     }
 
-    fn env_vars(&self, instance: &Instance, _domain: Option<&str>) -> Vec<(String, String)> {
-        vec![
+    fn env_vars(&self, instance: &Instance, domain: Option<&str>) -> Vec<(String, String)> {
+        let mut vars = vec![
             // PORT env var for frameworks that read it
             ("PORT".to_string(), instance.port.to_string()),
-        ]
+        ];
+
+        // Allow .burd domain through Vite 7+'s host check without modifying vite.config
+        if let Some(d) = domain {
+            vars.push((
+                "__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS".to_string(),
+                d.to_string(),
+            ));
+        }
+
+        vars
     }
 
     fn needs_init(&self) -> bool {
