@@ -50,6 +50,7 @@ pub fn get_binary_name(service_type: ServiceType) -> &'static str {
         ServiceType::Caddy => "caddy",
         ServiceType::Centrifugo => "centrifugo",
         ServiceType::Gitea => "gitea",
+        ServiceType::Bun => "bun",
     }
 }
 

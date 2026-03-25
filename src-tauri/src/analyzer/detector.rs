@@ -35,6 +35,11 @@ pub fn detect_project_type(path: &Path) -> ProjectType {
         return symfony;
     }
 
+    // Check for JavaScript/Node projects
+    if let Some(js_type) = detect_js_project(path) {
+        return js_type;
+    }
+
     ProjectType::Unknown
 }
 
@@ -131,6 +136,48 @@ fn detect_symfony(path: &Path) -> Option<ProjectType> {
     None
 }
 
+/// Detect JavaScript/Node.js project type from package.json
+fn detect_js_project(path: &Path) -> Option<ProjectType> {
+    let pkg_path = path.join("package.json");
+    if !pkg_path.exists() {
+        return None;
+    }
+
+    let content = std::fs::read_to_string(&pkg_path).ok()?;
+    let pkg: serde_json::Value = serde_json::from_str(&content).ok()?;
+
+    // Must have a "dev" script to be linkable
+    let has_dev_script = pkg
+        .get("scripts")
+        .and_then(|s| s.get("dev"))
+        .and_then(|v| v.as_str())
+        .is_some();
+
+    if !has_dev_script {
+        return None;
+    }
+
+    let deps = |key: &str| -> Option<&serde_json::Value> {
+        pkg.get("dependencies")
+            .and_then(|d| d.get(key))
+            .or_else(|| pkg.get("devDependencies").and_then(|d| d.get(key)))
+    };
+
+    // Detect specific frameworks
+    if deps("next").is_some() {
+        return Some(ProjectType::NextJs);
+    }
+    if deps("nuxt").is_some() {
+        return Some(ProjectType::Nuxt);
+    }
+    if deps("vite").is_some() {
+        return Some(ProjectType::Vite);
+    }
+
+    // Generic Node project with dev script
+    Some(ProjectType::NodeDev)
+}
+
 /// Get the document root for a project based on its type
 ///
 /// Different frameworks have different conventions for where web files live:
@@ -164,6 +211,9 @@ pub fn get_document_root(path: &Path, project_type: &ProjectType) -> std::path::
             } else {
                 path.to_path_buf()
             }
+        }
+        ProjectType::Vite | ProjectType::NextJs | ProjectType::Nuxt | ProjectType::NodeDev => {
+            path.to_path_buf()
         }
         ProjectType::Unknown => path.to_path_buf(),
     }

@@ -650,6 +650,7 @@ pub fn generate_env_for_service(instance: &Instance) -> String {
         ServiceType::Caddy => "# Caddy is an internal service - no ENV needed".to_string(),
         ServiceType::Centrifugo => generate_centrifugo_env(instance),
         ServiceType::Gitea => generate_gitea_env(instance),
+        ServiceType::Bun => generate_bun_env(instance),
     }
 }
 
@@ -962,6 +963,24 @@ fn generate_gitea_env(instance: &Instance) -> String {
          \n\
          GITEA_URL=http://127.0.0.1:{}\n",
         instance.port, instance.port
+    )
+}
+
+fn generate_bun_env(instance: &Instance) -> String {
+    let script = instance
+        .config
+        .get("script")
+        .and_then(|v| v.as_str())
+        .unwrap_or("dev");
+
+    format!(
+        "# Bun\n\
+         # Dev server: http://127.0.0.1:{port}\n\
+         \n\
+         PORT={port}\n\
+         # Script: bun run {script}\n",
+        port = instance.port,
+        script = script
     )
 }
 

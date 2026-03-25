@@ -611,6 +611,17 @@ impl BinaryManager {
 
             if is_zip {
                 extract_zip(&download_path, &version_dir)?;
+                // If the binary isn't at the expected path, search for it in extracted subdirectories
+                if !binary_path.exists() {
+                    let found = find_and_move_binary(&version_dir, &binary_name, &binary_path)?;
+                    if !found {
+                        let _ = fs::remove_file(&download_path);
+                        return Err(format!(
+                            "Binary '{}' not found after extracting zip archive",
+                            binary_name
+                        ));
+                    }
+                }
             } else {
                 extract_tar_gz(&download_path, &version_dir, &binary_name)?;
             }

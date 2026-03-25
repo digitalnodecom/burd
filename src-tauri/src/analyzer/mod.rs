@@ -103,6 +103,16 @@ pub fn analyze_project(path: &Path) -> Result<ProjectInfo, String> {
                 }
             }
         }
+        ProjectType::Vite | ProjectType::NextJs | ProjectType::Nuxt | ProjectType::NodeDev => {
+            // JS/Node/Bun projects - check for package.json
+            let package_json = path.join("package.json");
+            if !package_json.exists() {
+                info.add_issue(
+                    ProjectIssue::warning("config", "package.json not found")
+                        .with_suggestion("Run 'bun init' or 'npm init' to create package.json"),
+                );
+            }
+        }
         ProjectType::Unknown => {
             info.add_issue(ProjectIssue::info(
                 "project",

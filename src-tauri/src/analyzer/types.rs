@@ -16,6 +16,14 @@ pub enum ProjectType {
     WordPress,
     /// Symfony framework project
     Symfony { version: Option<String> },
+    /// Vite-based project (Vue, React, Svelte, etc.)
+    Vite,
+    /// Next.js project
+    NextJs,
+    /// Nuxt project
+    Nuxt,
+    /// Generic Node.js/Bun project with a dev script
+    NodeDev,
     /// Unknown or unsupported project type
     Unknown,
 }
@@ -30,6 +38,10 @@ impl ProjectType {
             ProjectType::WordPress => "WordPress".to_string(),
             ProjectType::Symfony { version: Some(v) } => format!("Symfony {}", v),
             ProjectType::Symfony { version: None } => "Symfony".to_string(),
+            ProjectType::Vite => "Vite".to_string(),
+            ProjectType::NextJs => "Next.js".to_string(),
+            ProjectType::Nuxt => "Nuxt".to_string(),
+            ProjectType::NodeDev => "Node.js".to_string(),
             ProjectType::Unknown => "Unknown".to_string(),
         }
     }
@@ -38,7 +50,19 @@ impl ProjectType {
     pub fn uses_env_file(&self) -> bool {
         matches!(
             self,
-            ProjectType::Laravel { .. } | ProjectType::Bedrock | ProjectType::Symfony { .. }
+            ProjectType::Laravel { .. }
+                | ProjectType::Bedrock
+                | ProjectType::Symfony { .. }
+                | ProjectType::NextJs
+                | ProjectType::Nuxt
+        )
+    }
+
+    /// Check if this is a JavaScript/Node.js project type
+    pub fn is_js_project(&self) -> bool {
+        matches!(
+            self,
+            ProjectType::Vite | ProjectType::NextJs | ProjectType::Nuxt | ProjectType::NodeDev
         )
     }
 

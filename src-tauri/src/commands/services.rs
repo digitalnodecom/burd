@@ -31,6 +31,7 @@ pub fn parse_service_type(s: &str) -> Result<ServiceType, String> {
         "caddy" => Ok(ServiceType::Caddy),
         "centrifugo" => Ok(ServiceType::Centrifugo),
         "gitea" => Ok(ServiceType::Gitea),
+        "bun" => Ok(ServiceType::Bun),
         _ => Err(format!("Unknown service type: {}", s)),
     }
 }

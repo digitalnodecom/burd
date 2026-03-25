@@ -219,6 +219,7 @@ pub enum ServiceType {
     Caddy,
     Centrifugo,
     Gitea,
+    Bun,
 }
 
 impl ServiceType {
@@ -242,6 +243,7 @@ impl ServiceType {
             ServiceType::Caddy => "Caddy",
             ServiceType::Centrifugo => "Centrifugo",
             ServiceType::Gitea => "Gitea",
+            ServiceType::Bun => "Bun",
         }
     }
 
@@ -266,6 +268,7 @@ impl ServiceType {
             ServiceType::Caddy => "caddy",
             ServiceType::Centrifugo => "centrifugo",
             ServiceType::Gitea => "gitea",
+            ServiceType::Bun => "bun",
         }
     }
 
@@ -289,6 +292,7 @@ impl ServiceType {
             ServiceType::Caddy => 443,
             ServiceType::Centrifugo => 8000,
             ServiceType::Gitea => 3000,
+            ServiceType::Bun => 3000,
         }
     }
 
@@ -311,6 +315,7 @@ impl ServiceType {
             ServiceType::Frpc,
             ServiceType::Centrifugo,
             ServiceType::Gitea,
+            ServiceType::Bun,
         ]
     }
 }

@@ -18,7 +18,7 @@ use uuid::Uuid;
 
 /// Link the current directory to a custom domain
 ///
-/// Creates a FrankenPHP instance and domain for the current directory.
+/// Creates a FrankenPHP or Bun instance and domain for the current directory.
 /// Also analyzes the project and offers to set up database and fix .env.
 pub fn run_link(name: Option<String>) -> Result<(), String> {
     let current_dir =
@@ -32,11 +32,14 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
 
     // Detect project type and compute correct document root
     let project_type = detect_project_type(&current_dir);
+    let is_js = project_type.is_js_project();
     let computed_doc_root = get_document_root(&current_dir, &project_type);
     let document_root = computed_doc_root.to_string_lossy().to_string();
 
-    // Inform user if document root differs from project root (e.g., Bedrock /web, Laravel /public)
-    if computed_doc_root != current_dir {
+    // Inform user of detected project type
+    if is_js {
+        println!("Detected {} project", project_type);
+    } else if computed_doc_root != current_dir {
         println!(
             "Detected {} project - using document root: {}",
             project_type, document_root
@@ -57,18 +60,27 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
         None => slug::slugify(&project_name),
     };
 
-    println!("Linking directory: {}", document_root);
+    if is_js {
+        println!("Linking directory: {}", current_dir.to_string_lossy());
+    } else {
+        println!("Linking directory: {}", document_root);
+    }
 
     let mut config = config_store.load()?;
     let project_root = current_dir.to_string_lossy().to_string();
 
-    // Check if already linked (instance with same document_root or project root exists)
+    // Check if already linked (instance with same document_root, working_directory, or project root exists)
     let existing_instance = config.instances.iter().find(|i| {
         i.config
             .get("document_root")
             .and_then(|v| v.as_str())
             .map(|dr| dr == document_root || dr == project_root)
             .unwrap_or(false)
+            || i.config
+                .get("working_directory")
+                .and_then(|v| v.as_str())
+                .map(|wd| wd == project_root)
+                .unwrap_or(false)
     });
 
     if let Some(inst) = existing_instance {
@@ -101,8 +113,15 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
         ));
     }
 
-    // Find an available port (start from default FrankenPHP port)
-    let mut port = ServiceType::FrankenPHP.default_port();
+    // Determine service type based on project
+    let service_type = if is_js {
+        ServiceType::Bun
+    } else {
+        ServiceType::FrankenPHP
+    };
+
+    // Find an available port (start from default port for the service)
+    let mut port = service_type.default_port();
     while config.instances.iter().any(|i| i.port == port) {
         if port == u16::MAX {
             return Err("No available ports found".to_string());
@@ -110,28 +129,40 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
         port += 1;
     }
 
-    // Get installed FrankenPHP version
+    // Get installed version for the appropriate service
     let version = config
         .binaries
-        .get(&ServiceType::FrankenPHP)
+        .get(&service_type)
         .and_then(|versions| versions.keys().next())
         .ok_or_else(|| {
-            "No FrankenPHP versions installed.\n\
-             Please download FrankenPHP in the Burd app first."
-                .to_string()
+            if is_js {
+                "No Bun versions installed.\nPlease download Bun in the Burd app first.".to_string()
+            } else {
+                "No FrankenPHP versions installed.\nPlease download FrankenPHP in the Burd app first.".to_string()
+            }
         })?
         .clone();
 
-    // Create FrankenPHP instance
+    // Build instance config based on project type
+    let instance_config = if is_js {
+        serde_json::json!({
+            "working_directory": current_dir.to_string_lossy(),
+            "script": "dev"
+        })
+    } else {
+        serde_json::json!({
+            "document_root": document_root
+        })
+    };
+
+    // Create instance
     let instance = Instance {
         id: Uuid::new_v4(),
         name: project_name.clone(),
         port,
-        service_type: ServiceType::FrankenPHP,
+        service_type,
         version,
-        config: serde_json::json!({
-            "document_root": document_root
-        }),
+        config: instance_config,
         master_key: None,
         auto_start: false,
         created_at: Utc::now(),
@@ -170,7 +201,11 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
     println!("  URL:      {}", url);
     println!("  Port:     {}", port);
     println!("  Instance: {}", instance.id);
-    println!("  Root:     {}", document_root);
+    if is_js {
+        println!("  Dir:      {}", current_dir.to_string_lossy());
+    } else {
+        println!("  Root:     {}", document_root);
+    }
 
     // === Project Analysis & Setup ===
     // Reload config to get the latest state
@@ -516,7 +551,7 @@ pub fn run_unlink() -> Result<(), String> {
     let config_store = ConfigStore::new()?;
     let mut config = config_store.load()?;
 
-    // Find instance with matching document_root OR where current dir is parent
+    // Find instance with matching document_root, working_directory, OR where current dir is parent
     let instance_idx = config.instances.iter().position(|i| {
         i.config
             .get("document_root")
@@ -528,6 +563,11 @@ pub fn run_unlink() -> Result<(), String> {
                 std::path::Path::new(dr).starts_with(&current_dir)
             })
             .unwrap_or(false)
+            || i.config
+                .get("working_directory")
+                .and_then(|v| v.as_str())
+                .map(|wd| wd == document_root)
+                .unwrap_or(false)
     });
 
     let instance = match instance_idx {
@@ -593,16 +633,21 @@ pub fn run_links() -> Result<(), String> {
     let config_store = ConfigStore::new()?;
     let config = config_store.load()?;
 
-    // Find all FrankenPHP instances with document_root set (these are linked sites)
+    // Find all linked instances (FrankenPHP with document_root or Bun with working_directory)
     let linked_instances: Vec<&Instance> = config
         .instances
         .iter()
         .filter(|i| {
-            i.service_type == ServiceType::FrankenPHP
+            (i.service_type == ServiceType::FrankenPHP
                 && i.config
                     .get("document_root")
                     .and_then(|v| v.as_str())
-                    .is_some()
+                    .is_some())
+                || (i.service_type == ServiceType::Bun
+                    && i.config
+                        .get("working_directory")
+                        .and_then(|v| v.as_str())
+                        .is_some())
         })
         .collect();
 
@@ -620,6 +665,7 @@ pub fn run_links() -> Result<(), String> {
         let document_root = instance
             .config
             .get("document_root")
+            .or_else(|| instance.config.get("working_directory"))
             .and_then(|v| v.as_str())
             .unwrap_or("unknown");
 

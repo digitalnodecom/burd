@@ -1,4 +1,5 @@
 pub mod beanstalkd;
+pub mod bun;
 pub mod centrifugo;
 pub mod frankenphp;
 pub mod frankenphp_park;
@@ -140,5 +141,6 @@ pub fn get_service(service_type: ServiceType) -> Box<dyn ServiceDefinition> {
         }
         ServiceType::Centrifugo => Box::new(centrifugo::CentrifugoService),
         ServiceType::Gitea => Box::new(gitea::GiteaService),
+        ServiceType::Bun => Box::new(bun::BunService),
     }
 }

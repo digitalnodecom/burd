@@ -289,7 +289,20 @@ impl ProcessManager {
 
         // Set working directory
         // FrankenPHP needs to run from / to avoid path issues
-        let working_dir = if matches!(
+        // Bun instances run in the project's working directory
+        let bun_working_dir = if instance.service_type == ServiceType::Bun {
+            instance
+                .config
+                .get("working_directory")
+                .and_then(|v| v.as_str())
+                .map(PathBuf::from)
+        } else {
+            None
+        };
+
+        let working_dir = if let Some(ref bun_dir) = bun_working_dir {
+            bun_dir.as_path()
+        } else if matches!(
             instance.service_type,
             ServiceType::FrankenPHP | ServiceType::FrankenPhpPark
         ) {
