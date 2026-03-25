@@ -50,7 +50,7 @@ impl ServiceDefinition for BunService {
             .and_then(|v| v.as_str())
             .unwrap_or("dev");
 
-        // Pass --port for Vite/Next/Nuxt (bun passes args after script name directly)
+        // --port: tell the dev server which port to use
         vec![
             "run".to_string(),
             script.to_string(),
@@ -60,8 +60,10 @@ impl ServiceDefinition for BunService {
     }
 
     fn env_vars(&self, instance: &Instance, _domain: Option<&str>) -> Vec<(String, String)> {
-        // Set PORT env var - most JS frameworks read this
-        vec![("PORT".to_string(), instance.port.to_string())]
+        vec![
+            // PORT env var for frameworks that read it
+            ("PORT".to_string(), instance.port.to_string()),
+        ]
     }
 
     fn needs_init(&self) -> bool {

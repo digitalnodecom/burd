@@ -224,6 +224,15 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
         }
     }
 
+    // For Vite projects, patch vite config to allow .burd domain
+    if matches!(project_type, ProjectType::Vite) {
+        let full_domain = format!("{}.{}", subdomain, config.tld);
+        if let Err(e) = patch_vite_allowed_hosts(&current_dir, &full_domain) {
+            eprintln!("Warning: Could not patch vite config: {}", e);
+            println!("  Add this to your vite.config: server: {{ allowedHosts: [\"{}\"] }}", full_domain);
+        }
+    }
+
     // Start the instance via the Burd API
     println!();
     match start_instance_via_api(&instance.id.to_string()) {
@@ -690,6 +699,61 @@ pub fn run_links() -> Result<(), String> {
     }
 
     println!();
+    Ok(())
+}
+
+/// Patch vite config to allow the .burd domain through Vite 7+'s host check
+fn patch_vite_allowed_hosts(project_dir: &Path, domain: &str) -> Result<(), String> {
+    // Find vite config file (supports .ts, .js, .mts, .mjs)
+    let config_files = ["vite.config.ts", "vite.config.js", "vite.config.mts", "vite.config.mjs"];
+    let config_path = config_files
+        .iter()
+        .map(|f| project_dir.join(f))
+        .find(|p| p.exists())
+        .ok_or("No vite config file found")?;
+
+    let content = std::fs::read_to_string(&config_path)
+        .map_err(|e| format!("Failed to read vite config: {}", e))?;
+
+    // Check if allowedHosts is already configured
+    if content.contains("allowedHosts") {
+        // Already has allowedHosts - check if our domain is in it
+        if content.contains(domain) {
+            return Ok(());
+        }
+        // Has allowedHosts but not our domain - user needs to add it manually
+        println!("  vite config already has allowedHosts — add \"{}\" to the list", domain);
+        return Ok(());
+    }
+
+    // Inject server.allowedHosts into the defineConfig call
+    // Look for defineConfig({ and add server config after it
+    let patched = if content.contains("defineConfig({") {
+        content.replacen(
+            "defineConfig({",
+            &format!(
+                "defineConfig({{\n  server: {{ allowedHosts: [\"{}\"] }},",
+                domain
+            ),
+            1,
+        )
+    } else if content.contains("defineConfig({\n") {
+        content.replacen(
+            "defineConfig({\n",
+            &format!(
+                "defineConfig({{\n  server: {{ allowedHosts: [\"{}\"] }},\n",
+                domain
+            ),
+            1,
+        )
+    } else {
+        return Err("Could not find defineConfig({ in vite config".to_string());
+    };
+
+    std::fs::write(&config_path, patched)
+        .map_err(|e| format!("Failed to write vite config: {}", e))?;
+
+    println!("  Patched {} with allowedHosts: [\"{}\"]", config_path.file_name().unwrap().to_string_lossy(), domain);
     Ok(())
 }
 
