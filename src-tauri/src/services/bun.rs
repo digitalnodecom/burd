@@ -50,7 +50,13 @@ impl ServiceDefinition for BunService {
             .and_then(|v| v.as_str())
             .unwrap_or("dev");
 
-        vec!["run".to_string(), script.to_string()]
+        // Pass --port for Vite/Next/Nuxt (bun passes args after script name directly)
+        vec![
+            "run".to_string(),
+            script.to_string(),
+            "--port".to_string(),
+            instance.port.to_string(),
+        ]
     }
 
     fn env_vars(&self, instance: &Instance, _domain: Option<&str>) -> Vec<(String, String)> {

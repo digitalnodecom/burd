@@ -134,6 +134,20 @@ impl ProcessManager {
             return Err("Instance is already running".to_string());
         }
 
+        // Check if port is already in use
+        {
+            use std::net::TcpStream;
+            use std::time::Duration;
+            if let Ok(addr) = format!("127.0.0.1:{}", instance.port).parse() {
+                if TcpStream::connect_timeout(&addr, Duration::from_millis(200)).is_ok() {
+                    return Err(format!(
+                        "Port {} is already in use. Choose a different port or stop the process using it.",
+                        instance.port
+                    ));
+                }
+            }
+        }
+
         // Handle frpc specially - it needs to generate tunnel config
         if instance.service_type == ServiceType::Frpc {
             return self.start_frpc(instance);
@@ -278,7 +292,12 @@ impl ProcessManager {
         writeln!(debug_log, "Binary path: {:?}", binary_path).ok();
         writeln!(debug_log, "Data dir: {:?}", data_dir).ok();
         writeln!(debug_log, "Port: {}", instance.port).ok();
-        writeln!(debug_log, "Working dir: {:?}", std::env::current_dir().ok()).ok();
+        let effective_working_dir = if instance.service_type == ServiceType::Bun {
+            instance.config.get("working_directory").and_then(|v| v.as_str()).unwrap_or("/").to_string()
+        } else {
+            data_dir.to_string_lossy().to_string()
+        };
+        writeln!(debug_log, "Working dir: {}", effective_working_dir).ok();
         writeln!(debug_log, "========================").ok();
         debug_log.flush().ok();
 
