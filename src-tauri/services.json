@@ -969,6 +969,66 @@
       }
     },
 
+    "bun": {
+      "display_name": "Bun",
+      "binary_name": "bun",
+      "default_port": 3000,
+      "auto_create_domain": true,
+      "health_check": {
+        "type": "tcp"
+      },
+      "config_fields": [
+        {
+          "key": "working_directory",
+          "label": "Project Directory",
+          "type": "folder",
+          "required": true,
+          "description": "Path to your JS/TS project directory"
+        },
+        {
+          "key": "script",
+          "label": "Script",
+          "type": "text",
+          "required": false,
+          "default": "dev",
+          "description": "package.json script to run (default: dev)"
+        }
+      ],
+      "start_args": [
+        "run", "{script}"
+      ],
+      "env_vars": [
+        { "name": "PORT", "value": "{port}" }
+      ],
+      "versions": {
+        "source": "github_releases",
+        "github_repo": "oven-sh/bun"
+      },
+      "platforms": {
+        "darwin-arm64": {
+          "download": {
+            "type": "github_asset",
+            "asset_pattern": "bun-darwin-aarch64.zip"
+          },
+          "is_archive": true
+        },
+        "darwin-x64": {
+          "download": {
+            "type": "github_asset",
+            "asset_pattern": "bun-darwin-x64.zip"
+          },
+          "is_archive": true
+        },
+        "linux-x64": {
+          "download": {
+            "type": "github_asset",
+            "asset_pattern": "bun-linux-x64.zip"
+          },
+          "is_archive": true
+        }
+      }
+    },
+
     "gitea": {
       "display_name": "Gitea",
       "binary_name": "gitea",
