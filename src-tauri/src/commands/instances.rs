@@ -12,7 +12,7 @@ use crate::services::{get_service, HealthCheck};
 use crate::validation;
 use futures_util::future;
 use serde::Serialize;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 use uuid::Uuid;
 
 use super::AppState;
@@ -205,6 +205,7 @@ pub fn create_instance(
     config: Option<serde_json::Value>,
     custom_domain: Option<String>,
     state: State<'_, AppState>,
+    app: AppHandle,
 ) -> Result<InstanceWithHealth, String> {
     // Validate instance name
     validation::validate_instance_name(&name)
@@ -298,6 +299,8 @@ pub fn create_instance(
     };
     let domain_enabled = instance.domain_enabled;
 
+    let _ = app.emit("instances-changed", ());
+
     Ok(InstanceWithHealth {
         id: instance.id.to_string(),
         name: instance.name.clone(),
@@ -348,7 +351,11 @@ pub fn rename_instance(
 // ============================================================================
 
 #[tauri::command]
-pub async fn start_instance(id: String, state: State<'_, AppState>) -> Result<u32, String> {
+pub async fn start_instance(
+    id: String,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<u32, String> {
     let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid instance ID")?;
 
     let (instance, pid, tld, domains) = {
@@ -409,11 +416,16 @@ pub async fn start_instance(id: String, state: State<'_, AppState>) -> Result<u3
         }
     }
 
+    let _ = app.emit("instances-changed", ());
     Ok(pid)
 }
 
 #[tauri::command]
-pub async fn stop_instance(id: String, state: State<'_, AppState>) -> Result<(), String> {
+pub async fn stop_instance(
+    id: String,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<(), String> {
     let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid instance ID")?;
 
     // Get domains before stopping
@@ -447,11 +459,16 @@ pub async fn stop_instance(id: String, state: State<'_, AppState>) -> Result<(),
         }
     }
 
+    let _ = app.emit("instances-changed", ());
     Ok(())
 }
 
 #[tauri::command]
-pub async fn restart_instance(id: String, state: State<'_, AppState>) -> Result<(), String> {
+pub async fn restart_instance(
+    id: String,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<(), String> {
     let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid instance ID")?;
 
     // Stop and start
@@ -462,13 +479,18 @@ pub async fn restart_instance(id: String, state: State<'_, AppState>) -> Result<
     // Small delay between stop and start
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
     // Restart by calling start_instance logic
-    start_instance(id.clone(), state.clone()).await?;
+    start_instance(id.clone(), state.clone(), app.clone()).await?;
 
+    let _ = app.emit("instances-changed", ());
     Ok(())
 }
 
 #[tauri::command]
-pub async fn delete_instance(id: String, state: State<'_, AppState>) -> Result<(), String> {
+pub async fn delete_instance(
+    id: String,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<(), String> {
     let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid instance ID")?;
 
     // Get instance info and stop if running
@@ -514,7 +536,9 @@ pub async fn delete_instance(id: String, state: State<'_, AppState>) -> Result<(
     // Delete instance and associated domains from config
     let config_store = lock!(state.config_store)?;
     config_store.delete_domains_for_instance(uuid)?;
-    config_store.delete_instance(uuid)
+    let result = config_store.delete_instance(uuid);
+    let _ = app.emit("instances-changed", ());
+    result
 }
 
 // ============================================================================

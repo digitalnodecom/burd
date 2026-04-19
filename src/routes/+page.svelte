@@ -1118,6 +1118,17 @@
     const herdUnlistenPromise = listen<string>("herd-conflict", (event) => {
       message(event.payload, { title: "Conflict Detected", kind: "warning" });
     });
+    const trayNavUnlistenPromise = listen<{ section?: string; instanceId?: string }>(
+      "tray-navigate",
+      (event) => {
+        if (event.payload?.section) {
+          activeSection = event.payload.section;
+        }
+      }
+    );
+    const instancesChangedUnlistenPromise = listen("instances-changed", () => {
+      loadData();
+    });
     const interval = setInterval(loadData, 10000);
 
     // Easter egg: Konami Code reveals The Burd Nest
@@ -1130,6 +1141,8 @@
       unlistenPromise.then((unlisten) => unlisten());
       healthUnlistenPromise.then((unlisten) => unlisten());
       herdUnlistenPromise.then((unlisten) => unlisten());
+      trayNavUnlistenPromise.then((unlisten) => unlisten());
+      instancesChangedUnlistenPromise.then((unlisten) => unlisten());
       konamiListener.destroy();
     };
   });

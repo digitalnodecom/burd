@@ -65,8 +65,9 @@ pub use dns::{
 // Re-export proxy commands
 pub use proxy::{
     auto_trust_ca_if_needed, check_proxy_health, check_health_sync, disable_proxy,
-    get_ca_trust_status, get_proxy_config, get_proxy_status, restart_proxy_daemon,
-    restart_proxy_for_certs, setup_proxy, start_proxy_daemon, trust_caddy_ca, untrust_caddy_ca,
+    get_ca_trust_status, get_proxy_config, get_proxy_port_conflicts, get_proxy_status,
+    restart_proxy_daemon, restart_proxy_for_certs, setup_proxy, start_proxy_daemon,
+    trust_caddy_ca, untrust_caddy_ca,
 };
 
 // Re-export system commands (settings, CLI, helper)

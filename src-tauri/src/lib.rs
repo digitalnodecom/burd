@@ -40,6 +40,7 @@ mod resolver;
 pub mod service_config;
 mod services;
 mod tinker;
+mod tray;
 mod tunnel;
 pub mod validation;
 
@@ -107,6 +108,7 @@ use commands::{
     get_parked_projects,
     get_php_shell_integration_status,
     get_proxy_config,
+    get_proxy_port_conflicts,
     get_proxy_status,
     // PVM commands
     get_pvm_status,
@@ -242,12 +244,18 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(app_state)
         .manage(MailNotifierState::default())
         .manage(ParkWatcherState::new())
         .setup(move |app| {
             // Check if Laravel Herd is running (conflicts with DNS, proxy, PHP)
             check_herd_conflict(app.handle());
+
+            // Initialize menu-bar tray icon
+            if let Err(e) = tray::init(app.handle()) {
+                eprintln!("Failed to initialize tray: {e}");
+            }
 
             // Initialize park directory watchers
             if !parked_dirs_for_watcher.is_empty() {
@@ -418,6 +426,7 @@ pub fn run() {
             untrust_caddy_ca,
             // Proxy health check
             check_proxy_health,
+            get_proxy_port_conflicts,
             // Domain commands
             list_domains,
             create_domain,

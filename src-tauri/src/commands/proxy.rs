@@ -95,6 +95,103 @@ pub async fn check_proxy_health() -> Result<Option<bool>, String> {
     Ok(result)
 }
 
+/// A process holding a port that Burd's reverse proxy needs
+#[derive(Debug, Serialize, Clone)]
+pub struct PortConflict {
+    pub port: u16,
+    pub pid: u32,
+    pub command: String,
+    pub user: Option<String>,
+}
+
+/// Query lsof for processes listening on a given TCP port.
+/// Uses `-F pcLn` machine-readable output so we can parse reliably without root.
+fn list_port_listeners(port: u16) -> Vec<(u32, String, Option<String>)> {
+    let output = std::process::Command::new("lsof")
+        .args([
+            &format!("-iTCP:{}", port),
+            "-sTCP:LISTEN",
+            "-n",
+            "-P",
+            "-F",
+            "pcLn",
+        ])
+        .output();
+
+    let stdout = match output {
+        Ok(o) => String::from_utf8_lossy(&o.stdout).into_owned(),
+        Err(_) => return Vec::new(),
+    };
+
+    // lsof -F emits one record per process set:
+    //   p<pid>
+    //   c<command>
+    //   L<user>
+    //   f<fd>
+    //   n<name>
+    // Multiple file sets may follow a single process, so dedupe by pid.
+    let mut results: std::collections::BTreeMap<u32, (String, Option<String>)> =
+        std::collections::BTreeMap::new();
+    let mut cur_pid: Option<u32> = None;
+    let mut cur_cmd: Option<String> = None;
+    let mut cur_user: Option<String> = None;
+
+    for line in stdout.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        let (tag, rest) = line.split_at(1);
+        match tag {
+            "p" => {
+                cur_pid = rest.parse::<u32>().ok();
+                cur_cmd = None;
+                cur_user = None;
+            }
+            "c" => cur_cmd = Some(rest.to_string()),
+            "L" => cur_user = Some(rest.to_string()),
+            "n" => {
+                if let Some(pid) = cur_pid {
+                    let cmd = cur_cmd.clone().unwrap_or_else(|| "unknown".to_string());
+                    results.entry(pid).or_insert((cmd, cur_user.clone()));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    results
+        .into_iter()
+        .map(|(pid, (cmd, user))| (pid, cmd, user))
+        .collect()
+}
+
+/// Get processes holding ports 80/443, excluding Burd's own Caddy daemon.
+/// Used to show the user which services are preventing the reverse proxy from binding.
+#[tauri::command]
+pub async fn get_proxy_port_conflicts() -> Result<Vec<PortConflict>, String> {
+    tokio::task::spawn_blocking(|| {
+        let burd_pid = launchd::get_status().pid;
+
+        let mut conflicts = Vec::new();
+        for port in [80u16, 443u16] {
+            for (pid, command, user) in list_port_listeners(port) {
+                if Some(pid) == burd_pid {
+                    continue;
+                }
+                conflicts.push(PortConflict {
+                    port,
+                    pid,
+                    command,
+                    user,
+                });
+            }
+        }
+        conflicts
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))
+}
+
 /// Setup the privileged proxy (download Caddy, install launchd daemon)
 /// This requires admin privileges and will prompt the user.
 #[tauri::command]

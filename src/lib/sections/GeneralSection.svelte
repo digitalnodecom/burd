@@ -59,6 +59,36 @@
     proxy_healthy: boolean | null;
   }
 
+  interface PortConflict {
+    port: number;
+    pid: number;
+    command: string;
+    user: string | null;
+  }
+
+  let portConflicts = $state<PortConflict[] | null>(null);
+  let loadingConflicts = $state(false);
+
+  async function loadPortConflicts() {
+    loadingConflicts = true;
+    try {
+      portConflicts = await invoke<PortConflict[]>("get_proxy_port_conflicts");
+    } catch (e) {
+      console.error("Failed to load port conflicts:", e);
+      portConflicts = [];
+    } finally {
+      loadingConflicts = false;
+    }
+  }
+
+  $effect(() => {
+    if (proxyStatus?.daemon_running && proxyStatus?.proxy_healthy === false) {
+      loadPortConflicts();
+    } else {
+      portConflicts = null;
+    }
+  });
+
   interface CliStatus {
     installed: boolean;
     path: string | null;
@@ -320,9 +350,30 @@
           Enable the reverse proxy to access services via <code>http://my-service.{networkStatus.tld}</code> (requires admin password).
         </p>
       {:else if proxyStatus?.daemon_running && proxyStatus?.proxy_healthy === false}
-        <p class="network-hint warning">
-          Another service is using port 80. Burd's reverse proxy cannot serve your sites. Stop the conflicting service and restart the daemon.
-        </p>
+        <div class="network-hint warning">
+          <p>
+            Burd's reverse proxy cannot serve your sites &mdash; another service is bound to port 80 or 443.
+          </p>
+          {#if loadingConflicts}
+            <p>Checking which processes are holding the ports&hellip;</p>
+          {:else if portConflicts && portConflicts.length > 0}
+            <p>The following {portConflicts.length === 1 ? "process is" : "processes are"} blocking the ports:</p>
+            <ul class="conflict-list">
+              {#each portConflicts as c (c.port + "-" + c.pid)}
+                <li>
+                  <code>{c.command}</code> (pid <code>{c.pid}</code>{c.user ? `, user ${c.user}` : ""}) on port <code>{c.port}</code>
+                </li>
+              {/each}
+            </ul>
+            <p>
+              Stop {portConflicts.length === 1 ? "it" : "them"} with <code>kill {portConflicts.map((c) => c.pid).join(" ")}</code>, then restart the daemon.
+            </p>
+          {:else if portConflicts}
+            <p>
+              Couldn't identify the process holding the ports (it may be owned by another user or require root to inspect). Try <code>sudo lsof -iTCP:80 -iTCP:443 -sTCP:LISTEN -n -P</code> in a terminal.
+            </p>
+          {/if}
+        </div>
       {/if}
     </section>
 
@@ -957,6 +1008,16 @@
 
   .network-hint p {
     margin: 0 0 0.5rem 0;
+  }
+
+  .conflict-list {
+    margin: 0 0 0.5rem 0;
+    padding-left: 1.25rem;
+    font-size: 0.8125rem;
+  }
+
+  .conflict-list li {
+    margin-bottom: 0.25rem;
   }
 
   .trust-steps {
