@@ -6,6 +6,7 @@ use crate::analyzer::{
     analyze_project, detect_project_type, extract_cache_config, extract_database_config,
     extract_mail_config, get_document_root, parse_env_file, update_env_value, ProjectType,
 };
+use crate::api_client::BurdApiClient;
 use crate::caddy;
 use crate::config::{ConfigStore, Domain, Instance, ServiceType};
 use crate::db_manager::{create_manager_for_instance, find_all_db_instances, sanitize_db_name};
@@ -16,11 +17,23 @@ use std::io::{self, Write};
 use std::path::Path;
 use uuid::Uuid;
 
+/// Options controlling `burd link` behavior.
+#[derive(Debug, Default)]
+pub struct LinkOptions {
+    pub no_ssl: bool,
+    pub no_start: bool,
+}
+
+/// Link the current directory to a custom domain (default options).
+pub fn run_link(name: Option<String>) -> Result<(), String> {
+    run_link_with(name, LinkOptions::default())
+}
+
 /// Link the current directory to a custom domain
 ///
 /// Creates a FrankenPHP or Bun instance and domain for the current directory.
 /// Also analyzes the project and offers to set up database and fix .env.
-pub fn run_link(name: Option<String>) -> Result<(), String> {
+pub fn run_link_with(name: Option<String>, opts: LinkOptions) -> Result<(), String> {
     let current_dir =
         env::current_dir().map_err(|e| format!("Failed to get current directory: {}", e))?;
 
@@ -178,18 +191,38 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
 
     config.instances.push(instance.clone());
 
-    // Create domain for the instance with SSL enabled
-    let domain = Domain::for_instance(subdomain.clone(), instance.id, true);
+    // Create domain for the instance (SSL on by default, opt-out via --no-ssl)
+    let ssl_enabled = !opts.no_ssl;
+    let domain = Domain::for_instance(subdomain.clone(), instance.id, ssl_enabled);
+    let domain_id = domain.id;
     config.domains.push(domain);
 
     // Save config
     config_store.save(&config)?;
 
+    // Without this, `burd link` leaves Caddy with no route for the new
+    // subdomain — the daemon only writes Caddy files when domains are
+    // created through its /domains endpoint, which this path bypasses.
+    let full_domain = format!("{}.{}", subdomain, config.tld);
+    let route = caddy::RouteEntry::reverse_proxy(
+        full_domain.clone(),
+        port,
+        domain_id.to_string(),
+        ssl_enabled,
+    );
+    if let Err(e) = caddy::write_domain_file(&route) {
+        eprintln!("Warning: failed to write Caddy domain file for {}: {}", full_domain, e);
+    }
+
     // Build URL
+    let scheme = if ssl_enabled { "https" } else { "http" };
     let url = if config.proxy_installed {
-        format!("https://{}.{}", subdomain, config.tld)
+        format!("{}://{}.{}", scheme, subdomain, config.tld)
     } else {
-        format!("http://{}.{}:{}", subdomain, config.tld, config.proxy_port)
+        format!(
+            "{}://{}.{}:{}",
+            scheme, subdomain, config.tld, config.proxy_port
+        )
     };
 
     println!();
@@ -224,19 +257,25 @@ pub fn run_link(name: Option<String>) -> Result<(), String> {
         }
     }
 
-    // Start the instance via the Burd API
-    println!();
-    match start_instance_via_api(&instance.id.to_string()) {
-        Ok(_) => {
-            println!("Instance started successfully.");
-            println!();
-            println!("Site is live at: {}", url);
-        }
-        Err(e) => {
-            eprintln!("Could not auto-start instance: {}", e);
-            println!();
-            println!("Start the server with:");
-            println!("  Open Burd app and click Start on '{}'", project_name);
+    // Start the instance via the Burd API (skipped with --no-start)
+    if opts.no_start {
+        println!();
+        println!("Site configured at: {}", url);
+        println!("Start with:  burd start");
+    } else {
+        println!();
+        match start_instance_via_api(&instance.id.to_string()) {
+            Ok(_) => {
+                println!("Instance started successfully.");
+                println!();
+                println!("Site is live at: {}", url);
+            }
+            Err(e) => {
+                eprintln!("Could not auto-start instance: {}", e);
+                println!();
+                println!("Start the server with:");
+                println!("  Open Burd app and click Start on '{}'", project_name);
+            }
         }
     }
 
@@ -695,27 +734,14 @@ pub fn run_links() -> Result<(), String> {
 
 /// Start an instance by calling the Burd API
 fn start_instance_via_api(instance_id: &str) -> Result<(), String> {
-    let client = reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
-
-    let url = format!("http://127.0.0.1:19840/instances/{}/start", instance_id);
-    let response = client
-        .post(&url)
-        .json(&serde_json::json!({}))
-        .send()
-        .map_err(|e| format!("Burd API not available: {}", e))?;
-
-    if response.status().is_success() {
-        Ok(())
-    } else {
-        let body = response.text().unwrap_or_default();
-        if let Ok(api_resp) = serde_json::from_str::<serde_json::Value>(&body) {
-            if let Some(err) = api_resp.get("error").and_then(|v| v.as_str()) {
-                return Err(err.to_string());
-            }
-        }
-        Err(format!("API returned error: {}", body))
+    let client = BurdApiClient::new();
+    if !client.is_available() {
+        return Err("Burd API not available".to_string());
     }
+    client
+        .post(
+            &format!("/instances/{}/start", instance_id),
+            &serde_json::json!({}),
+        )
+        .map(|_| ())
 }

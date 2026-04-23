@@ -13,6 +13,7 @@
 
 pub mod analyzer;
 pub mod api;
+pub mod api_client;
 mod binary;
 mod caddy;
 pub mod cli;

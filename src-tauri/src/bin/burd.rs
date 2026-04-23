@@ -40,9 +40,20 @@ enum Commands {
 
     /// Initialize a new development server in the current directory
     ///
-    /// Creates a FrankenPHP instance pointing to this directory and
-    /// sets up a domain based on the folder name.
-    Init,
+    /// Creates a FrankenPHP instance pointing to this directory (or to a
+    /// detected public/web root for Laravel/Symfony/Bedrock), sets up a
+    /// domain with SSL enabled, and starts the site.
+    Init {
+        /// Skip enabling SSL on the new domain
+        #[arg(long)]
+        no_ssl: bool,
+        /// Don't auto-start the instance after creating it
+        #[arg(long)]
+        no_start: bool,
+        /// Override the document root (path, absolute or relative to cwd)
+        #[arg(long, value_name = "PATH")]
+        public_dir: Option<std::path::PathBuf>,
+    },
 
     /// Park the current directory
     ///
@@ -85,6 +96,12 @@ enum Commands {
     Link {
         /// Domain name (e.g., 'myapp' or 'myapp.burd')
         name: Option<String>,
+        /// Skip enabling SSL on the new domain
+        #[arg(long)]
+        no_ssl: bool,
+        /// Don't auto-start the instance after linking
+        #[arg(long)]
+        no_start: bool,
     },
 
     /// Unlink the current directory
@@ -96,6 +113,72 @@ enum Commands {
     ///
     /// Shows all directories linked via 'burd link' or 'burd init'.
     Links,
+
+    /// Start an instance
+    ///
+    /// Starts the named instance, or the instance tied to the current
+    /// directory when NAME is omitted.
+    Start {
+        /// Instance name or domain (optional)
+        name: Option<String>,
+    },
+
+    /// Stop an instance
+    Stop {
+        /// Instance name or domain (optional)
+        name: Option<String>,
+    },
+
+    /// Restart an instance
+    Restart {
+        /// Instance name or domain (optional)
+        name: Option<String>,
+    },
+
+    /// Show recent logs for an instance
+    ///
+    /// Resolves NAME the same way as start/stop/restart (name, UUID, subdomain,
+    /// or current directory when omitted). `--follow` polls the daemon once
+    /// per second and streams new content until interrupted.
+    Logs {
+        /// Instance name or domain (optional)
+        name: Option<String>,
+        /// Number of trailing lines to show (default: 100)
+        #[arg(long, default_value_t = 100)]
+        lines: usize,
+        /// Tail the log, printing new entries as they arrive
+        #[arg(short, long)]
+        follow: bool,
+    },
+
+    /// Update instance settings
+    ///
+    /// Currently supports `--php-version`, `--port`, and `--name`. Mirrors the
+    /// MCP `update_instance` tool.
+    Update {
+        /// Instance name or domain (optional; defaults to cwd's instance)
+        name: Option<String>,
+        /// New PHP (FrankenPHP) version — must be already installed
+        #[arg(long)]
+        php_version: Option<String>,
+        /// New port
+        #[arg(long)]
+        port: Option<u16>,
+        /// Rename the instance
+        #[arg(long = "name", value_name = "NEW_NAME")]
+        new_name: Option<String>,
+    },
+
+    /// List installed versions of Burd services
+    ///
+    /// Examples:
+    ///   burd versions                   # All services + installed versions
+    ///   burd versions --service frankenphp
+    Versions {
+        /// Restrict output to a single service type (e.g. frankenphp, mariadb)
+        #[arg(long)]
+        service: Option<String>,
+    },
 
     /// Enable HTTPS for a domain
     ///
@@ -256,7 +339,17 @@ enum Commands {
     ///
     /// Connection parameters are automatically injected from the running instance.
     /// You can override them with explicit flags (--host, --port, etc.)
-    #[command(name = "mysql", alias = "mariadb")]
+    ///
+    /// Note: clap would otherwise intercept `-h`/`-V` before the underlying
+    /// tool sees them. Help is disabled on this subcommand — use `--help`
+    /// (long form) for burd's help, or pass `--` before tool args to be safe:
+    ///   burd mysql mysql -- -h 127.0.0.1 -P 3306
+    #[command(
+        name = "mysql",
+        alias = "mariadb",
+        disable_help_flag = true,
+        disable_version_flag = true
+    )]
     Mysql {
         /// Tool name (mysql, mysqldump, mysqlimport, etc.) or 'list' to show available tools
         tool: String,
@@ -279,7 +372,17 @@ enum Commands {
     ///
     /// Connection parameters are automatically injected from the running instance.
     /// You can override them with explicit flags (--host, --port, etc.)
-    #[command(name = "postgres", alias = "pg")]
+    ///
+    /// Note: clap would otherwise intercept `-h`/`-V` before psql sees them.
+    /// Help is disabled on this subcommand — use `--help` for burd's help,
+    /// or pass `--` before tool args:
+    ///   burd postgres psql -- -h 127.0.0.1 -p 5432
+    #[command(
+        name = "postgres",
+        alias = "pg",
+        disable_help_flag = true,
+        disable_version_flag = true
+    )]
     Postgres {
         /// Tool name (psql, pg_dump, createdb, etc.) or 'list' to show available tools
         tool: String,
@@ -309,6 +412,22 @@ enum EnvCommands {
     Show,
 }
 
+/// Engine selector for `burd db create`
+#[derive(Copy, Clone, Debug, clap::ValueEnum)]
+enum DbEngineArg {
+    Mariadb,
+    Postgres,
+}
+
+impl From<DbEngineArg> for burd_lib::db_manager::DbType {
+    fn from(v: DbEngineArg) -> Self {
+        match v {
+            DbEngineArg::Mariadb => burd_lib::db_manager::DbType::MariaDB,
+            DbEngineArg::Postgres => burd_lib::db_manager::DbType::PostgreSQL,
+        }
+    }
+}
+
 /// Database subcommands
 #[derive(Subcommand)]
 enum DbCommands {
@@ -319,6 +438,14 @@ enum DbCommands {
     Create {
         /// Database name
         name: String,
+
+        /// Engine to use when multiple are configured (mariadb | postgres)
+        #[arg(long, value_enum)]
+        engine: Option<DbEngineArg>,
+
+        /// Pin to a specific Burd instance by name (overrides --engine)
+        #[arg(long, value_name = "NAME")]
+        instance: Option<String>,
     },
 
     /// Drop a database
@@ -329,6 +456,14 @@ enum DbCommands {
         /// Skip confirmation prompt
         #[arg(short, long)]
         force: bool,
+
+        /// Restrict search to a specific engine
+        #[arg(long, value_enum)]
+        engine: Option<DbEngineArg>,
+
+        /// Restrict search to a specific Burd instance
+        #[arg(long, value_name = "NAME")]
+        instance: Option<String>,
     },
 
     /// Import SQL file into database
@@ -338,6 +473,14 @@ enum DbCommands {
 
         /// Path to SQL file
         file: String,
+
+        /// Engine to use when the database doesn't exist yet
+        #[arg(long, value_enum)]
+        engine: Option<DbEngineArg>,
+
+        /// Burd instance to use when the database doesn't exist yet
+        #[arg(long, value_name = "NAME")]
+        instance: Option<String>,
     },
 
     /// Export database to SQL file
@@ -348,12 +491,28 @@ enum DbCommands {
         /// Output file (default: <name>.sql)
         #[arg(short, long)]
         output: Option<String>,
+
+        /// Restrict search to a specific engine
+        #[arg(long, value_enum)]
+        engine: Option<DbEngineArg>,
+
+        /// Restrict search to a specific Burd instance
+        #[arg(long, value_name = "NAME")]
+        instance: Option<String>,
     },
 
     /// Open interactive database shell
     Shell {
         /// Database name (optional)
         name: Option<String>,
+
+        /// Engine to open the shell against
+        #[arg(long, value_enum)]
+        engine: Option<DbEngineArg>,
+
+        /// Burd instance to open the shell against
+        #[arg(long, value_name = "NAME")]
+        instance: Option<String>,
     },
 }
 
@@ -362,13 +521,47 @@ fn main() {
 
     let result = match cli.command {
         Commands::Analyze => cli::run_analyze(),
-        Commands::Init => cli::run_init(),
+        Commands::Init {
+            no_ssl,
+            no_start,
+            public_dir,
+        } => cli::run_init_with(cli::InitOptions {
+            no_ssl,
+            no_start,
+            public_dir,
+        }),
         Commands::Park => cli::run_park(),
         Commands::Forget => cli::run_forget(),
         Commands::Parked => cli::run_parked(),
         Commands::Refresh => cli::run_refresh(),
         Commands::Status => cli::run_status(),
-        Commands::Link { name } => cli::run_link(name),
+        Commands::Link {
+            name,
+            no_ssl,
+            no_start,
+        } => cli::run_link_with(name, cli::LinkOptions { no_ssl, no_start }),
+        Commands::Start { name } => cli::run_start(name),
+        Commands::Stop { name } => cli::run_stop(name),
+        Commands::Restart { name } => cli::run_restart(name),
+        Commands::Logs {
+            name,
+            lines,
+            follow,
+        } => cli::run_logs(name, cli::LogsOptions { lines, follow }),
+        Commands::Update {
+            name,
+            php_version,
+            port,
+            new_name,
+        } => cli::run_update(
+            name,
+            cli::UpdateOptions {
+                php_version,
+                port,
+                new_name,
+            },
+        ),
+        Commands::Versions { service } => cli::run_service_versions(service),
         Commands::Unlink => cli::run_unlink(),
         Commands::Links => cli::run_links(),
         Commands::Secure { name } => cli::run_secure(name),
@@ -384,11 +577,39 @@ fn main() {
         Commands::Share { subdomain } => cli::run_share(subdomain),
         Commands::Db(db_cmd) => match db_cmd {
             DbCommands::List => cli::run_db_list(),
-            DbCommands::Create { name } => cli::run_db_create(&name),
-            DbCommands::Drop { name, force } => cli::run_db_drop(&name, force),
-            DbCommands::Import { name, file } => cli::run_db_import(&name, &file),
-            DbCommands::Export { name, output } => cli::run_db_export(&name, output.as_deref()),
-            DbCommands::Shell { name } => cli::run_db_shell(name.as_deref()),
+            DbCommands::Create {
+                name,
+                engine,
+                instance,
+            } => cli::run_db_create(&name, engine.map(Into::into), instance.as_deref()),
+            DbCommands::Drop {
+                name,
+                force,
+                engine,
+                instance,
+            } => cli::run_db_drop(&name, force, engine.map(Into::into), instance.as_deref()),
+            DbCommands::Import {
+                name,
+                file,
+                engine,
+                instance,
+            } => cli::run_db_import(&name, &file, engine.map(Into::into), instance.as_deref()),
+            DbCommands::Export {
+                name,
+                output,
+                engine,
+                instance,
+            } => cli::run_db_export(
+                &name,
+                output.as_deref(),
+                engine.map(Into::into),
+                instance.as_deref(),
+            ),
+            DbCommands::Shell {
+                name,
+                engine,
+                instance,
+            } => cli::run_db_shell(name.as_deref(), engine.map(Into::into), instance.as_deref()),
         },
         Commands::Env(env_cmd) => match env_cmd {
             EnvCommands::Check => cli::run_env_check(),

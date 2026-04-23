@@ -1,4 +1,8 @@
-//! HTTP client for calling the Burd API
+//! HTTP client for calling the Burd daemon API.
+//!
+//! Shared by the MCP server and the `burd` CLI. The daemon binds to
+//! 127.0.0.1:19840 and returns `{ "success": bool, "data"|"error": … }`
+//! envelopes; `handle_response` unwraps that envelope for callers.
 
 use serde_json::Value;
 
@@ -6,6 +10,7 @@ const API_BASE: &str = "http://127.0.0.1:19840";
 
 pub struct BurdApiClient {
     client: reqwest::blocking::Client,
+    probe_client: reqwest::blocking::Client,
 }
 
 impl BurdApiClient {
@@ -15,12 +20,20 @@ impl BurdApiClient {
                 .timeout(std::time::Duration::from_secs(30))
                 .build()
                 .expect("Failed to create HTTP client"),
+            // Separate short-timeout client so `is_available()` fails fast
+            // (≤500ms) when the daemon is down — CLI lifecycle commands
+            // shouldn't hang on the 30s main-client timeout.
+            probe_client: reqwest::blocking::Client::builder()
+                .timeout(std::time::Duration::from_millis(500))
+                .build()
+                .expect("Failed to create probe HTTP client"),
         }
     }
 
-    /// Check if the Burd API is available
+    /// Check if the Burd daemon is reachable. Uses the short-timeout probe
+    /// client to fail fast (≤500ms).
     pub fn is_available(&self) -> bool {
-        self.client
+        self.probe_client
             .get(format!("{}/status", API_BASE))
             .send()
             .map(|r| r.status().is_success())
@@ -76,13 +89,11 @@ impl BurdApiClient {
             .map_err(|e| format!("Failed to read response: {}", e))?;
 
         if status.is_success() {
-            // Parse the ApiResponse and extract data
             if let Ok(api_response) = serde_json::from_str::<Value>(&body) {
                 if api_response.get("success").and_then(|v| v.as_bool()) == Some(true) {
                     if let Some(data) = api_response.get("data") {
                         return Ok(serde_json::to_string_pretty(data).unwrap_or(body));
                     }
-                    // Success with no data
                     return Ok("Operation completed successfully".to_string());
                 }
                 if let Some(error) = api_response.get("error").and_then(|v| v.as_str()) {
@@ -91,7 +102,6 @@ impl BurdApiClient {
             }
             Ok(body)
         } else {
-            // Try to parse error from response body
             if let Ok(api_response) = serde_json::from_str::<Value>(&body) {
                 if let Some(error) = api_response.get("error").and_then(|v| v.as_str()) {
                     return Err(error.to_string());

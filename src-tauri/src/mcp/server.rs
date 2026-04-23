@@ -3,7 +3,7 @@
 use serde_json::{json, Value};
 use std::io::{self, BufRead, Write};
 
-use super::client::BurdApiClient;
+use crate::api_client::BurdApiClient;
 use super::protocol::*;
 use super::tools::get_tools;
 

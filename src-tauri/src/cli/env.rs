@@ -6,10 +6,11 @@ use crate::analyzer::{
     analyze_with_burd_config, extract_cache_config, extract_database_config, extract_mail_config,
     parse_env_file, update_env_value, ProjectType,
 };
-use crate::config::{ConfigStore, ServiceType};
+use crate::config::{ConfigStore, DomainTarget, ServiceType};
 use std::collections::HashMap;
 use std::env;
 use std::io::{self, Write};
+use std::path::Path;
 
 /// An issue found in the .env file
 #[derive(Debug, Clone)]
@@ -51,7 +52,7 @@ pub fn run_env_check() -> Result<(), String> {
     }
 
     let env_vars = parse_env_file(&env_path).ok_or("Failed to parse .env file")?;
-    let issues = check_env_against_burd(&project.project_type, &env_vars, &config)?;
+    let issues = check_env_against_burd(&project.project_type, &env_vars, &config, &current_dir)?;
 
     print_env_check_results(&issues);
 
@@ -83,7 +84,7 @@ pub fn run_env_fix() -> Result<(), String> {
     }
 
     let env_vars = parse_env_file(&env_path).ok_or("Failed to parse .env file")?;
-    let issues = check_env_against_burd(&project.project_type, &env_vars, &config)?;
+    let issues = check_env_against_burd(&project.project_type, &env_vars, &config, &current_dir)?;
 
     if issues.is_empty() {
         println!("No issues found. Your .env file is configured correctly for Burd services.");
@@ -218,6 +219,7 @@ fn check_env_against_burd(
     project_type: &ProjectType,
     env_vars: &HashMap<String, String>,
     config: &crate::config::Config,
+    current_dir: &Path,
 ) -> Result<Vec<EnvIssue>, String> {
     let mut issues = Vec::new();
 
@@ -240,7 +242,62 @@ fn check_env_against_burd(
         }
     }
 
+    // Check APP_URL / WP_HOME against the .burd domain bound to this directory
+    check_site_url_env(project_type, env_vars, config, current_dir, &mut issues);
+
     Ok(issues)
+}
+
+/// If the current directory is linked to a Burd domain, verify the framework's
+/// base URL setting matches `{scheme}://<subdomain>.<tld>`. Previously env check
+/// validated DB/cache/mail but left APP_URL/WP_HOME pointing at stale hosts.
+fn check_site_url_env(
+    project_type: &ProjectType,
+    env_vars: &HashMap<String, String>,
+    config: &crate::config::Config,
+    current_dir: &Path,
+    issues: &mut Vec<EnvIssue>,
+) {
+    let cwd_str = current_dir.to_string_lossy();
+    let instance = config.instances.iter().find(|i| {
+        i.config
+            .get("document_root")
+            .and_then(|v| v.as_str())
+            .map(|dr| dr == cwd_str || Path::new(dr).starts_with(current_dir))
+            .unwrap_or(false)
+    });
+    let Some(instance) = instance else { return };
+
+    let domain = config.domains.iter().find(|d| match &d.target {
+        DomainTarget::Instance(id) => *id == instance.id,
+        _ => false,
+    });
+    let Some(domain) = domain else { return };
+
+    let scheme = if domain.ssl_enabled { "https" } else { "http" };
+    let expected = format!("{}://{}.{}", scheme, domain.subdomain, config.tld);
+
+    let keys: &[&str] = match project_type {
+        ProjectType::Laravel { .. } => &["APP_URL"],
+        ProjectType::Bedrock { .. } => &["WP_HOME", "WP_SITEURL"],
+        _ => return,
+    };
+
+    for &key in keys {
+        let Some(current) = env_vars.get(key) else {
+            continue;
+        };
+        let normalized = current.trim_end_matches('/');
+        if normalized != expected {
+            issues.push(EnvIssue {
+                key: key.to_string(),
+                current: current.clone(),
+                suggested: expected.clone(),
+                reason: format!("Burd domain for this directory is {}", expected),
+                category: "url".to_string(),
+            });
+        }
+    }
 }
 
 /// Check database environment variables
@@ -290,6 +347,19 @@ fn check_database_env(
             current: db_config.host.clone(),
             suggested: "127.0.0.1".to_string(),
             reason: "Burd services run locally".to_string(),
+            category: "database".to_string(),
+        });
+    }
+
+    // Empty DB_PASSWORD on Postgres is OK (Burd runs pg with trust auth for
+    // local dev), but worth noting — previously `env check` flagged this as
+    // silently-wrong and users would add a random password that didn't match.
+    if db_config.is_postgres() && db_config.password.is_empty() {
+        issues.push(EnvIssue {
+            key: "DB_PASSWORD".to_string(),
+            current: "(empty)".to_string(),
+            suggested: "(empty)".to_string(),
+            reason: "OK for local Postgres — Burd uses trust auth. No action needed.".to_string(),
             category: "database".to_string(),
         });
     }
@@ -367,13 +437,24 @@ fn check_mail_env(
         .and_then(|v| v.as_u64())
         .unwrap_or(1025) as u16;
 
-    // Check if using SMTP
+    // Check if using SMTP. If Mailpit is configured but the app is logging to
+    // file or dropping mail to the array driver, the user probably set that
+    // before enabling Mailpit — flag it so they notice.
+    if mail_config.mailer == "log" || mail_config.mailer == "array" {
+        issues.push(EnvIssue {
+            key: "MAIL_MAILER".to_string(),
+            current: mail_config.mailer.clone(),
+            suggested: "smtp".to_string(),
+            reason: format!(
+                "Burd has Mailpit running on port {}. Switch to SMTP to capture outgoing mail.",
+                smtp_port
+            ),
+            category: "mail".to_string(),
+        });
+        return;
+    }
     if mail_config.mailer != "smtp" {
-        // Suggest switching to SMTP for local development
-        if mail_config.mailer == "log" || mail_config.mailer == "array" {
-            // These are fine for development, don't suggest change
-            return;
-        }
+        return;
     }
 
     // Check port

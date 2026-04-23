@@ -2,12 +2,16 @@
 //!
 //! Commands for managing databases from the command line.
 
-use crate::config::ConfigStore;
-use crate::db_manager::{create_manager_for_instance, find_all_db_instances, sanitize_db_name};
+use crate::config::{ConfigStore, Instance, ServiceType};
+use crate::db_manager::{create_manager_for_instance, find_all_db_instances, sanitize_db_name, DbType};
 use std::io::{self, Write};
 use std::path::PathBuf;
+use std::sync::mpsc;
+use std::thread;
+use std::time::Duration;
 
-/// List all databases
+/// List all databases. Probes each engine in parallel with a per-engine
+/// timeout so one down instance can't stall the others.
 pub fn run_db_list() -> Result<(), String> {
     let config_store = ConfigStore::new()?;
     let config = config_store.load()?;
@@ -21,26 +25,75 @@ pub fn run_db_list() -> Result<(), String> {
         return Ok(());
     }
 
-    for instance in db_instances {
-        let manager = create_manager_for_instance(instance)?;
+    // Launch one thread per instance; each reports into an mpsc channel so the
+    // slowest doesn't block output of the fastest.
+    let (tx, rx) = mpsc::channel::<(String, String, Result<Vec<String>, String>)>();
+    let mut threads = Vec::with_capacity(db_instances.len());
 
-        println!();
-        println!("{} ({})", instance.name, manager.connection_info());
-        println!("{}", "-".repeat(40));
+    for instance in &db_instances {
+        let tx = tx.clone();
+        let name = instance.name.clone();
+        let instance_clone = (*instance).clone();
+        threads.push(thread::spawn(move || {
+            let (conn_info, result) = match create_manager_for_instance(&instance_clone) {
+                Ok(m) => {
+                    let info = m.connection_info();
+                    let res = m
+                        .list_databases()
+                        .map(|v| v.into_iter().map(|d| d.name).collect::<Vec<_>>());
+                    (info, res)
+                }
+                Err(e) => (String::new(), Err(e)),
+            };
+            let _ = tx.send((name, conn_info, result));
+        }));
+    }
+    drop(tx);
 
-        match manager.list_databases() {
-            Ok(databases) => {
-                if databases.is_empty() {
-                    println!("  (no databases)");
-                } else {
-                    for db in databases {
-                        println!("  {}", db.name);
+    // Per-engine probe budget is 500ms — mirrors doctor's liveness check.
+    // Any engine that hasn't responded by the overall deadline is reported
+    // as unreachable rather than stalling the whole listing.
+    let deadline = std::time::Instant::now() + Duration::from_millis(500);
+    let mut collected: Vec<(String, String, Result<Vec<String>, String>)> = Vec::new();
+    loop {
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        match rx.recv_timeout(remaining) {
+            Ok(entry) => collected.push(entry),
+            Err(_) => break,
+        }
+        if collected.len() == db_instances.len() {
+            break;
+        }
+    }
+
+    // Preserve config order in output.
+    let mut printed = vec![false; db_instances.len()];
+    for (idx, instance) in db_instances.iter().enumerate() {
+        if let Some(entry) = collected.iter().find(|(n, _, _)| n == &instance.name) {
+            let (_, conn_info, result) = entry;
+            println!();
+            println!("{} ({})", instance.name, conn_info);
+            println!("{}", "-".repeat(40));
+            match result {
+                Ok(dbs) if dbs.is_empty() => println!("  (no databases)"),
+                Ok(dbs) => {
+                    for db in dbs {
+                        println!("  {}", db);
                     }
                 }
+                Err(e) => println!("  Error: {}", e),
             }
-            Err(e) => {
-                println!("  Error: {}", e);
-            }
+            printed[idx] = true;
+        }
+    }
+
+    // Anything still running hit the deadline — report but don't block.
+    for (idx, instance) in db_instances.iter().enumerate() {
+        if !printed[idx] {
+            println!();
+            println!("{} (unreachable)", instance.name);
+            println!("{}", "-".repeat(40));
+            println!("  Timed out after 500ms — is the instance running?");
         }
     }
 
@@ -48,8 +101,135 @@ pub fn run_db_list() -> Result<(), String> {
     Ok(())
 }
 
-/// Create a new database
-pub fn run_db_create(name: &str) -> Result<(), String> {
+/// Select an instance from the available db instances using the user-provided
+/// filters. Precedence: `instance_name` (exact match) > `engine` filter > auto.
+/// When `announce_auto` is true and we picked automatically from >1 candidate
+/// engine, we print a line telling the user which engine we used — per
+/// team-lead's rule: "if unambiguous, pick + print which one used."
+///
+/// Errors when the instance name doesn't match, when the engine has no match,
+/// or when no filters were provided but multiple engines exist.
+fn select_db_instance<'a>(
+    instances: &'a [&'a Instance],
+    engine: Option<DbType>,
+    instance_name: Option<&str>,
+    announce_auto: bool,
+) -> Result<&'a Instance, String> {
+    if let Some(name) = instance_name {
+        return instances
+            .iter()
+            .copied()
+            .find(|i| i.name == name)
+            .ok_or_else(|| {
+                format!(
+                    "No database instance named '{}'. Available: {}",
+                    name,
+                    instances
+                        .iter()
+                        .map(|i| i.name.clone())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            });
+    }
+
+    let matches_engine = |inst: &Instance, e: DbType| match e {
+        DbType::MariaDB => inst.service_type == ServiceType::MariaDB,
+        DbType::PostgreSQL => inst.service_type == ServiceType::PostgreSQL,
+    };
+
+    if let Some(e) = engine {
+        return instances
+            .iter()
+            .copied()
+            .find(|i| matches_engine(i, e))
+            .ok_or_else(|| {
+                format!(
+                    "No {:?} instance configured. Available: {}",
+                    e,
+                    instances
+                        .iter()
+                        .map(|i| format!("{} ({:?})", i.name, i.service_type))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            });
+    }
+
+    let has_maria = instances
+        .iter()
+        .any(|i| i.service_type == ServiceType::MariaDB);
+    let has_pg = instances
+        .iter()
+        .any(|i| i.service_type == ServiceType::PostgreSQL);
+
+    if has_maria && has_pg {
+        return Err(
+            "Multiple database engines available. Pass --engine mariadb|postgres or --instance <name>.".to_string(),
+        );
+    }
+
+    let picked = instances
+        .first()
+        .copied()
+        .ok_or_else(|| "No database instances configured.".to_string())?;
+
+    if announce_auto && instances.len() > 1 {
+        eprintln!(
+            "Using {} instance '{}' (auto-selected)",
+            match picked.service_type {
+                ServiceType::MariaDB => "MariaDB",
+                ServiceType::PostgreSQL => "PostgreSQL",
+                _ => "database",
+            },
+            picked.name
+        );
+    }
+
+    Ok(picked)
+}
+
+/// Locate the instance that already contains `sanitized`. If multiple match
+/// and `engine`/`instance_name` narrow it down, honor the filter.
+fn find_instance_with_database<'a>(
+    instances: &'a [&'a Instance],
+    sanitized: &str,
+    engine: Option<DbType>,
+    instance_name: Option<&str>,
+) -> Result<Option<&'a Instance>, String> {
+    let matches_engine = |inst: &Instance, e: DbType| match e {
+        DbType::MariaDB => inst.service_type == ServiceType::MariaDB,
+        DbType::PostgreSQL => inst.service_type == ServiceType::PostgreSQL,
+    };
+
+    for inst in instances {
+        if let Some(name) = instance_name {
+            if inst.name != name {
+                continue;
+            }
+        }
+        if let Some(e) = engine {
+            if !matches_engine(inst, e) {
+                continue;
+            }
+        }
+        let manager = create_manager_for_instance(inst)?;
+        if manager.database_exists(sanitized)? {
+            return Ok(Some(*inst));
+        }
+    }
+
+    Ok(None)
+}
+
+/// Create a new database. When more than one engine is available,
+/// `engine` or `instance_name` must be provided — otherwise we'd silently
+/// pick one. Auto-selection prints an announcement.
+pub fn run_db_create(
+    name: &str,
+    engine: Option<DbType>,
+    instance_name: Option<&str>,
+) -> Result<(), String> {
     let sanitized = sanitize_db_name(name)?;
 
     let config_store = ConfigStore::new()?;
@@ -63,8 +243,7 @@ pub fn run_db_create(name: &str) -> Result<(), String> {
             .to_string());
     }
 
-    // Use the first database instance (typically MariaDB)
-    let instance = db_instances[0];
+    let instance = select_db_instance(&db_instances, engine, instance_name, true)?;
     let manager = create_manager_for_instance(instance)?;
 
     // Check if database already exists
@@ -81,7 +260,12 @@ pub fn run_db_create(name: &str) -> Result<(), String> {
 }
 
 /// Drop a database
-pub fn run_db_drop(name: &str, force: bool) -> Result<(), String> {
+pub fn run_db_drop(
+    name: &str,
+    force: bool,
+    engine: Option<DbType>,
+    instance_name: Option<&str>,
+) -> Result<(), String> {
     let sanitized = sanitize_db_name(name)?;
 
     let config_store = ConfigStore::new()?;
@@ -93,21 +277,14 @@ pub fn run_db_drop(name: &str, force: bool) -> Result<(), String> {
         return Err("No database instances configured in Burd.".to_string());
     }
 
-    // Find which instance has this database
-    let mut found_instance = None;
-    for instance in &db_instances {
-        let manager = create_manager_for_instance(instance)?;
-        if manager.database_exists(&sanitized)? {
-            found_instance = Some(instance);
-            break;
-        }
-    }
-
-    let instance = match found_instance {
+    let instance = match find_instance_with_database(
+        &db_instances,
+        &sanitized,
+        engine,
+        instance_name,
+    )? {
         Some(i) => i,
-        None => {
-            return Err(format!("Database '{}' not found.", sanitized));
-        }
+        None => return Err(format!("Database '{}' not found.", sanitized)),
     };
 
     let manager = create_manager_for_instance(instance)?;
@@ -139,7 +316,12 @@ pub fn run_db_drop(name: &str, force: bool) -> Result<(), String> {
 }
 
 /// Import SQL file into database
-pub fn run_db_import(name: &str, sql_file: &str) -> Result<(), String> {
+pub fn run_db_import(
+    name: &str,
+    sql_file: &str,
+    engine: Option<DbType>,
+    instance_name: Option<&str>,
+) -> Result<(), String> {
     let sanitized = sanitize_db_name(name)?;
     let sql_path = PathBuf::from(sql_file);
 
@@ -156,17 +338,12 @@ pub fn run_db_import(name: &str, sql_file: &str) -> Result<(), String> {
         return Err("No database instances configured in Burd.".to_string());
     }
 
-    // Find which instance has this database (or use first one)
-    let mut target_instance = None;
-    for instance in &db_instances {
-        let manager = create_manager_for_instance(instance)?;
-        if manager.database_exists(&sanitized)? {
-            target_instance = Some(instance);
-            break;
-        }
-    }
-
-    let instance = match target_instance {
+    let instance = match find_instance_with_database(
+        &db_instances,
+        &sanitized,
+        engine,
+        instance_name,
+    )? {
         Some(i) => i,
         None => {
             // Database doesn't exist - offer to create it
@@ -183,11 +360,11 @@ pub fn run_db_import(name: &str, sql_file: &str) -> Result<(), String> {
                 return Ok(());
             }
 
-            let instance = db_instances[0];
-            let manager = create_manager_for_instance(instance)?;
+            let target = select_db_instance(&db_instances, engine, instance_name, true)?;
+            let manager = create_manager_for_instance(target)?;
             println!("Creating database '{}'...", sanitized);
             manager.create_database(&sanitized)?;
-            instance
+            target
         }
     };
 
@@ -201,7 +378,12 @@ pub fn run_db_import(name: &str, sql_file: &str) -> Result<(), String> {
 }
 
 /// Export database to SQL file
-pub fn run_db_export(name: &str, output_file: Option<&str>) -> Result<(), String> {
+pub fn run_db_export(
+    name: &str,
+    output_file: Option<&str>,
+    engine: Option<DbType>,
+    instance_name: Option<&str>,
+) -> Result<(), String> {
     let sanitized = sanitize_db_name(name)?;
 
     let config_store = ConfigStore::new()?;
@@ -213,21 +395,14 @@ pub fn run_db_export(name: &str, output_file: Option<&str>) -> Result<(), String
         return Err("No database instances configured in Burd.".to_string());
     }
 
-    // Find which instance has this database
-    let mut found_instance = None;
-    for instance in &db_instances {
-        let manager = create_manager_for_instance(instance)?;
-        if manager.database_exists(&sanitized)? {
-            found_instance = Some(instance);
-            break;
-        }
-    }
-
-    let instance = match found_instance {
+    let instance = match find_instance_with_database(
+        &db_instances,
+        &sanitized,
+        engine,
+        instance_name,
+    )? {
         Some(i) => i,
-        None => {
-            return Err(format!("Database '{}' not found.", sanitized));
-        }
+        None => return Err(format!("Database '{}' not found.", sanitized)),
     };
 
     let manager = create_manager_for_instance(instance)?;
@@ -265,7 +440,11 @@ pub fn run_db_export(name: &str, output_file: Option<&str>) -> Result<(), String
 }
 
 /// Open interactive database shell
-pub fn run_db_shell(name: Option<&str>) -> Result<(), String> {
+pub fn run_db_shell(
+    name: Option<&str>,
+    engine: Option<DbType>,
+    instance_name: Option<&str>,
+) -> Result<(), String> {
     let config_store = ConfigStore::new()?;
     let config = config_store.load()?;
 
@@ -275,28 +454,14 @@ pub fn run_db_shell(name: Option<&str>) -> Result<(), String> {
         return Err("No database instances configured in Burd.".to_string());
     }
 
-    // If database name is provided, find the instance that has it
     let instance = if let Some(db_name) = name {
         let sanitized = sanitize_db_name(db_name)?;
-        let mut found = None;
-
-        for inst in &db_instances {
-            let manager = create_manager_for_instance(inst)?;
-            if manager.database_exists(&sanitized)? {
-                found = Some(*inst);
-                break;
-            }
-        }
-
-        match found {
+        match find_instance_with_database(&db_instances, &sanitized, engine, instance_name)? {
             Some(i) => i,
-            None => {
-                return Err(format!("Database '{}' not found.", sanitized));
-            }
+            None => return Err(format!("Database '{}' not found.", sanitized)),
         }
     } else {
-        // Use first database instance
-        db_instances[0]
+        select_db_instance(&db_instances, engine, instance_name, true)?
     };
 
     let manager = create_manager_for_instance(instance)?;

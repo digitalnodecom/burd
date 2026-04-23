@@ -7,12 +7,60 @@ use crate::analyzer::{
     analyze_project, extract_cache_config, extract_database_config, extract_mail_config,
     parse_env_file, ProjectType,
 };
+use crate::api_client::BurdApiClient;
 use crate::config::{ConfigStore, ServiceType};
 use crate::db_manager::{create_manager_for_instance, find_all_db_instances};
+use std::collections::HashMap;
 use std::env;
 use std::net::TcpStream;
 use std::path::Path;
 use std::time::Duration;
+use uuid::Uuid;
+
+/// Daemon-reported view of instance running state.
+///
+/// `Offline` means we couldn't reach the daemon at all — we can't distinguish
+/// "stopped by user" from "crashed" in that case and fall back to port-probe.
+/// `Ok` carries a map of instance id → running flag from `/instances`.
+enum DaemonState {
+    Offline,
+    Ok(HashMap<Uuid, bool>),
+}
+
+/// Ask the daemon which instances it thinks are running.
+///
+/// Returns `Offline` on any failure (daemon down, network error, unexpected
+/// shape) so doctor degrades gracefully instead of bailing out.
+fn fetch_instance_states() -> DaemonState {
+    let client = BurdApiClient::new();
+    if !client.is_available() {
+        return DaemonState::Offline;
+    }
+    let body = match client.get("/instances") {
+        Ok(b) => b,
+        Err(_) => return DaemonState::Offline,
+    };
+    let parsed: serde_json::Value = match serde_json::from_str(&body) {
+        Ok(v) => v,
+        Err(_) => return DaemonState::Offline,
+    };
+    let arr = match parsed.as_array() {
+        Some(a) => a,
+        None => return DaemonState::Offline,
+    };
+    let mut map = HashMap::new();
+    for item in arr {
+        let id = item
+            .get("id")
+            .and_then(|v| v.as_str())
+            .and_then(|s| Uuid::parse_str(s).ok());
+        let running = item.get("running").and_then(|v| v.as_bool());
+        if let (Some(id), Some(running)) = (id, running) {
+            map.insert(id, running);
+        }
+    }
+    DaemonState::Ok(map)
+}
 
 /// Health check status
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -62,13 +110,45 @@ pub fn run_doctor() -> Result<(), String> {
     let mut has_mailpit = false;
     let mut has_meilisearch = false;
 
+    // Pull the daemon's view of `running` per instance so we can tell
+    // "stopped" (user intent: not running) from "crashed" (user intent:
+    // running, but the port is closed). Port-only probe can't distinguish
+    // these, which was the old doctor's blind spot.
+    let daemon_state = fetch_instance_states();
+
     for instance in &config.instances {
         let port_open = check_port(instance.port);
-        let status = if port_open { Status::Ok } else { Status::Error };
-        let status_text = if port_open {
-            "running"
-        } else {
-            "not responding"
+        let (status, status_text, hint) = match (&daemon_state, port_open) {
+            (DaemonState::Offline, true) => (
+                Status::Ok,
+                "running (daemon offline)".to_string(),
+                None,
+            ),
+            (DaemonState::Offline, false) => (
+                Status::Warning,
+                "port closed (daemon offline — cannot distinguish stopped vs crashed)"
+                    .to_string(),
+                Some("Start Burd to get accurate status.".to_string()),
+            ),
+            (DaemonState::Ok(states), port) => {
+                let running = states.get(&instance.id).copied().unwrap_or(false);
+                match (running, port) {
+                    (true, true) => (Status::Ok, "running".to_string(), None),
+                    (true, false) => (
+                        Status::Error,
+                        "crashed (daemon says running but port is closed)".to_string(),
+                        Some(format!(
+                            "Check `burd logs {}` and `burd restart {}`.",
+                            instance.name, instance.name
+                        )),
+                    ),
+                    (false, _) => (
+                        Status::NotInstalled,
+                        "stopped".to_string(),
+                        Some(format!("Start with `burd start {}`.", instance.name)),
+                    ),
+                }
+            }
         };
 
         println!(
@@ -79,6 +159,9 @@ pub fn run_doctor() -> Result<(), String> {
             instance.port,
             status_text
         );
+        if let Some(h) = hint {
+            println!("      {}", h);
+        }
 
         match instance.service_type {
             ServiceType::FrankenPHP | ServiceType::FrankenPhpPark => has_frankenphp = true,
