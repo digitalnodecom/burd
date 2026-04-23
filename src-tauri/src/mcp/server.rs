@@ -354,6 +354,45 @@ fn execute_tool(client: &BurdApiClient, name: &str, args: Option<Value>) -> Resu
             client.get(&format!("/services/{}/versions", service_type))
         }
 
+        // Mail (Mailpit)
+        "get_mailpit_config" => client.get("/mail/config"),
+        "list_emails" => {
+            let mut params = Vec::new();
+            if let Some(v) = args.get("start").and_then(|v| v.as_u64()) {
+                params.push(format!("start={}", v));
+            }
+            if let Some(v) = args.get("limit").and_then(|v| v.as_u64()) {
+                params.push(format!("limit={}", v));
+            }
+            if let Some(s) = args.get("search").and_then(|v| v.as_str()) {
+                if !s.is_empty() {
+                    params.push(format!("search={}", urlencoding::encode(s)));
+                }
+            }
+            let path = if params.is_empty() {
+                "/mail/messages".to_string()
+            } else {
+                format!("/mail/messages?{}", params.join("&"))
+            };
+            client.get(&path)
+        }
+        "get_email" => {
+            let id = args
+                .get("id")
+                .and_then(|v| v.as_str())
+                .ok_or("Missing 'id' parameter")?;
+            client.get(&format!("/mail/messages/{}", id))
+        }
+        "delete_email" => {
+            let id = args
+                .get("id")
+                .and_then(|v| v.as_str())
+                .ok_or("Missing 'id' parameter")?;
+            client.delete(&format!("/mail/messages/{}", id))
+        }
+        "mark_emails_read" => client.post("/mail/messages/read", &args),
+        "get_unread_count" => client.get("/mail/unread-count"),
+
         // Status
         "get_status" => client.get("/status"),
 

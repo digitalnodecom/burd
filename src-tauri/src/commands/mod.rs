@@ -3,7 +3,7 @@ mod dns;
 mod domains;
 mod instances;
 mod logs;
-mod mail;
+pub mod mail;
 mod node;
 mod park;
 mod php;

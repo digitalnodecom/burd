@@ -388,6 +388,79 @@ pub fn get_tools() -> Vec<Tool> {
         },
 
         // ====================================================================
+        // Mail Tools (Mailpit)
+        // ====================================================================
+        Tool {
+            name: "get_mailpit_config".to_string(),
+            description: "Get Mailpit SMTP/HTTP connection details for the running Mailpit instance. Use these in your app's .env (MAIL_HOST, MAIL_PORT).".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        },
+        Tool {
+            name: "list_emails".to_string(),
+            description: "List captured emails from Mailpit. Supports pagination and full-text search. Use this to inspect outgoing mail during local development.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "start": { "type": "integer", "description": "Offset for pagination (default 0)" },
+                    "limit": { "type": "integer", "description": "Max messages to return (default 50)" },
+                    "search": { "type": "string", "description": "Optional Mailpit search query (subject/body/addr)" }
+                },
+                "required": []
+            }),
+        },
+        Tool {
+            name: "get_email".to_string(),
+            description: "Get the full details (headers, text, HTML, attachments metadata) of a single captured email by ID.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "description": "Message ID from list_emails" }
+                },
+                "required": ["id"]
+            }),
+        },
+        Tool {
+            name: "delete_email".to_string(),
+            description: "Delete a single captured email by ID. (Bulk/delete-all is intentionally not exposed to MCP; use the HTTP API or the UI for that.)".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "description": "Message ID to delete" }
+                },
+                "required": ["id"]
+            }),
+        },
+        Tool {
+            name: "mark_emails_read".to_string(),
+            description: "Mark one or more captured emails as read or unread.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "ids": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Message IDs to update"
+                    },
+                    "read": { "type": "boolean", "description": "true = mark read, false = mark unread" }
+                },
+                "required": ["ids", "read"]
+            }),
+        },
+        Tool {
+            name: "get_unread_count".to_string(),
+            description: "Count of unread captured emails in Mailpit.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        },
+
+        // ====================================================================
         // Status Tool
         // ====================================================================
         Tool {

@@ -51,6 +51,14 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         .route("/databases", get(handlers::databases::list))
         .route("/databases", post(handlers::databases::create))
         .route("/databases/{name}", delete(handlers::databases::drop))
+        // Mail (Mailpit)
+        .route("/mail/config", get(handlers::mail::config))
+        .route("/mail/unread-count", get(handlers::mail::unread_count))
+        .route("/mail/messages", get(handlers::mail::list))
+        .route("/mail/messages", delete(handlers::mail::delete_all))
+        .route("/mail/messages/read", post(handlers::mail::mark_read))
+        .route("/mail/messages/{id}", get(handlers::mail::get))
+        .route("/mail/messages/{id}", delete(handlers::mail::delete_one))
         // Services
         .route("/services", get(handlers::services::list))
         .route(
