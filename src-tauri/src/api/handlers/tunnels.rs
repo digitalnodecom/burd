@@ -44,7 +44,9 @@ pub async fn list(State(state): State<ApiState>) -> Json<ApiResponse<Vec<TunnelS
             let public_url = if is_running {
                 server.map(|s| {
                     let sub = match &t.subdomain {
-                        SubdomainConfig::Random { generated } => generated.clone().unwrap_or_default(),
+                        SubdomainConfig::Random { generated } => {
+                            generated.clone().unwrap_or_default()
+                        }
                         SubdomainConfig::Custom { subdomain } => subdomain.clone(),
                     };
                     format!("https://{}.{}", sub, s.subdomain_host)
@@ -86,18 +88,40 @@ pub async fn start(State(state): State<ApiState>) -> Json<ApiResponse<()>> {
             .iter()
             .find(|i| i.service_type == ServiceType::Frpc)
             .map(|i| {
-                let user = i.config.get("admin_user").and_then(|v| v.as_str()).unwrap_or("admin").to_string();
-                let password = i.config.get("admin_password").and_then(|v| v.as_str()).unwrap_or("admin").to_string();
-                FrpcAdminConfig { port: i.port, user, password }
+                let user = i
+                    .config
+                    .get("admin_user")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("admin")
+                    .to_string();
+                let password = i
+                    .config
+                    .get("admin_password")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("admin")
+                    .to_string();
+                FrpcAdminConfig {
+                    port: i.port,
+                    user,
+                    password,
+                }
             });
-        (cfg.tunnels.clone(), cfg.frp_servers.clone(), cfg.instances.clone(), admin)
+        (
+            cfg.tunnels.clone(),
+            cfg.frp_servers.clone(),
+            cfg.instances.clone(),
+            admin,
+        )
     };
 
     let mut manager = match FrpcManager::new() {
         Ok(m) => m,
         Err(e) => return Json(ApiResponse::err(e)),
     };
-    match manager.start(&tunnels, &servers, &instances, admin_config.as_ref()).await {
+    match manager
+        .start(&tunnels, &servers, &instances, admin_config.as_ref())
+        .await
+    {
         Ok(()) => Json(ApiResponse::success()),
         Err(e) => Json(ApiResponse::err(e)),
     }
@@ -119,5 +143,7 @@ pub async fn status() -> Json<ApiResponse<serde_json::Value>> {
         Ok(m) => m,
         Err(e) => return Json(ApiResponse::err(e)),
     };
-    Json(ApiResponse::ok(serde_json::to_value(manager.get_status()).unwrap_or_default()))
+    Json(ApiResponse::ok(
+        serde_json::to_value(manager.get_status()).unwrap_or_default(),
+    ))
 }

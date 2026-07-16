@@ -213,7 +213,7 @@ mod tests {
     use crate::dns::DnsServer;
     use crate::process::ProcessManager;
     use crate::proxy::ProxyServer;
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
     use tokio::sync::Mutex as AsyncMutex;
 
     fn create_test_state() -> AppState {
@@ -251,7 +251,7 @@ mod tests {
             Ok(pm.is_running(&instance_id))
         });
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), false);
+        assert!(!result.unwrap());
     }
 
     #[test]

@@ -74,7 +74,9 @@ pub struct UpdateInstanceRequest {
 }
 
 /// Helper to deserialize a field that can be absent, null, or a value
-fn deserialize_optional_nullable<'de, D>(deserializer: D) -> Result<Option<Option<String>>, D::Error>
+fn deserialize_optional_nullable<'de, D>(
+    deserializer: D,
+) -> Result<Option<Option<String>>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {

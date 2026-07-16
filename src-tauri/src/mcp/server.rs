@@ -3,9 +3,9 @@
 use serde_json::{json, Value};
 use std::io::{self, BufRead, Write};
 
-use crate::api_client::BurdApiClient;
 use super::protocol::*;
 use super::tools::get_tools;
+use crate::api_client::BurdApiClient;
 
 const PROTOCOL_VERSION: &str = "2024-11-05";
 
@@ -274,8 +274,14 @@ fn resolve_domain_id(client: &BurdApiClient, reference: &str) -> Result<String, 
     let matches: Vec<&Value> = arr
         .iter()
         .filter(|d| {
-            let sub = d.get("subdomain").and_then(|v| v.as_str()).map(|s| s.to_lowercase());
-            let full = d.get("full_domain").and_then(|v| v.as_str()).map(|s| s.to_lowercase());
+            let sub = d
+                .get("subdomain")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_lowercase());
+            let full = d
+                .get("full_domain")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_lowercase());
             sub.as_deref() == Some(&lower) || full.as_deref() == Some(&lower)
         })
         .collect();
@@ -286,7 +292,10 @@ fn resolve_domain_id(client: &BurdApiClient, reference: &str) -> Result<String, 
             .and_then(|v| v.as_str())
             .map(String::from)
             .ok_or_else(|| "Domain missing id".to_string()),
-        _ => Err(format!("Multiple domains match '{}' — pass the UUID", reference)),
+        _ => Err(format!(
+            "Multiple domains match '{}' — pass the UUID",
+            reference
+        )),
     }
 }
 
@@ -330,12 +339,24 @@ fn execute_tool(client: &BurdApiClient, name: &str, args: Option<Value>) -> Resu
             let id = arg_instance_id(client, &args)?;
             // Build update body from provided fields (exclude id)
             let mut body = serde_json::Map::new();
-            if let Some(v) = args.get("name") { body.insert("name".to_string(), v.clone()); }
-            if let Some(v) = args.get("port") { body.insert("port".to_string(), v.clone()); }
-            if let Some(v) = args.get("version") { body.insert("version".to_string(), v.clone()); }
-            if let Some(v) = args.get("domain") { body.insert("domain".to_string(), v.clone()); }
-            if let Some(v) = args.get("domain_enabled") { body.insert("domain_enabled".to_string(), v.clone()); }
-            if let Some(v) = args.get("config") { body.insert("config".to_string(), v.clone()); }
+            if let Some(v) = args.get("name") {
+                body.insert("name".to_string(), v.clone());
+            }
+            if let Some(v) = args.get("port") {
+                body.insert("port".to_string(), v.clone());
+            }
+            if let Some(v) = args.get("version") {
+                body.insert("version".to_string(), v.clone());
+            }
+            if let Some(v) = args.get("domain") {
+                body.insert("domain".to_string(), v.clone());
+            }
+            if let Some(v) = args.get("domain_enabled") {
+                body.insert("domain_enabled".to_string(), v.clone());
+            }
+            if let Some(v) = args.get("config") {
+                body.insert("config".to_string(), v.clone());
+            }
             client.put(&format!("/instances/{}", id), &Value::Object(body))
         }
         "start_instance" => {
@@ -373,15 +394,15 @@ fn execute_tool(client: &BurdApiClient, name: &str, args: Option<Value>) -> Resu
         "rename_instance" => {
             let id = arg_instance_id(client, &args)?;
             let new_name = arg_str(&args, "new_name")?;
-            client.put(
-                &format!("/instances/{}", id),
-                &json!({ "name": new_name }),
-            )
+            client.put(&format!("/instances/{}", id), &json!({ "name": new_name }))
         }
         "change_instance_version" => {
             let id = arg_instance_id(client, &args)?;
             let version = arg_str(&args, "version")?;
-            client.put(&format!("/instances/{}", id), &json!({ "version": version }))
+            client.put(
+                &format!("/instances/{}", id),
+                &json!({ "version": version }),
+            )
         }
 
         // Domain tools
@@ -408,7 +429,10 @@ fn execute_tool(client: &BurdApiClient, name: &str, args: Option<Value>) -> Resu
         "download_binary" => {
             let svc = arg_str(&args, "service_type")?;
             let version = arg_str(&args, "version")?;
-            client.post(&format!("/services/{}/versions/{}", svc, version), &json!({}))
+            client.post(
+                &format!("/services/{}/versions/{}", svc, version),
+                &json!({}),
+            )
         }
         "delete_binary_version" => {
             let svc = arg_str(&args, "service_type")?;

@@ -59,13 +59,19 @@ fn is_loopback_host(host: &str) -> bool {
 async fn local_only_guard(req: Request, next: Next) -> Result<Response, StatusCode> {
     let headers = req.headers();
 
-    if let Some(host) = headers.get(axum::http::header::HOST).and_then(|h| h.to_str().ok()) {
+    if let Some(host) = headers
+        .get(axum::http::header::HOST)
+        .and_then(|h| h.to_str().ok())
+    {
         if !is_loopback_host(host) {
             return Err(StatusCode::FORBIDDEN);
         }
     }
 
-    if let Some(origin) = headers.get(axum::http::header::ORIGIN).and_then(|h| h.to_str().ok()) {
+    if let Some(origin) = headers
+        .get(axum::http::header::ORIGIN)
+        .and_then(|h| h.to_str().ok())
+    {
         let authority = origin.split_once("://").map(|(_, a)| a).unwrap_or(origin);
         if !is_loopback_host(authority) {
             return Err(StatusCode::FORBIDDEN);
@@ -82,7 +88,6 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
 
 /// Create the API router from a pre-built ApiState (allows passing AppHandle).
 pub fn create_router_with_state(api_state: ApiState) -> Router {
-
     Router::new()
         // Status
         .route("/status", get(handlers::status::get_status))
@@ -204,7 +209,12 @@ mod guard_tests {
     }
 
     async fn status_of(req: Request<Body>) -> u16 {
-        guarded_router().oneshot(req).await.unwrap().status().as_u16()
+        guarded_router()
+            .oneshot(req)
+            .await
+            .unwrap()
+            .status()
+            .as_u16()
     }
 
     #[tokio::test]

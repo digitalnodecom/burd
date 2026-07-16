@@ -198,6 +198,7 @@ impl ConfigStore {
     }
 
     /// Update an instance's editable fields (name, port, version, domain, config)
+    #[allow(clippy::too_many_arguments)]
     pub fn update_instance(
         &self,
         id: Uuid,
@@ -212,8 +213,15 @@ impl ConfigStore {
 
         // Check port uniqueness before mutating
         if let Some(new_port) = port {
-            if config.instances.iter().any(|i| i.id != id && i.port == new_port) {
-                return Err(format!("Port {} is already used by another instance", new_port));
+            if config
+                .instances
+                .iter()
+                .any(|i| i.id != id && i.port == new_port)
+            {
+                return Err(format!(
+                    "Port {} is already used by another instance",
+                    new_port
+                ));
             }
         }
 

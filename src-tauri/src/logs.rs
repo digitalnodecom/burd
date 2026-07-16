@@ -368,15 +368,13 @@ pub fn display_name_for_service_type(svc_type: &str) -> &'static str {
 
 /// Get available log sources including per-instance-type sources
 pub fn get_log_sources_with_instances(instances: &[Instance]) -> Vec<LogSourceInfo> {
-    let mut sources = vec![
-        LogSourceInfo {
-            id: "caddy".to_string(),
-            name: "Caddy (Proxy)".to_string(),
-            log_type: "file".to_string(),
-            path: Some(get_caddy_log_path().to_string_lossy().to_string()),
-            color: "#3B82F6".to_string(),
-        },
-    ];
+    let mut sources = vec![LogSourceInfo {
+        id: "caddy".to_string(),
+        name: "Caddy (Proxy)".to_string(),
+        log_type: "file".to_string(),
+        path: Some(get_caddy_log_path().to_string_lossy().to_string()),
+        color: "#3B82F6".to_string(),
+    }];
 
     // Collect unique service types from instances
     let mut seen_types = std::collections::HashSet::new();

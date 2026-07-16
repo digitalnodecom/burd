@@ -211,7 +211,10 @@ pub fn run_link_with(name: Option<String>, opts: LinkOptions) -> Result<(), Stri
         ssl_enabled,
     );
     if let Err(e) = caddy::write_domain_file(&route) {
-        eprintln!("Warning: failed to write Caddy domain file for {}: {}", full_domain, e);
+        eprintln!(
+            "Warning: failed to write Caddy domain file for {}: {}",
+            full_domain, e
+        );
     }
 
     // Build URL

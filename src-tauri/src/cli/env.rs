@@ -279,7 +279,7 @@ fn check_site_url_env(
 
     let keys: &[&str] = match project_type {
         ProjectType::Laravel { .. } => &["APP_URL"],
-        ProjectType::Bedrock { .. } => &["WP_HOME", "WP_SITEURL"],
+        ProjectType::Bedrock => &["WP_HOME", "WP_SITEURL"],
         _ => return,
     };
 

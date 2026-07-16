@@ -38,10 +38,10 @@ pub use php::{
 
 // Re-export instance commands
 pub use instances::{
-    change_instance_version, check_instance_health, check_port_status, create_instance, delete_instance,
-    generate_env_for_service, get_instance_config, get_instance_env, get_instance_info,
-    get_instance_logs, list_instances, rename_instance, reorder_instances, restart_instance,
-    start_instance, stop_instance, update_instance_config, update_instance_port,
+    change_instance_version, check_instance_health, check_port_status, create_instance,
+    delete_instance, generate_env_for_service, get_instance_config, get_instance_env,
+    get_instance_info, get_instance_logs, list_instances, rename_instance, reorder_instances,
+    restart_instance, start_instance, stop_instance, update_instance_config, update_instance_port,
 };
 
 // Re-export domain commands
@@ -64,10 +64,10 @@ pub use dns::{
 
 // Re-export proxy commands
 pub use proxy::{
-    auto_trust_ca_if_needed, check_proxy_health, check_health_sync, disable_proxy,
+    auto_trust_ca_if_needed, check_health_sync, check_proxy_health, disable_proxy,
     get_ca_trust_status, get_proxy_config, get_proxy_port_conflicts, get_proxy_status,
-    restart_proxy_daemon, restart_proxy_for_certs, setup_proxy, start_proxy_daemon,
-    trust_caddy_ca, untrust_caddy_ca,
+    restart_proxy_daemon, restart_proxy_for_certs, setup_proxy, start_proxy_daemon, trust_caddy_ca,
+    untrust_caddy_ca,
 };
 
 // Re-export system commands (settings, CLI, helper)

@@ -16,7 +16,10 @@ pub struct ApiState {
 
 impl ApiState {
     pub fn new(app_state: Arc<AppState>) -> Self {
-        Self { inner: app_state, app_handle: None }
+        Self {
+            inner: app_state,
+            app_handle: None,
+        }
     }
 
     pub fn with_app_handle(mut self, handle: AppHandle) -> Self {

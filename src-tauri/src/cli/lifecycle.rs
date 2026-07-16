@@ -58,8 +58,7 @@ fn dispatch(name: Option<String>, action: Action) -> Result<(), String> {
     let client = BurdApiClient::new();
     if !client.is_available() {
         return Err(
-            "Burd app isn't running. Open Burd or run `burd setup`, then try again."
-                .to_string(),
+            "Burd app isn't running. Open Burd or run `burd setup`, then try again.".to_string(),
         );
     }
 

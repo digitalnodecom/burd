@@ -144,7 +144,11 @@ pub async fn create(
 
         // If targeting an instance, resolve its port for proxy registration
         let instance_port = if let DomainTarget::Instance(instance_id) = &domain.target {
-            config.instances.iter().find(|i| &i.id == instance_id).map(|i| i.port)
+            config
+                .instances
+                .iter()
+                .find(|i| &i.id == instance_id)
+                .map(|i| i.port)
         } else {
             None
         };
@@ -229,7 +233,10 @@ pub async fn update(
         let tld = config.tld.clone();
 
         // Get old domain for proxy cleanup
-        let old_full_domain = config.domains.iter().find(|d| d.id == uuid)
+        let old_full_domain = config
+            .domains
+            .iter()
+            .find(|d| d.id == uuid)
             .map(|d| d.full_domain(&tld));
 
         if old_full_domain.is_none() {
@@ -271,7 +278,11 @@ pub async fn update(
         };
 
         let instance_port = if let DomainTarget::Instance(instance_id) = &updated.target {
-            config.instances.iter().find(|i| &i.id == instance_id).map(|i| i.port)
+            config
+                .instances
+                .iter()
+                .find(|i| &i.id == instance_id)
+                .map(|i| i.port)
         } else {
             None
         };
@@ -289,14 +300,30 @@ pub async fn update(
         match &updated.target {
             DomainTarget::Instance(_) => {
                 if let Some(port) = instance_port {
-                    let _ = proxy.register_route(&full_domain, port, &updated.id.to_string(), updated.ssl_enabled);
+                    let _ = proxy.register_route(
+                        &full_domain,
+                        port,
+                        &updated.id.to_string(),
+                        updated.ssl_enabled,
+                    );
                 }
             }
             DomainTarget::Port(port) => {
-                let _ = proxy.register_route(&full_domain, *port, &updated.id.to_string(), updated.ssl_enabled);
+                let _ = proxy.register_route(
+                    &full_domain,
+                    *port,
+                    &updated.id.to_string(),
+                    updated.ssl_enabled,
+                );
             }
             DomainTarget::StaticFiles { path, browse } => {
-                let _ = proxy.register_static_route(&full_domain, path, *browse, &updated.id.to_string(), updated.ssl_enabled);
+                let _ = proxy.register_static_route(
+                    &full_domain,
+                    path,
+                    *browse,
+                    &updated.id.to_string(),
+                    updated.ssl_enabled,
+                );
             }
         }
     }
@@ -399,7 +426,11 @@ pub async fn toggle_ssl(
         };
 
         let instance_port = if let DomainTarget::Instance(instance_id) = &domain.target {
-            config.instances.iter().find(|i| &i.id == instance_id).map(|i| i.port)
+            config
+                .instances
+                .iter()
+                .find(|i| &i.id == instance_id)
+                .map(|i| i.port)
         } else {
             None
         };
@@ -414,14 +445,30 @@ pub async fn toggle_ssl(
         match &domain.target {
             DomainTarget::Instance(_) => {
                 if let Some(port) = instance_port {
-                    let _ = proxy.register_route(&full_domain, port, &domain.id.to_string(), domain.ssl_enabled);
+                    let _ = proxy.register_route(
+                        &full_domain,
+                        port,
+                        &domain.id.to_string(),
+                        domain.ssl_enabled,
+                    );
                 }
             }
             DomainTarget::Port(port) => {
-                let _ = proxy.register_route(&full_domain, *port, &domain.id.to_string(), domain.ssl_enabled);
+                let _ = proxy.register_route(
+                    &full_domain,
+                    *port,
+                    &domain.id.to_string(),
+                    domain.ssl_enabled,
+                );
             }
             DomainTarget::StaticFiles { path, browse } => {
-                let _ = proxy.register_static_route(&full_domain, path, *browse, &domain.id.to_string(), domain.ssl_enabled);
+                let _ = proxy.register_static_route(
+                    &full_domain,
+                    path,
+                    *browse,
+                    &domain.id.to_string(),
+                    domain.ssl_enabled,
+                );
             }
         }
     }

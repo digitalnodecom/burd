@@ -136,8 +136,8 @@ impl MariaDBService {
                     name
                 ));
             }
-            let body = fs::read_to_string(&p)
-                .map_err(|e| format!("Failed to read {:?}: {}", p, e))?;
+            let body =
+                fs::read_to_string(&p).map_err(|e| format!("Failed to read {:?}: {}", p, e))?;
             sql.push_str(&body);
             sql.push('\n');
         }

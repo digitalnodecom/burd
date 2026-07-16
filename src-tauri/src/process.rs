@@ -446,7 +446,12 @@ impl ProcessManager {
         writeln!(debug_log, "Data dir: {:?}", data_dir).ok();
         writeln!(debug_log, "Port: {}", instance.port).ok();
         let effective_working_dir = if instance.service_type == ServiceType::Bun {
-            instance.config.get("working_directory").and_then(|v| v.as_str()).unwrap_or("/").to_string()
+            instance
+                .config
+                .get("working_directory")
+                .and_then(|v| v.as_str())
+                .unwrap_or("/")
+                .to_string()
         } else {
             data_dir.to_string_lossy().to_string()
         };

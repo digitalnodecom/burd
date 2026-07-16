@@ -50,7 +50,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         .icon_as_template(true)
         .tooltip("Burd")
         .menu(&menu)
-        .on_menu_event(|app, event| handle_menu_event(app, event))
+        .on_menu_event(handle_menu_event)
         .build(app)?;
 
     spawn_refresh_listeners(app.clone());
@@ -387,11 +387,9 @@ fn dispatch_site_action(app: &AppHandle, uuid: String, action: String) {
     tauri::async_runtime::spawn(async move {
         let state = app.state::<AppState>();
         let result: Result<(), String> = match action.as_str() {
-            "start" => {
-                crate::commands::start_instance(uuid.clone(), state.clone(), app.clone())
-                    .await
-                    .map(|_| ())
-            }
+            "start" => crate::commands::start_instance(uuid.clone(), state.clone(), app.clone())
+                .await
+                .map(|_| ()),
             "stop" => {
                 crate::commands::stop_instance(uuid.clone(), state.clone(), app.clone()).await
             }

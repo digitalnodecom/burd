@@ -749,10 +749,7 @@ pub async fn open(
             Err(e) => return Json(ApiResponse::err(e)),
         };
 
-        let routed_domain = config
-            .domains
-            .iter()
-            .find(|d| d.routes_to_instance(&uuid));
+        let routed_domain = config.domains.iter().find(|d| d.routes_to_instance(&uuid));
         match routed_domain {
             Some(d) => {
                 let scheme = if d.ssl_enabled { "https" } else { "http" };

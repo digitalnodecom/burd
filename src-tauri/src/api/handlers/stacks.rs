@@ -261,7 +261,11 @@ pub async fn start_stack(
         Ok(v) => v,
         Err(e) => return Json(ApiResponse::err(e)),
     };
-    let mut result = StackActionResult { started: vec![], stopped: vec![], errors: vec![] };
+    let mut result = StackActionResult {
+        started: vec![],
+        stopped: vec![],
+        errors: vec![],
+    };
     for iid in ids {
         let resp = instance_handlers::start(
             axum::extract::State(state.clone()),
@@ -292,7 +296,11 @@ pub async fn stop_stack(
         Ok(v) => v,
         Err(e) => return Json(ApiResponse::err(e)),
     };
-    let mut result = StackActionResult { started: vec![], stopped: vec![], errors: vec![] };
+    let mut result = StackActionResult {
+        started: vec![],
+        stopped: vec![],
+        errors: vec![],
+    };
     for iid in ids {
         let resp = instance_handlers::stop(
             axum::extract::State(state.clone()),

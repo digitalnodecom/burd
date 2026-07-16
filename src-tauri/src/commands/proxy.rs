@@ -65,7 +65,9 @@ pub fn get_proxy_status(state: State<'_, AppState>) -> Result<ProxyStatus, Strin
 
     // Read cached health from AppState if available
     let proxy_healthy = if daemon_status.installed && daemon_status.running {
-        let cached = state.proxy_healthy.load(std::sync::atomic::Ordering::Relaxed);
+        let cached = state
+            .proxy_healthy
+            .load(std::sync::atomic::Ordering::Relaxed);
         // 0 = unknown/not-checked, 1 = healthy, 2 = unhealthy
         match cached {
             1 => Some(true),
@@ -88,10 +90,9 @@ pub fn get_proxy_status(state: State<'_, AppState>) -> Result<ProxyStatus, Strin
 /// Manually check proxy health (for frontend polling)
 #[tauri::command]
 pub async fn check_proxy_health() -> Result<Option<bool>, String> {
-    let result =
-        tokio::task::spawn_blocking(check_health_sync)
-            .await
-            .map_err(|e| format!("Task error: {}", e))?;
+    let result = tokio::task::spawn_blocking(check_health_sync)
+        .await
+        .map_err(|e| format!("Task error: {}", e))?;
     Ok(result)
 }
 

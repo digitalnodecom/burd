@@ -119,15 +119,12 @@ pub fn run_doctor() -> Result<(), String> {
     for instance in &config.instances {
         let port_open = check_port(instance.port);
         let (status, status_text, hint) = match (&daemon_state, port_open) {
-            (DaemonState::Offline, true) => (
-                Status::Ok,
-                "running (daemon offline)".to_string(),
-                None,
-            ),
+            (DaemonState::Offline, true) => {
+                (Status::Ok, "running (daemon offline)".to_string(), None)
+            }
             (DaemonState::Offline, false) => (
                 Status::Warning,
-                "port closed (daemon offline — cannot distinguish stopped vs crashed)"
-                    .to_string(),
+                "port closed (daemon offline — cannot distinguish stopped vs crashed)".to_string(),
                 Some("Start Burd to get accurate status.".to_string()),
             ),
             (DaemonState::Ok(states), port) => {

@@ -21,7 +21,9 @@ pub async fn sources(State(state): State<ApiState>) -> Json<ApiResponse<Vec<LogS
         Ok(c) => c,
         Err(e) => return Json(ApiResponse::err(e.to_string())),
     };
-    Json(ApiResponse::ok(get_log_sources_with_instances(&cfg.instances)))
+    Json(ApiResponse::ok(get_log_sources_with_instances(
+        &cfg.instances,
+    )))
 }
 
 #[derive(Deserialize)]
@@ -81,11 +83,8 @@ pub async fn recent(
                     for line in lines {
                         let trimmed = line.trim();
                         if !trimmed.is_empty() {
-                            let mut entry = parse_plain_text(
-                                trimmed,
-                                svc,
-                                Some(&instance.id.to_string()),
-                            );
+                            let mut entry =
+                                parse_plain_text(trimmed, svc, Some(&instance.id.to_string()));
                             entry.domain = Some(instance.name.clone());
                             all.push(entry);
                         }

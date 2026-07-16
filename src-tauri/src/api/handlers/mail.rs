@@ -285,7 +285,10 @@ pub async fn unread_count(State(state): State<ApiState>) -> Response {
         return upstream_err(format!("Mailpit API error: {}", resp.status()));
     }
     match resp.json::<MailMessageList>().await {
-        Ok(list) => Json(ApiResponse::ok(UnreadCount { unread: list.unread })).into_response(),
+        Ok(list) => Json(ApiResponse::ok(UnreadCount {
+            unread: list.unread,
+        }))
+        .into_response(),
         Err(e) => upstream_err(format!("Failed to parse response: {}", e)),
     }
 }

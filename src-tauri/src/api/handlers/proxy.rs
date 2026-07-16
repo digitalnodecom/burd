@@ -10,7 +10,11 @@ pub async fn status(State(state): State<ApiState>) -> Json<ApiResponse<serde_jso
     // tauri::State which we don't have in the HTTP context.
     let daemon = crate::launchd::get_status();
     let proxy_healthy = if daemon.installed && daemon.running {
-        match state.inner.proxy_healthy.load(std::sync::atomic::Ordering::Relaxed) {
+        match state
+            .inner
+            .proxy_healthy
+            .load(std::sync::atomic::Ordering::Relaxed)
+        {
             1 => Some(true),
             2 => Some(false),
             _ => None,

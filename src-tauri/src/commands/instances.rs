@@ -197,6 +197,7 @@ pub async fn list_instances(state: State<'_, AppState>) -> Result<Vec<InstanceWi
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn create_instance(
     name: String,
     port: u16,

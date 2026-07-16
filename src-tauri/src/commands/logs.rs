@@ -72,8 +72,7 @@ pub async fn get_recent_logs(
                                             svc_type,
                                             Some(&instance.id.to_string()),
                                         );
-                                        entry.domain =
-                                            Some(instance.name.clone());
+                                        entry.domain = Some(instance.name.clone());
                                         all_logs.push(entry);
                                     }
                                 }
@@ -174,8 +173,7 @@ pub async fn stream_logs(
             if let Ok(log_path) = get_instance_log_path(&instance.id.to_string()) {
                 if log_path.exists() {
                     if let Ok(metadata) = std::fs::metadata(&log_path) {
-                        file_state
-                            .set_position(log_path.to_str().unwrap_or(""), metadata.len());
+                        file_state.set_position(log_path.to_str().unwrap_or(""), metadata.len());
                     }
                 }
             }

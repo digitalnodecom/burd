@@ -138,7 +138,10 @@ pub fn run_init_with(opts: InitOptions) -> Result<(), String> {
         ssl_enabled,
     );
     if let Err(e) = caddy::write_domain_file(&route) {
-        eprintln!("Warning: failed to write Caddy domain file for {}: {}", full_domain, e);
+        eprintln!(
+            "Warning: failed to write Caddy domain file for {}: {}",
+            full_domain, e
+        );
     }
 
     let scheme = if ssl_enabled { "https" } else { "http" };

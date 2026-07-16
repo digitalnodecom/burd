@@ -3,7 +3,9 @@
 //! Commands for managing databases from the command line.
 
 use crate::config::{ConfigStore, Instance, ServiceType};
-use crate::db_manager::{create_manager_for_instance, find_all_db_instances, sanitize_db_name, DbType};
+use crate::db_manager::{
+    create_manager_for_instance, find_all_db_instances, sanitize_db_name, DbType,
+};
 use std::io::{self, Write};
 use std::path::PathBuf;
 use std::sync::mpsc;
@@ -277,15 +279,11 @@ pub fn run_db_drop(
         return Err("No database instances configured in Burd.".to_string());
     }
 
-    let instance = match find_instance_with_database(
-        &db_instances,
-        &sanitized,
-        engine,
-        instance_name,
-    )? {
-        Some(i) => i,
-        None => return Err(format!("Database '{}' not found.", sanitized)),
-    };
+    let instance =
+        match find_instance_with_database(&db_instances, &sanitized, engine, instance_name)? {
+            Some(i) => i,
+            None => return Err(format!("Database '{}' not found.", sanitized)),
+        };
 
     let manager = create_manager_for_instance(instance)?;
 
@@ -338,35 +336,31 @@ pub fn run_db_import(
         return Err("No database instances configured in Burd.".to_string());
     }
 
-    let instance = match find_instance_with_database(
-        &db_instances,
-        &sanitized,
-        engine,
-        instance_name,
-    )? {
-        Some(i) => i,
-        None => {
-            // Database doesn't exist - offer to create it
-            print!("Database '{}' doesn't exist. Create it? [Y/n] ", sanitized);
-            io::stdout().flush().unwrap();
+    let instance =
+        match find_instance_with_database(&db_instances, &sanitized, engine, instance_name)? {
+            Some(i) => i,
+            None => {
+                // Database doesn't exist - offer to create it
+                print!("Database '{}' doesn't exist. Create it? [Y/n] ", sanitized);
+                io::stdout().flush().unwrap();
 
-            let mut input = String::new();
-            io::stdin()
-                .read_line(&mut input)
-                .map_err(|e| format!("Failed to read input: {}", e))?;
+                let mut input = String::new();
+                io::stdin()
+                    .read_line(&mut input)
+                    .map_err(|e| format!("Failed to read input: {}", e))?;
 
-            if input.trim().eq_ignore_ascii_case("n") {
-                println!("Aborted.");
-                return Ok(());
+                if input.trim().eq_ignore_ascii_case("n") {
+                    println!("Aborted.");
+                    return Ok(());
+                }
+
+                let target = select_db_instance(&db_instances, engine, instance_name, true)?;
+                let manager = create_manager_for_instance(target)?;
+                println!("Creating database '{}'...", sanitized);
+                manager.create_database(&sanitized)?;
+                target
             }
-
-            let target = select_db_instance(&db_instances, engine, instance_name, true)?;
-            let manager = create_manager_for_instance(target)?;
-            println!("Creating database '{}'...", sanitized);
-            manager.create_database(&sanitized)?;
-            target
-        }
-    };
+        };
 
     let manager = create_manager_for_instance(instance)?;
 
@@ -395,15 +389,11 @@ pub fn run_db_export(
         return Err("No database instances configured in Burd.".to_string());
     }
 
-    let instance = match find_instance_with_database(
-        &db_instances,
-        &sanitized,
-        engine,
-        instance_name,
-    )? {
-        Some(i) => i,
-        None => return Err(format!("Database '{}' not found.", sanitized)),
-    };
+    let instance =
+        match find_instance_with_database(&db_instances, &sanitized, engine, instance_name)? {
+            Some(i) => i,
+            None => return Err(format!("Database '{}' not found.", sanitized)),
+        };
 
     let manager = create_manager_for_instance(instance)?;
 

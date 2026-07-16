@@ -119,7 +119,11 @@ pub async fn download_version(
     };
     let app_handle = match state.app_handle.clone() {
         Some(h) => h,
-        None => return Json(ApiResponse::err("App handle not available (running detached?)")),
+        None => {
+            return Json(ApiResponse::err(
+                "App handle not available (running detached?)",
+            ))
+        }
     };
     let bm = match state.inner.binary_manager.lock() {
         Ok(b) => b.clone(),
