@@ -9,6 +9,7 @@
     "dialog:default",
     "clipboard-manager:allow-write-text",
     "core:tray:default",
-    "core:menu:default"
+    "core:menu:default",
+    "notification:default"
   ]
 }

@@ -15,9 +15,14 @@ pub struct BurdApiClient {
 
 impl BurdApiClient {
     pub fn new() -> Self {
+        // `no_proxy()` skips macOS SystemConfiguration proxy lookup — that
+        // call panics when this binary is spawned as a subprocess by some
+        // hosts (e.g. MCP clients) without a usable Mach session, and we
+        // only ever talk to 127.0.0.1 anyway.
         Self {
             client: reqwest::blocking::Client::builder()
                 .timeout(std::time::Duration::from_secs(30))
+                .no_proxy()
                 .build()
                 .expect("Failed to create HTTP client"),
             // Separate short-timeout client so `is_available()` fails fast
@@ -25,6 +30,7 @@ impl BurdApiClient {
             // shouldn't hang on the 30s main-client timeout.
             probe_client: reqwest::blocking::Client::builder()
                 .timeout(std::time::Duration::from_millis(500))
+                .no_proxy()
                 .build()
                 .expect("Failed to create probe HTTP client"),
         }

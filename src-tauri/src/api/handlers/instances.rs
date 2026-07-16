@@ -387,7 +387,7 @@ pub async fn update(
     }))
 }
 
-/// POST /instances/:id/start - Start an instance
+/// POST /instances/:id/start - Start an instance (idempotent: succeeds if already running)
 pub async fn start(
     State(state): State<ApiState>,
     Path(id): Path<String>,
@@ -406,6 +406,16 @@ pub async fn start(
             Ok(pm) => pm,
             Err(_) => return Json(ApiResponse::err("Failed to acquire process manager lock")),
         };
+
+        // Idempotent: if already running, return current PID
+        if process_manager.is_running(&uuid) {
+            if let Ok(instance) = config_store.get_instance(uuid) {
+                let status = process_manager.get_status(&instance);
+                if let Some(pid) = status.pid {
+                    return Json(ApiResponse::ok(pid));
+                }
+            }
+        }
 
         let config = match config_store.load() {
             Ok(c) => c,
@@ -507,12 +517,16 @@ pub async fn stop(State(state): State<ApiState>, Path(id): Path<String>) -> Json
             .collect::<Vec<_>>()
     };
 
-    // Stop the process
+    // Stop the process (idempotent: succeeds if already stopped)
     {
         let process_manager = match state.inner.process_manager.lock() {
             Ok(pm) => pm,
             Err(_) => return Json(ApiResponse::err("Failed to acquire process manager lock")),
         };
+
+        if !process_manager.is_running(&uuid) {
+            return Json(ApiResponse::success());
+        }
 
         if let Err(e) = process_manager.stop(&uuid) {
             return Json(ApiResponse::err(e));
@@ -674,4 +688,89 @@ pub async fn env(
     };
 
     Json(ApiResponse::ok(result))
+}
+
+/// GET /instances/:id/validate - Pre-flight check whether the instance can be started.
+/// Returns Ok with `{ ok: true }` if startable, or an error string with an actionable hint
+/// (which tool to call to recover).
+pub async fn validate(
+    State(state): State<ApiState>,
+    Path(id): Path<String>,
+) -> Json<ApiResponse<serde_json::Value>> {
+    let uuid = match Uuid::parse_str(&id) {
+        Ok(u) => u,
+        Err(_) => return Json(ApiResponse::err("Invalid instance ID")),
+    };
+    let instance = {
+        let cs = match state.inner.config_store.lock() {
+            Ok(c) => c,
+            Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
+        };
+        match cs.get_instance(uuid) {
+            Ok(i) => i,
+            Err(e) => return Json(ApiResponse::err(e)),
+        }
+    };
+    match ProcessManager::validate_can_start(&instance) {
+        Ok(()) => Json(ApiResponse::ok(serde_json::json!({
+            "ok": true,
+            "binary_path": ProcessManager::resolve_binary_path(&instance)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_default(),
+        }))),
+        Err(hint) => Json(ApiResponse::err(hint)),
+    }
+}
+
+/// POST /instances/:id/open - Open the instance's URL in the system browser.
+/// Returns the URL that was opened.
+pub async fn open(
+    State(state): State<ApiState>,
+    Path(id): Path<String>,
+) -> Json<ApiResponse<String>> {
+    let uuid = match Uuid::parse_str(&id) {
+        Ok(u) => u,
+        Err(_) => return Json(ApiResponse::err("Invalid instance ID")),
+    };
+
+    let url = {
+        let config_store = match state.inner.config_store.lock() {
+            Ok(cs) => cs,
+            Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
+        };
+
+        let config = match config_store.load() {
+            Ok(c) => c,
+            Err(e) => return Json(ApiResponse::err(format!("Failed to load config: {}", e))),
+        };
+
+        let instance = match config_store.get_instance(uuid) {
+            Ok(i) => i,
+            Err(e) => return Json(ApiResponse::err(e)),
+        };
+
+        let routed_domain = config
+            .domains
+            .iter()
+            .find(|d| d.routes_to_instance(&uuid));
+        match routed_domain {
+            Some(d) => {
+                let scheme = if d.ssl_enabled { "https" } else { "http" };
+                format!("{}://{}", scheme, d.full_domain(&config.tld))
+            }
+            None => format!("http://127.0.0.1:{}", instance.port),
+        }
+    };
+
+    let opener = if cfg!(target_os = "macos") {
+        "open"
+    } else if cfg!(target_os = "windows") {
+        "explorer"
+    } else {
+        "xdg-open"
+    };
+    if let Err(e) = std::process::Command::new(opener).arg(&url).spawn() {
+        return Json(ApiResponse::err(format!("Failed to open URL: {}", e)));
+    }
+    Json(ApiResponse::ok(url))
 }

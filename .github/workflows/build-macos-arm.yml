@@ -1,0 +1,154 @@
+name: Build macOS ARM
+
+# On-demand Apple Silicon build. Unlike release.yml (tag-triggered, signed,
+# notarized, publishes a GitHub release) this produces unsigned artifacts for
+# testing without cutting a release. Signing is opt-in and requires secrets.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sign:
+        description: 'Codesign the app bundle (requires APPLE_* secrets)'
+        type: boolean
+        default: false
+      build_cli:
+        description: 'Also build the burd CLI binary'
+        type: boolean
+        default: true
+
+  # Uncomment to build on every push to main:
+  # push:
+  #   branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Tauri app (aarch64)
+        run: npm run tauri build -- --target aarch64-apple-darwin
+
+      # tauri-action's signing only covers the main binary and externalBin, so
+      # burd-helper would be left unsigned. Sign every Mach-O ourselves, main
+      # executable last (codesign validates subcomponents when it runs).
+      - name: Import signing certificate
+        if: ${{ inputs.sign }}
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "::error::sign=true but APPLE_CERTIFICATE secret is not set"
+            exit 1
+          fi
+
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 12)
+
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain
+
+      - name: Sign app bundle
+        if: ${{ inputs.sign }}
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          APP="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Burd.app"
+          MACOS_DIR="$APP/Contents/MacOS"
+
+          for bin in "$MACOS_DIR/"*; do
+            name=$(basename "$bin")
+            if [ -f "$bin" ] && [ "$name" != "burd-app" ] && file "$bin" | grep -q Mach-O; then
+              codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp --options runtime "$bin"
+              echo "Signed: $name"
+            fi
+          done
+
+          codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp --options runtime "$MACOS_DIR/burd-app"
+          codesign --force --sign "$APPLE_SIGNING_IDENTITY" --timestamp --options runtime "$APP"
+          codesign --verify --deep --strict "$APP"
+          echo "Verification passed"
+
+      - name: Create DMG
+        run: |
+          SUFFIX=$([ "${{ inputs.sign }}" = "true" ] && echo "" || echo "-unsigned")
+          DMG_NAME="Burd_${{ steps.version.outputs.version }}_aarch64${SUFFIX}.dmg"
+          APP="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Burd.app"
+          hdiutil create -volname "Burd" -srcfolder "$APP" -ov -format UDZO "$DMG_NAME"
+          echo "DMG_NAME=$DMG_NAME" >> $GITHUB_ENV
+
+      - name: Build CLI
+        if: ${{ inputs.build_cli }}
+        run: |
+          cd src-tauri
+          cargo build --release --target aarch64-apple-darwin --bin burd
+          cp target/aarch64-apple-darwin/release/burd ../burd-darwin-aarch64
+          cd ..
+          shasum -a 256 burd-darwin-aarch64 | cut -d ' ' -f 1 > burd-darwin-aarch64.sha256
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: burd-macos-aarch64-${{ steps.version.outputs.version }}
+          path: ${{ env.DMG_NAME }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload CLI artifact
+        if: ${{ inputs.build_cli }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: burd-cli-darwin-aarch64-${{ steps.version.outputs.version }}
+          path: |
+            burd-darwin-aarch64
+            burd-darwin-aarch64.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Summary
+        run: |
+          {
+            echo "### Burd ${{ steps.version.outputs.version }} — macOS aarch64"
+            echo ""
+            echo "- DMG: \`$DMG_NAME\`"
+            echo "- Signed: ${{ inputs.sign }}"
+            echo "- CLI: ${{ inputs.build_cli }}"
+            if [ "${{ inputs.sign }}" != "true" ]; then
+              echo ""
+              echo "> Unsigned build. Gatekeeper will block it — remove the quarantine flag to run:"
+              echo "> \`xattr -dr com.apple.quarantine /Applications/Burd.app\`"
+            fi
+          } >> $GITHUB_STEP_SUMMARY

@@ -6,10 +6,63 @@
 use crate::commands::AppState;
 use crate::config::ServiceType;
 use futures_util::StreamExt;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_notification::NotificationExt;
 use tokio_tungstenite::connect_async;
+
+static HTTP_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
+    reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .expect("Failed to create HTTP client")
+});
+
+#[derive(Debug, Deserialize)]
+struct UnreadCountResponse {
+    unread: u32,
+}
+
+/// Fetch current unread count from Mailpit and update the app badge.
+/// Safe to call from anywhere; failures are silent.
+async fn refresh_badge(app_handle: &AppHandle, port: u16) -> Option<u32> {
+    let url = format!("http://127.0.0.1:{}/api/v1/messages?limit=0", port);
+    let count = HTTP_CLIENT
+        .get(&url)
+        .send()
+        .await
+        .ok()?
+        .json::<UnreadCountResponse>()
+        .await
+        .ok()?
+        .unread;
+    set_badge(app_handle, count);
+    Some(count)
+}
+
+fn set_badge(app_handle: &AppHandle, count: u32) {
+    let value = if count == 0 { None } else { Some(count as i64) };
+    if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.set_badge_count(value);
+    }
+}
+
+#[tauri::command]
+pub async fn sync_mail_badge(app_handle: AppHandle) -> Result<u32, String> {
+    let state = app_handle.state::<AppState>();
+    let port = match get_mailpit_port(&state) {
+        Some(p) => p,
+        None => {
+            set_badge(&app_handle, 0);
+            return Ok(0);
+        }
+    };
+    Ok(refresh_badge(&app_handle, port).await.unwrap_or(0))
+}
 
 /// Payload emitted when a new email arrives
 #[derive(Debug, Clone, Serialize)]
@@ -53,13 +106,36 @@ struct MailpitAddress {
 /// Shared state for mail notifier
 pub struct MailNotifierState {
     running: AtomicBool,
+    /// Most recent email id surfaced via OS notification, with the moment it was shown.
+    /// Consumed when the user brings the app to focus shortly after.
+    pending_focus: Mutex<Option<(String, Instant)>>,
 }
 
 impl Default for MailNotifierState {
     fn default() -> Self {
         Self {
             running: AtomicBool::new(false),
+            pending_focus: Mutex::new(None),
         }
+    }
+}
+
+/// How long after a notification a focus event still counts as "the user clicked it".
+const FOCUS_CLAIM_TTL: Duration = Duration::from_secs(15);
+
+/// Called from the main window's focus handler. If a pending notification is
+/// recent enough, emit `open-email` so the frontend navigates to it.
+pub fn handle_window_focus(app_handle: &AppHandle) {
+    let state = app_handle.state::<MailNotifierState>();
+    let mut guard = match state.pending_focus.lock() {
+        Ok(g) => g,
+        Err(_) => return,
+    };
+    let Some((id, when)) = guard.take() else {
+        return;
+    };
+    if when.elapsed() <= FOCUS_CLAIM_TTL {
+        let _ = app_handle.emit("open-email", id);
     }
 }
 
@@ -135,6 +211,36 @@ pub fn start_mail_notifier(app_handle: AppHandle) {
 
                                     // Emit event to frontend
                                     let _ = app_handle.emit("new-email", payload.clone());
+
+                                    // Show OS notification
+                                    let title = if payload.from_name.is_empty() {
+                                        format!("New mail from {}", payload.from_address)
+                                    } else {
+                                        format!("New mail from {}", payload.from_name)
+                                    };
+                                    let _ = app_handle
+                                        .notification()
+                                        .builder()
+                                        .title(title)
+                                        .body(&payload.subject)
+                                        .show();
+
+                                    // If the user is not already in the app, remember
+                                    // this email so we can navigate to it on focus.
+                                    let window_focused = app_handle
+                                        .get_webview_window("main")
+                                        .and_then(|w| w.is_focused().ok())
+                                        .unwrap_or(false);
+                                    if !window_focused {
+                                        let notifier_state =
+                                            app_handle.state::<MailNotifierState>();
+                                        let mut guard =
+                                            notifier_state.pending_focus.lock().unwrap();
+                                        *guard = Some((payload.id.clone(), Instant::now()));
+                                    }
+
+                                    // Refresh the dock/taskbar badge from Mailpit
+                                    let _ = refresh_badge(&app_handle, port).await;
                                 }
                             }
                         }

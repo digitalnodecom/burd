@@ -9,3 +9,10 @@ node_modules
 !.env.example
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Local Claude Code / Maestro session tooling (not part of the project)
+.claude/
+CLAUDE.md
+
+# Standalone FrankenPHP build repo, kept locally but not part of this repo
+frankenphp-custom-builds/

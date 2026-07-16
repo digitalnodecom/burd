@@ -23,7 +23,7 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(name = "burd")]
 #[command(author = "Burd")]
-#[command(version = "0.21.0")]
+#[command(version = env!("CARGO_PKG_VERSION"))]
 #[command(about = "Local development server management CLI", long_about = None)]
 struct Cli {
     #[command(subcommand)]

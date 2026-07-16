@@ -7,8 +7,10 @@ use axum::{
 use serde::Serialize;
 
 use crate::api::{state::ApiState, types::ApiResponse};
+use crate::binary::VersionInfo;
 use crate::commands::parse_service_type;
 use crate::service_config::ServiceRegistry;
+use crate::validation::validate_version;
 
 /// Service info response
 #[derive(Debug, Serialize)]
@@ -78,4 +80,115 @@ pub async fn get_versions(
         service_type,
         installed,
     }))
+}
+
+/// GET /services/:service_type/available - List all downloadable versions (from upstream catalog)
+pub async fn get_available(
+    State(state): State<ApiState>,
+    Path(service_type): Path<String>,
+) -> Json<ApiResponse<Vec<VersionInfo>>> {
+    let svc_type = match parse_service_type(&service_type) {
+        Ok(t) => t,
+        Err(e) => return Json(ApiResponse::err(e)),
+    };
+    let bm = match state.inner.binary_manager.lock() {
+        Ok(b) => b.clone(),
+        Err(_) => return Json(ApiResponse::err("Failed to acquire binary manager lock")),
+    };
+    match bm.get_available_versions(svc_type).await {
+        Ok(v) => Json(ApiResponse::ok(v)),
+        Err(e) => Json(ApiResponse::err(e)),
+    }
+}
+
+/// POST /services/:service_type/versions/:version - Download and install a binary version.
+pub async fn download_version(
+    State(state): State<ApiState>,
+    Path((service_type, version)): Path<(String, String)>,
+) -> Json<ApiResponse<()>> {
+    // Reject anything that isn't a real version string before it reaches the
+    // filesystem/URL layer. `version` is otherwise joined into a bin path and
+    // interpolated into the upstream release URL, so a traversal value like
+    // `..%2F..%2F..` would escape both.
+    if let Err(e) = validate_version(&version) {
+        return Json(ApiResponse::err(e.to_string()));
+    }
+    let svc_type = match parse_service_type(&service_type) {
+        Ok(t) => t,
+        Err(e) => return Json(ApiResponse::err(e)),
+    };
+    let app_handle = match state.app_handle.clone() {
+        Some(h) => h,
+        None => return Json(ApiResponse::err("App handle not available (running detached?)")),
+    };
+    let bm = match state.inner.binary_manager.lock() {
+        Ok(b) => b.clone(),
+        Err(_) => return Json(ApiResponse::err("Failed to acquire binary manager lock")),
+    };
+    let info = match bm.download(svc_type, &version, app_handle).await {
+        Ok(i) => i,
+        Err(e) => return Json(ApiResponse::err(e)),
+    };
+    let cs = match state.inner.config_store.lock() {
+        Ok(c) => c,
+        Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
+    };
+    if let Err(e) = cs.update_binary_info(svc_type, info) {
+        return Json(ApiResponse::err(e));
+    }
+    Json(ApiResponse::success())
+}
+
+/// DELETE /services/:service_type/versions/:version - Delete an installed version.
+pub async fn delete_version(
+    State(state): State<ApiState>,
+    Path((service_type, version)): Path<(String, String)>,
+) -> Json<ApiResponse<()>> {
+    // Guard the traversal: `version` is joined into the bin dir and handed to
+    // remove_dir_all, so `..%2F..` would delete arbitrary directories.
+    if let Err(e) = validate_version(&version) {
+        return Json(ApiResponse::err(e.to_string()));
+    }
+    let svc_type = match parse_service_type(&service_type) {
+        Ok(t) => t,
+        Err(e) => return Json(ApiResponse::err(e)),
+    };
+
+    {
+        let cs = match state.inner.config_store.lock() {
+            Ok(c) => c,
+            Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
+        };
+        let cfg = match cs.load() {
+            Ok(c) => c,
+            Err(e) => return Json(ApiResponse::err(e.to_string())),
+        };
+        for instance in &cfg.instances {
+            if instance.service_type == svc_type && instance.version == version {
+                return Json(ApiResponse::err(format!(
+                    "Cannot delete version {} - instance '{}' is using it",
+                    version, instance.name
+                )));
+            }
+        }
+    }
+
+    {
+        let bm = match state.inner.binary_manager.lock() {
+            Ok(b) => b,
+            Err(_) => return Json(ApiResponse::err("Failed to acquire binary manager lock")),
+        };
+        if let Err(e) = bm.delete_version(svc_type, &version) {
+            return Json(ApiResponse::err(e));
+        }
+    }
+
+    let cs = match state.inner.config_store.lock() {
+        Ok(c) => c,
+        Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
+    };
+    if let Err(e) = cs.remove_binary_version(svc_type, &version) {
+        return Json(ApiResponse::err(e));
+    }
+    Json(ApiResponse::success())
 }

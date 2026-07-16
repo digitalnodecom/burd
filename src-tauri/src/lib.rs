@@ -155,6 +155,7 @@ use commands::{
     remove_instances_from_stack,
     remove_php_shell_integration,
     rename_instance,
+    update_instance_port,
     reorder_domains,
     reorder_instances,
     restart_dns_server,
@@ -258,6 +259,17 @@ pub fn run() {
                 eprintln!("Failed to initialize tray: {e}");
             }
 
+            // When the main window gains focus shortly after a mail notification,
+            // route the user to that email.
+            if let Some(window) = app.get_webview_window("main") {
+                let handle = app.handle().clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::Focused(true) = event {
+                        mail_notifier::handle_window_focus(&handle);
+                    }
+                });
+            }
+
             // Initialize park directory watchers
             if !parked_dirs_for_watcher.is_empty() {
                 let watcher_state = app.state::<ParkWatcherState>();
@@ -338,8 +350,14 @@ pub fn run() {
 
             // Start MCP API server for external control
             let api_state = app.state::<AppState>().inner().clone();
+            let app_handle_for_api = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = api::start_server(std::sync::Arc::new(api_state)).await {
+                if let Err(e) = api::start_server_with_state(
+                    api::state::ApiState::new(std::sync::Arc::new(api_state))
+                        .with_app_handle(app_handle_for_api),
+                )
+                .await
+                {
                     eprintln!("Failed to start MCP API server: {}", e);
                 }
             });
@@ -382,6 +400,7 @@ pub fn run() {
             list_instances,
             create_instance,
             rename_instance,
+            update_instance_port,
             start_instance,
             stop_instance,
             restart_instance,
@@ -494,6 +513,7 @@ pub fn run() {
             delete_all_emails,
             mark_emails_read,
             get_unread_count,
+            mail_notifier::sync_mail_badge,
             // Tinker commands (PHP Console)
             list_tinker_projects,
             execute_tinker,

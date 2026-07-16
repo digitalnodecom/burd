@@ -346,6 +346,32 @@ pub fn rename_instance(
     Ok(())
 }
 
+#[tauri::command]
+pub fn update_instance_port(
+    id: String,
+    new_port: u16,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid instance ID")?;
+
+    if new_port < 1024 {
+        return Err("Port must be 1024 or higher".to_string());
+    }
+
+    let process_manager = lock!(state.process_manager)?;
+    if process_manager.is_running(&uuid) {
+        return Err(
+            "Stop the instance before changing its port — running instances can't be remapped."
+                .to_string(),
+        );
+    }
+    drop(process_manager);
+
+    let config_store = lock!(state.config_store)?;
+    config_store.update_instance(uuid, None, Some(new_port), None, None, None, None)?;
+    Ok(())
+}
+
 // ============================================================================
 // Instance Lifecycle Commands
 // ============================================================================

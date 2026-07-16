@@ -5,9 +5,24 @@
 
   interface Props {
     onRefresh?: () => void;
+    openEmailId?: string | null;
   }
 
-  let { onRefresh }: Props = $props();
+  let { onRefresh, openEmailId = $bindable(null) }: Props = $props();
+
+  // When the parent sets a pending email id (e.g. from a notification click),
+  // open it and clear the signal.
+  $effect(() => {
+    const id = openEmailId;
+    if (!id) return;
+    (async () => {
+      if (!mail.emails.length) {
+        await mail.loadEmails();
+      }
+      await mail.viewEmail(id);
+      openEmailId = null;
+    })();
+  });
 
   const mail = createMailState();
   let searchInput = $state("");

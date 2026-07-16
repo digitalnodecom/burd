@@ -123,12 +123,139 @@ impl ProcessManager {
     /// Start an instance with optional TLD for domain resolution
     /// If TLD is provided and domain_enabled is true, the full domain will be passed to the service
     /// If ssl_enabled is true, HTTPS=on env var will be set for PHP services
+    /// Resolve the binary path that would be used to start this instance.
+    /// Mirrors the resolution logic in `start()` so callers can pre-flight without spawning.
+    pub fn resolve_binary_path(instance: &Instance) -> Result<PathBuf, String> {
+        if instance.service_type == ServiceType::Frpc {
+            return get_frpc_binary_path();
+        }
+        if instance.service_type == ServiceType::MariaDB {
+            use crate::services::mariadb::MariaDBService;
+            return MariaDBService::get_binary_path();
+        }
+        if instance.service_type == ServiceType::PostgreSQL {
+            use crate::services::postgresql::PostgreSQLService;
+            return PostgreSQLService::get_binary_path();
+        }
+        if instance.version.is_empty() || instance.version == "legacy" {
+            return get_binary_path(instance.service_type);
+        }
+        get_versioned_binary_path(instance.service_type, &instance.version)
+    }
+
+    /// Pre-flight check: verify everything required to spawn this instance is present and usable.
+    /// Returns Ok(()) if the instance can be started, or a structured, actionable error string
+    /// telling the agent (or user) which recovery tool to call.
+    pub fn validate_can_start(instance: &Instance) -> Result<(), String> {
+        let service = get_service(instance.service_type);
+        let display = service.display_name();
+
+        let binary_path = Self::resolve_binary_path(instance).map_err(|e| {
+            match instance.service_type {
+                ServiceType::MariaDB | ServiceType::PostgreSQL => format!(
+                    "{} binary not available: {}. {} is provided via Homebrew — install it with `brew install {}` and retry.",
+                    display, e, display, display.to_lowercase()
+                ),
+                _ => format!(
+                    "{} binary path could not be resolved: {}. Reinstall with download_binary({{service_type: \"{}\", version: \"{}\"}}).",
+                    display, e, instance.service_type.as_str(), instance.version
+                ),
+            }
+        })?;
+
+        if !binary_path.exists() {
+            return Err(match instance.service_type {
+                ServiceType::MariaDB | ServiceType::PostgreSQL => format!(
+                    "{} binary missing at {:?}. Install via Homebrew (`brew install {}`) and retry.",
+                    display, binary_path, display.to_lowercase()
+                ),
+                ServiceType::Frpc => format!(
+                    "frpc binary missing at {:?}. Install or reinstall the frpc binary.",
+                    binary_path
+                ),
+                _ if instance.version.is_empty() || instance.version == "legacy" => format!(
+                    "{} binary missing at {:?} and instance has no version set. Set a version via change_instance_version after download_binary.",
+                    display, binary_path
+                ),
+                _ => format!(
+                    "{} binary missing at {:?}. Reinstall with download_binary({{service_type: \"{}\", version: \"{}\"}}).",
+                    display, binary_path, instance.service_type.as_str(), instance.version
+                ),
+            });
+        }
+
+        // On Unix, verify the file is executable (catches bad chmod / partial downloads).
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Ok(meta) = fs::metadata(&binary_path) {
+                if meta.permissions().mode() & 0o111 == 0 {
+                    return Err(format!(
+                        "{} binary at {:?} is not executable. Reinstall with download_binary or run `chmod +x {:?}`.",
+                        display, binary_path, binary_path
+                    ));
+                }
+            }
+        }
+
+        // For MariaDB, surface the well-known dangling install-db symlink early.
+        // We don't fail validation — initialize_data_dir falls back to mariadbd
+        // --bootstrap — but if even the SQL templates are missing, this catches it.
+        if instance.service_type == ServiceType::MariaDB {
+            use crate::services::mariadb::MariaDBService;
+            if !MariaDBService::install_db_script_usable() {
+                if let Ok(basedir) = MariaDBService::get_basedir() {
+                    let template = basedir.join("share/mysql/mariadb_system_tables.sql");
+                    if !template.exists() {
+                        return Err(format!(
+                            "MariaDB bundle is incomplete: bin/mariadb-install-db is unusable AND the SQL templates under share/mysql/ are missing (expected {:?}). Re-download MariaDB from the Services page.",
+                            template
+                        ));
+                    }
+                }
+            }
+        }
+
+        // For Bun, the user-supplied working_directory must exist (the spawn would otherwise fail with ENOENT).
+        if instance.service_type == ServiceType::Bun {
+            if let Some(wd) = instance
+                .config
+                .get("working_directory")
+                .and_then(|v| v.as_str())
+            {
+                let wd_path = Path::new(wd);
+                if !wd_path.exists() {
+                    return Err(format!(
+                        "Bun working_directory does not exist: {:?}. Update the instance config (update_instance) with a valid path.",
+                        wd_path
+                    ));
+                }
+                if !wd_path.is_dir() {
+                    return Err(format!(
+                        "Bun working_directory is not a directory: {:?}.",
+                        wd_path
+                    ));
+                }
+            } else {
+                return Err(
+                    "Bun instance has no working_directory configured. Set one via update_instance with config.working_directory.".to_string(),
+                );
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn start(
         &self,
         instance: &Instance,
         tld: Option<&str>,
         ssl_enabled: bool,
     ) -> Result<u32, String> {
+        // Surface missing binaries / bad working dirs with an actionable error
+        // before we touch the process tree.
+        Self::validate_can_start(instance)?;
+
         // Check if already running
         if self.is_running(&instance.id) {
             return Err("Instance is already running".to_string());
@@ -208,7 +335,15 @@ impl ProcessManager {
         if service.needs_init() {
             let init_marker = data_dir.join(".initialized");
             if !init_marker.exists() {
-                if let Some((init_cmd, init_args)) = service.init_command(&data_dir) {
+                // MariaDB has a packaging quirk on macOS: bin/mariadb-install-db
+                // is a dangling symlink in some bundles. Use the dedicated init
+                // routine which falls back to `mariadbd --bootstrap`.
+                if instance.service_type == ServiceType::MariaDB {
+                    use crate::services::mariadb::MariaDBService;
+                    MariaDBService::initialize_data_dir(&data_dir)?;
+                    fs::write(&init_marker, b"")
+                        .map_err(|e| format!("Failed to write init marker: {}", e))?;
+                } else if let Some((init_cmd, init_args)) = service.init_command(&data_dir) {
                     // Get init binary path
                     let init_binary = if instance.service_type == ServiceType::MariaDB {
                         use crate::services::mariadb::MariaDBService;
@@ -241,13 +376,31 @@ impl ProcessManager {
                         }
                     }
 
-                    let output = cmd
-                        .output()
-                        .map_err(|e| format!("Failed to run init command: {}", e))?;
+                    // Pre-check the init binary actually exists / its symlink resolves.
+                    // Some bundles ship dangling symlinks (notably mariadb-install-db);
+                    // catching it here gives a clearer message than raw ENOENT.
+                    if fs::metadata(&init_binary).is_err() {
+                        return Err(format!(
+                            "{} init helper missing or unreachable at {:?}. The downloaded binary archive looks incomplete — re-download {} from the Services page.",
+                            service.display_name(),
+                            init_binary,
+                            service.display_name()
+                        ));
+                    }
+
+                    let output = cmd.output().map_err(|e| {
+                        format!(
+                            "Failed to run {} init helper {:?}: {}",
+                            service.display_name(),
+                            init_binary,
+                            e
+                        )
+                    })?;
 
                     if !output.status.success() {
                         return Err(format!(
-                            "Init command failed: {}",
+                            "{} init helper exited non-zero: {}",
+                            service.display_name(),
                             String::from_utf8_lossy(&output.stderr)
                         ));
                     }
@@ -358,9 +511,17 @@ impl ProcessManager {
             cmd.env("HTTPS", "on");
         }
 
-        let child: Child = cmd
-            .spawn()
-            .map_err(|e| format!("Failed to start {}: {}", service.display_name(), e))?;
+        let child: Child = cmd.spawn().map_err(|e| {
+            // ENOENT here usually means the binary path was valid at validation
+            // time but vanished, or a sub-binary it execs is missing. Re-run the
+            // validator to get a structured hint when possible.
+            if e.kind() == std::io::ErrorKind::NotFound {
+                if let Err(hint) = Self::validate_can_start(instance) {
+                    return hint;
+                }
+            }
+            format!("Failed to start {}: {}", service.display_name(), e)
+        })?;
 
         let pid = child.id();
         self.write_pid(&instance.id, pid)?;

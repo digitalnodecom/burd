@@ -5,6 +5,11 @@
 
 import { invoke } from "@tauri-apps/api/core";
 
+function syncBadge() {
+  // Fire-and-forget; backend reads the authoritative unread count from Mailpit
+  invoke("sync_mail_badge").catch(() => {});
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -117,6 +122,7 @@ export class MailState {
       this.unreadCount = result.unread;
       this.currentPage = page;
       this.searchQuery = search;
+      syncBadge();
     } catch (e) {
       console.error("[Mail] loadEmails error", e);
       this.error = e instanceof Error ? e.message : String(e);
@@ -173,6 +179,7 @@ export class MailState {
       if (this.selectedEmail?.id === messageId) {
         this.selectedEmail = null;
       }
+      syncBadge();
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     }
@@ -195,6 +202,7 @@ export class MailState {
       if (this.selectedEmail && messageIds.includes(this.selectedEmail.id)) {
         this.selectedEmail = null;
       }
+      syncBadge();
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     }
@@ -207,6 +215,7 @@ export class MailState {
       this.totalEmails = 0;
       this.unreadCount = 0;
       this.selectedEmail = null;
+      syncBadge();
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     }
@@ -228,6 +237,7 @@ export class MailState {
           }
         }
       }
+      syncBadge();
     } catch (e) {
       this.error = e instanceof Error ? e.message : String(e);
     }

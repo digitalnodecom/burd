@@ -167,6 +167,7 @@
 
   // === Navigation State ===
   let activeSection = $state("general");
+  let pendingEmailId = $state<string | null>(null);
 
   // === Data State ===
   let serviceTypes = $state<ServiceInfo[]>([]);
@@ -270,6 +271,8 @@
   let instanceSettingsId = $state("");
   let instanceSettingsName = $state("");
   let instanceSettingsOriginalName = $state("");
+  let instanceSettingsPort = $state(0);
+  let instanceSettingsOriginalPort = $state(0);
   let instanceSettingsServiceType = $state("");
   let instanceSettingsVersion = $state("");
   let instanceSettingsOriginalVersion = $state("");
@@ -677,6 +680,8 @@
       instanceSettingsId = instance.id;
       instanceSettingsName = instance.name;
       instanceSettingsOriginalName = instance.name;
+      instanceSettingsPort = instance.port;
+      instanceSettingsOriginalPort = instance.port;
       instanceSettingsVersion = instance.version;
       instanceSettingsOriginalVersion = instance.version;
       showInstanceSettings = true;
@@ -740,6 +745,17 @@
       // Rename if name changed
       if (instanceSettingsName.trim() !== instanceSettingsOriginalName) {
         await invoke("rename_instance", { id: instanceSettingsId, newName: instanceSettingsName.trim() });
+      }
+
+      // Port change requires the instance to be stopped first
+      if (instanceSettingsPort !== instanceSettingsOriginalPort) {
+        if (instance?.running) {
+          await invoke("stop_instance", { id: instanceSettingsId });
+        }
+        await invoke("update_instance_port", {
+          id: instanceSettingsId,
+          newPort: instanceSettingsPort,
+        });
       }
 
       await invoke("update_instance_config", { id: instanceSettingsId, config: instanceSettingsConfig });
@@ -1126,6 +1142,10 @@
         }
       }
     );
+    const openEmailUnlistenPromise = listen<string>("open-email", (event) => {
+      pendingEmailId = event.payload;
+      activeSection = "mail";
+    });
     const instancesChangedUnlistenPromise = listen("instances-changed", () => {
       loadData();
     });
@@ -1142,6 +1162,7 @@
       healthUnlistenPromise.then((unlisten) => unlisten());
       herdUnlistenPromise.then((unlisten) => unlisten());
       trayNavUnlistenPromise.then((unlisten) => unlisten());
+      openEmailUnlistenPromise.then((unlisten) => unlisten());
       instancesChangedUnlistenPromise.then((unlisten) => unlisten());
       konamiListener.destroy();
     };
@@ -1265,7 +1286,7 @@
     {:else if activeSection === "tinker"}
       <TinkerSection onRefresh={loadData} />
     {:else if activeSection === "mail"}
-      <MailSection onRefresh={loadData} />
+      <MailSection onRefresh={loadData} bind:openEmailId={pendingEmailId} />
     {/if}
   </main>
 </div>
@@ -1453,6 +1474,24 @@
                 placeholder="Instance name..."
               />
             </label>
+          </div>
+
+          <div class="settings-group">
+            <label>
+              <span class="settings-label">Port</span>
+              <input
+                type="number"
+                min="1024"
+                max="65535"
+                bind:value={instanceSettingsPort}
+                placeholder="Port..."
+              />
+            </label>
+            {#if instanceSettingsPort !== instanceSettingsOriginalPort}
+              <p class="version-warning" style="margin-top: 0.5rem; font-size: 0.85rem; color: #ff9800;">
+                ⚠️ Port change requires the instance to be stopped. Burd will stop it automatically before applying.
+              </p>
+            {/if}
           </div>
 
           <!-- Version Selector -->

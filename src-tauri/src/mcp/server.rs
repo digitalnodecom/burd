@@ -138,7 +138,12 @@ pub fn run_server() -> Result<(), String> {
             }
         };
 
+        // JSON-RPC notifications (no `id`) MUST NOT receive a response.
+        let is_notification = request.id.is_none();
         let response = handle_request(&client, request);
+        if is_notification {
+            continue;
+        }
         if let Err(e) = writeln!(stdout, "{}", serde_json::to_string(&response).unwrap()) {
             eprintln!("Error writing response: {}", e);
         }
@@ -151,7 +156,9 @@ pub fn run_server() -> Result<(), String> {
 fn handle_request(client: &BurdApiClient, request: JsonRpcRequest) -> JsonRpcResponse {
     match request.method.as_str() {
         "initialize" => handle_initialize(request.id),
-        "initialized" => JsonRpcResponse::success(request.id, json!({})),
+        "notifications/initialized" | "initialized" => {
+            JsonRpcResponse::success(request.id, json!({}))
+        }
         "tools/list" => handle_tools_list(request.id),
         "tools/call" => handle_tools_call(client, request.id, request.params),
         "ping" => JsonRpcResponse::success(request.id, json!({})),
@@ -222,18 +229,105 @@ fn handle_tools_call(
     }
 }
 
+/// Resolve an instance reference (UUID or name) to its UUID by hitting /instances.
+/// Accepts either a UUID string or a case-insensitive instance name.
+fn resolve_instance_id(client: &BurdApiClient, reference: &str) -> Result<String, String> {
+    if uuid::Uuid::parse_str(reference).is_ok() {
+        return Ok(reference.to_string());
+    }
+    let body = client.get("/instances")?;
+    let list: Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
+    let arr = list.as_array().ok_or("Unexpected /instances response")?;
+    let lower = reference.to_lowercase();
+    let matches: Vec<&Value> = arr
+        .iter()
+        .filter(|i| {
+            i.get("name")
+                .and_then(|v| v.as_str())
+                .map(|n| n.to_lowercase() == lower)
+                .unwrap_or(false)
+        })
+        .collect();
+    match matches.len() {
+        0 => Err(format!("No instance named '{}'", reference)),
+        1 => matches[0]
+            .get("id")
+            .and_then(|v| v.as_str())
+            .map(String::from)
+            .ok_or_else(|| "Instance missing id".to_string()),
+        _ => Err(format!(
+            "Multiple instances named '{}' — pass the UUID instead",
+            reference
+        )),
+    }
+}
+
+/// Resolve a domain reference (UUID, full domain, or subdomain) to its UUID.
+fn resolve_domain_id(client: &BurdApiClient, reference: &str) -> Result<String, String> {
+    if uuid::Uuid::parse_str(reference).is_ok() {
+        return Ok(reference.to_string());
+    }
+    let body = client.get("/domains")?;
+    let list: Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
+    let arr = list.as_array().ok_or("Unexpected /domains response")?;
+    let lower = reference.to_lowercase();
+    let matches: Vec<&Value> = arr
+        .iter()
+        .filter(|d| {
+            let sub = d.get("subdomain").and_then(|v| v.as_str()).map(|s| s.to_lowercase());
+            let full = d.get("full_domain").and_then(|v| v.as_str()).map(|s| s.to_lowercase());
+            sub.as_deref() == Some(&lower) || full.as_deref() == Some(&lower)
+        })
+        .collect();
+    match matches.len() {
+        0 => Err(format!("No domain matching '{}'", reference)),
+        1 => matches[0]
+            .get("id")
+            .and_then(|v| v.as_str())
+            .map(String::from)
+            .ok_or_else(|| "Domain missing id".to_string()),
+        _ => Err(format!("Multiple domains match '{}' — pass the UUID", reference)),
+    }
+}
+
+/// Pull `id` (or `name`) from args and resolve to a UUID.
+fn arg_instance_id(client: &BurdApiClient, args: &Value) -> Result<String, String> {
+    let raw = args
+        .get("id")
+        .or_else(|| args.get("name"))
+        .and_then(|v| v.as_str())
+        .ok_or("Missing 'id' or 'name' parameter")?;
+    resolve_instance_id(client, raw)
+}
+
+fn arg_domain_id(client: &BurdApiClient, args: &Value) -> Result<String, String> {
+    let raw = args
+        .get("id")
+        .or_else(|| args.get("subdomain"))
+        .and_then(|v| v.as_str())
+        .ok_or("Missing 'id' or 'subdomain' parameter")?;
+    resolve_domain_id(client, raw)
+}
+
+fn arg_str<'a>(args: &'a Value, key: &str) -> Result<&'a str, String> {
+    args.get(key)
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| format!("Missing '{}' parameter", key))
+}
+
 fn execute_tool(client: &BurdApiClient, name: &str, args: Option<Value>) -> Result<String, String> {
     let args = args.unwrap_or(json!({}));
 
     match name {
         // Instance tools
         "list_instances" => client.get("/instances"),
+        "get_instance" => {
+            let id = arg_instance_id(client, &args)?;
+            client.get(&format!("/instances/{}", id))
+        }
         "create_instance" => client.post("/instances", &args),
         "update_instance" => {
-            let id = args
-                .get("id")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing 'id' parameter")?;
+            let id = arg_instance_id(client, &args)?;
             // Build update body from provided fields (exclude id)
             let mut body = serde_json::Map::new();
             if let Some(v) = args.get("name") { body.insert("name".to_string(), v.clone()); }
@@ -245,72 +339,142 @@ fn execute_tool(client: &BurdApiClient, name: &str, args: Option<Value>) -> Resu
             client.put(&format!("/instances/{}", id), &Value::Object(body))
         }
         "start_instance" => {
-            let id = args
-                .get("id")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing 'id' parameter")?;
+            let id = arg_instance_id(client, &args)?;
             client.post(&format!("/instances/{}/start", id), &json!({}))
         }
         "stop_instance" => {
-            let id = args
-                .get("id")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing 'id' parameter")?;
+            let id = arg_instance_id(client, &args)?;
             client.post(&format!("/instances/{}/stop", id), &json!({}))
         }
         "restart_instance" => {
-            let id = args
-                .get("id")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing 'id' parameter")?;
+            let id = arg_instance_id(client, &args)?;
             client.post(&format!("/instances/{}/restart", id), &json!({}))
         }
         "delete_instance" => {
-            let id = args
-                .get("id")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing 'id' parameter")?;
+            let id = arg_instance_id(client, &args)?;
             client.delete(&format!("/instances/{}", id))
         }
         "get_instance_logs" => {
-            let id = args
-                .get("id")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing 'id' parameter")?;
+            let id = arg_instance_id(client, &args)?;
             client.get(&format!("/instances/{}/logs", id))
         }
         "get_instance_env" => {
-            let id = args
-                .get("id")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing 'id' parameter")?;
+            let id = arg_instance_id(client, &args)?;
             client.get(&format!("/instances/{}/env", id))
+        }
+        "open_instance" => {
+            let id = arg_instance_id(client, &args)?;
+            client.post(&format!("/instances/{}/open", id), &json!({}))
+        }
+        "validate_instance" => {
+            let id = arg_instance_id(client, &args)?;
+            client.get(&format!("/instances/{}/validate", id))
+        }
+        "rename_instance" => {
+            let id = arg_instance_id(client, &args)?;
+            let new_name = arg_str(&args, "new_name")?;
+            client.put(
+                &format!("/instances/{}", id),
+                &json!({ "name": new_name }),
+            )
+        }
+        "change_instance_version" => {
+            let id = arg_instance_id(client, &args)?;
+            let version = arg_str(&args, "version")?;
+            client.put(&format!("/instances/{}", id), &json!({ "version": version }))
         }
 
         // Domain tools
         "list_domains" => client.get("/domains"),
         "create_domain" => client.post("/domains", &args),
         "update_domain" => {
-            let id = args
-                .get("id")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing 'id' parameter")?;
+            let id = arg_domain_id(client, &args)?;
             client.put(&format!("/domains/{}", id), &args)
         }
         "delete_domain" => {
-            let id = args
-                .get("id")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing 'id' parameter")?;
+            let id = arg_domain_id(client, &args)?;
             client.delete(&format!("/domains/{}", id))
         }
         "toggle_domain_ssl" => {
-            let id = args
-                .get("id")
-                .and_then(|v| v.as_str())
-                .ok_or("Missing 'id' parameter")?;
+            let id = arg_domain_id(client, &args)?;
             client.post(&format!("/domains/{}/ssl", id), &args)
         }
+
+        // Service / binary tools
+        "get_available_versions" => {
+            let svc = arg_str(&args, "service_type")?;
+            client.get(&format!("/services/{}/available", svc))
+        }
+        "download_binary" => {
+            let svc = arg_str(&args, "service_type")?;
+            let version = arg_str(&args, "version")?;
+            client.post(&format!("/services/{}/versions/{}", svc, version), &json!({}))
+        }
+        "delete_binary_version" => {
+            let svc = arg_str(&args, "service_type")?;
+            let version = arg_str(&args, "version")?;
+            client.delete(&format!("/services/{}/versions/{}", svc, version))
+        }
+
+        // Proxy tools
+        "get_proxy_status" => client.get("/proxy/status"),
+        "restart_proxy" => client.post("/proxy/restart", &json!({})),
+        "get_port_conflicts" => client.get("/proxy/conflicts"),
+
+        // Park tools
+        "list_parked" => client.get("/parks"),
+        "list_parked_projects" => client.get("/parks/projects"),
+
+        // Tunnel tools
+        "list_tunnels" => client.get("/tunnels"),
+        "start_tunnels" => client.post("/tunnels/start", &json!({})),
+        "stop_tunnels" => client.post("/tunnels/stop", &json!({})),
+        "get_tunnel_status" => client.get("/tunnels/status"),
+
+        // Stack tools
+        "list_stacks" => client.get("/stacks"),
+        "get_stack" => {
+            let id = arg_str(&args, "id")?;
+            client.get(&format!("/stacks/{}", id))
+        }
+        "create_stack" => client.post("/stacks", &args),
+        "update_stack" => {
+            let id = arg_str(&args, "id")?;
+            client.put(&format!("/stacks/{}", id), &args)
+        }
+        "delete_stack" => {
+            let id = arg_str(&args, "id")?;
+            client.delete(&format!("/stacks/{}", id))
+        }
+        "start_stack" => {
+            let id = arg_str(&args, "id")?;
+            client.post(&format!("/stacks/{}/start", id), &json!({}))
+        }
+        "stop_stack" => {
+            let id = arg_str(&args, "id")?;
+            client.post(&format!("/stacks/{}/stop", id), &json!({}))
+        }
+
+        // Logs tools
+        "list_log_sources" => client.get("/logs/sources"),
+        "get_recent_logs" => {
+            let mut params = Vec::new();
+            if let Some(s) = args.get("source").and_then(|v| v.as_str()) {
+                params.push(format!("source={}", urlencoding::encode(s)));
+            }
+            if let Some(l) = args.get("limit").and_then(|v| v.as_u64()) {
+                params.push(format!("limit={}", l));
+            }
+            let path = if params.is_empty() {
+                "/logs".to_string()
+            } else {
+                format!("/logs?{}", params.join("&"))
+            };
+            client.get(&path)
+        }
+
+        // Mail extras
+        "delete_all_emails" => client.delete("/mail/messages"),
 
         // Database tools
         "list_databases" => client.get("/databases"),

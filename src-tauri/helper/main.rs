@@ -6,6 +6,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
+use std::os::unix::io::AsRawFd;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 use std::process::Command;
@@ -13,6 +14,10 @@ use std::process::Command;
 const SOCKET_PATH: &str = "/var/run/com.burd.helper.sock";
 const RESOLVER_DIR: &str = "/etc/resolver";
 const PROXY_PLIST_PATH: &str = "/Library/LaunchDaemons/com.burd.proxy.plist";
+
+/// Directory the helper is permitted to touch on behalf of a caller, relative
+/// to the caller's home. All path-taking operations are constrained to it.
+const BURD_SUPPORT_SUFFIX: &str = "Library/Application Support/Burd";
 
 /// Request types the helper can handle
 #[derive(Debug, Serialize, Deserialize)]
@@ -92,8 +97,24 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                if let Err(e) = handle_client(stream) {
-                    eprintln!("Error handling client: {}", e);
+                // Authenticate the caller before doing anything. The socket is
+                // world-connectable (the app runs unprivileged), so the only
+                // thing standing between an arbitrary local process and root is
+                // this check. Accept root and the console (logged-in GUI) user
+                // only; reject everyone else — other accounts, sandboxed
+                // daemons, `nobody`, etc.
+                match peer_uid(&stream) {
+                    Some(uid) if is_authorized_uid(uid) => {
+                        if let Err(e) = handle_client(stream) {
+                            eprintln!("Error handling client: {}", e);
+                        }
+                    }
+                    Some(uid) => {
+                        eprintln!("Rejected connection from unauthorized uid {}", uid);
+                    }
+                    None => {
+                        eprintln!("Rejected connection: could not determine peer identity");
+                    }
                 }
             }
             Err(e) => {
@@ -101,6 +122,34 @@ fn main() {
             }
         }
     }
+}
+
+/// Read the effective uid of the process on the other end of the socket, straight
+/// from the kernel. Unforgeable — the caller cannot lie about who it is.
+fn peer_uid(stream: &UnixStream) -> Option<u32> {
+    let fd = stream.as_raw_fd();
+    let mut uid: libc::uid_t = 0;
+    let mut gid: libc::gid_t = 0;
+    // SAFETY: fd is a valid connected socket for the duration of this call;
+    // getpeereid only writes through the two out-pointers.
+    let rc = unsafe { libc::getpeereid(fd, &mut uid, &mut gid) };
+    if rc == 0 {
+        Some(uid)
+    } else {
+        None
+    }
+}
+
+/// The uid of the currently logged-in GUI user. On macOS the owner of
+/// `/dev/console` is exactly that user — no SystemConfiguration framework needed.
+fn console_uid() -> Option<u32> {
+    use std::os::unix::fs::MetadataExt;
+    fs::metadata("/dev/console").ok().map(|m| m.uid())
+}
+
+/// A caller is trusted iff it is root or the logged-in console user.
+fn is_authorized_uid(uid: u32) -> bool {
+    uid == 0 || console_uid() == Some(uid)
 }
 
 fn handle_client(mut stream: UnixStream) -> Result<(), String> {
@@ -155,7 +204,24 @@ fn handle_request(request: HelperRequest) -> HelperResponse {
 // Resolver Operations
 // ============================================================================
 
+/// A TLD is a single lowercase-alphanumeric label. This blocks path traversal
+/// (`../../etc/sudoers`) since the value is interpolated straight into a root
+/// file path, and rejects anything that isn't a plausible resolver name.
+fn is_valid_tld(tld: &str) -> bool {
+    !tld.is_empty()
+        && tld.len() <= 63
+        && tld
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        && !tld.starts_with('-')
+        && !tld.ends_with('-')
+}
+
 fn install_resolver(tld: &str, dns_port: u16) -> HelperResponse {
+    if !is_valid_tld(tld) {
+        return HelperResponse::error("Invalid TLD");
+    }
+
     let path = format!("{}/{}", RESOLVER_DIR, tld);
     let content = format!("nameserver 127.0.0.1\nport {}\n", dns_port);
 
@@ -173,6 +239,10 @@ fn install_resolver(tld: &str, dns_port: u16) -> HelperResponse {
 }
 
 fn uninstall_resolver(tld: &str) -> HelperResponse {
+    if !is_valid_tld(tld) {
+        return HelperResponse::error("Invalid TLD");
+    }
+
     let path = format!("{}/{}", RESOLVER_DIR, tld);
 
     if let Err(e) = fs::remove_file(&path) {
@@ -337,22 +407,39 @@ fn get_cert_info(cert_path: &str) -> HelperResponse {
 /// Fix permissions on Caddy data directory to be user-readable
 /// This is needed because Caddy runs as root via launchd and creates files with restricted permissions
 fn fix_caddy_permissions(path: &str) -> HelperResponse {
-    // Security check: only allow paths within user's Library/Application Support/Burd
-    // The path should be something like /Users/xxx/Library/Application Support/Burd/caddy-data
-    if !path.contains("/Library/Application Support/Burd/") {
+    // Check existence first: canonicalize() requires the path to exist, and a
+    // missing caddy-data dir is a normal no-op, not an error.
+    if !Path::new(path).exists() {
+        return HelperResponse::ok("Path does not exist yet, no permissions to fix");
+    }
+
+    // Security check: resolve symlinks and `..` to a real path, then require it
+    // to live under SOME user's `Library/Application Support/Burd`. A substring
+    // test is not enough — `/x/Library/Application Support/Burd/../../../etc`
+    // contains the marker yet escapes it; canonicalization is what makes the
+    // containment check sound.
+    let real = match fs::canonicalize(path) {
+        Ok(p) => p,
+        Err(e) => return HelperResponse::error(format!("Cannot resolve path: {}", e)),
+    };
+    // canonicalize() has already resolved every `..` and symlink, so a boundary
+    // check on the real path is sound. Require the Burd support dir to be an
+    // exact path component (marker + `/`, or the dir itself) — not a mere
+    // substring, which would also match a sibling like `Burd-evil`.
+    let real_str = real.to_string_lossy();
+    let marker = format!("/{}", BURD_SUPPORT_SUFFIX);
+    let under_burd = real_str.contains(&format!("{}/", marker)) || real_str.ends_with(&marker);
+    if !under_burd {
         return HelperResponse::error(
             "Permission denied: can only fix permissions within Burd directories".to_string(),
         );
     }
 
-    // Check if path exists
-    if !Path::new(path).exists() {
-        return HelperResponse::ok("Path does not exist yet, no permissions to fix");
-    }
-
     // Make directory and all contents readable (755 for dirs, 644 for files)
     // Use chmod -R to recursively set permissions
-    let output = Command::new("chmod").args(["-R", "755", path]).output();
+    let output = Command::new("chmod")
+        .args(["-R", "755", real_str.as_ref()])
+        .output();
 
     match output {
         Ok(o) if o.status.success() => {

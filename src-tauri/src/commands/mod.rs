@@ -41,7 +41,7 @@ pub use instances::{
     change_instance_version, check_instance_health, check_port_status, create_instance, delete_instance,
     generate_env_for_service, get_instance_config, get_instance_env, get_instance_info,
     get_instance_logs, list_instances, rename_instance, reorder_instances, restart_instance,
-    start_instance, stop_instance, update_instance_config,
+    start_instance, stop_instance, update_instance_config, update_instance_port,
 };
 
 // Re-export domain commands

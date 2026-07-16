@@ -515,5 +515,261 @@ pub fn get_tools() -> Vec<Tool> {
                 "required": ["service"]
             }),
         },
+
+        // ====================================================================
+        // Instance lookup / lifecycle extras
+        // (instance tools also accept `name` instead of UUID)
+        // ====================================================================
+        Tool {
+            name: "get_instance".to_string(),
+            description: "Get a single instance by UUID or name. Returns full details including config and runtime state.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "description": "Instance UUID" },
+                    "name": { "type": "string", "description": "Instance name (alternative to id)" }
+                }
+            }),
+        },
+        Tool {
+            name: "rename_instance".to_string(),
+            description: "Rename an instance.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "description": "Instance UUID or name" },
+                    "new_name": { "type": "string", "description": "New name" }
+                },
+                "required": ["new_name"]
+            }),
+        },
+        Tool {
+            name: "change_instance_version".to_string(),
+            description: "Change the binary version an instance uses (must already be installed). Restart afterwards to apply.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "description": "Instance UUID or name" },
+                    "version": { "type": "string", "description": "Installed version string (see get_service_versions)" }
+                },
+                "required": ["version"]
+            }),
+        },
+        Tool {
+            name: "validate_instance".to_string(),
+            description: "Pre-flight check: verify the instance can be started (binary exists, is executable, working directory present). On failure returns an actionable hint naming the recovery tool to call (e.g. download_binary, update_instance). Use this when start_instance fails with an opaque error.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "description": "Instance UUID or name" }
+                }
+            }),
+        },
+        Tool {
+            name: "open_instance".to_string(),
+            description: "Open the instance's URL (its first routed domain, or http://127.0.0.1:port) in the user's default browser.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string", "description": "Instance UUID or name" }
+                }
+            }),
+        },
+
+        // ====================================================================
+        // Service / binary management
+        // ====================================================================
+        Tool {
+            name: "get_available_versions".to_string(),
+            description: "List all downloadable versions for a service from upstream catalogs (GitHub releases, etc.). Slow — use sparingly.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "service_type": { "type": "string", "description": "e.g. 'redis', 'postgresql', 'frankenphp'" }
+                },
+                "required": ["service_type"]
+            }),
+        },
+        Tool {
+            name: "download_binary".to_string(),
+            description: "Download and install a specific version of a service binary. Long-running.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "service_type": { "type": "string" },
+                    "version": { "type": "string" }
+                },
+                "required": ["service_type", "version"]
+            }),
+        },
+        Tool {
+            name: "delete_binary_version".to_string(),
+            description: "Delete a downloaded binary version. Fails if any instance is using it.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "service_type": { "type": "string" },
+                    "version": { "type": "string" }
+                },
+                "required": ["service_type", "version"]
+            }),
+        },
+
+        // ====================================================================
+        // Proxy / system
+        // ====================================================================
+        Tool {
+            name: "get_proxy_status".to_string(),
+            description: "Get reverse proxy daemon status (Caddy installed, daemon running, listening on 80/443).".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
+        Tool {
+            name: "restart_proxy".to_string(),
+            description: "Restart the reverse proxy daemon. Use after changing instances or domains if routes look stale.".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
+        Tool {
+            name: "get_port_conflicts".to_string(),
+            description: "List any non-Burd processes holding ports 80/443 (which would prevent the proxy from binding).".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
+
+        // ====================================================================
+        // Park (parked directories — read-only via MCP)
+        // ====================================================================
+        Tool {
+            name: "list_parked".to_string(),
+            description: "List parked directories (FrankenPHP Park feature).".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
+        Tool {
+            name: "list_parked_projects".to_string(),
+            description: "List discovered projects across all parked directories with their auto-generated domains.".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
+
+        // ====================================================================
+        // Tunnels (frpc — share local services publicly)
+        // ====================================================================
+        Tool {
+            name: "list_tunnels".to_string(),
+            description: "List configured tunnels with their public URLs and running status.".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
+        Tool {
+            name: "start_tunnels".to_string(),
+            description: "Start the frpc client to bring all tunnels up.".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
+        Tool {
+            name: "stop_tunnels".to_string(),
+            description: "Stop the frpc client (takes all tunnels down).".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
+        Tool {
+            name: "get_tunnel_status".to_string(),
+            description: "Get the frpc client status (running, error, etc.).".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
+
+        // ====================================================================
+        // Stacks (groups of related instances)
+        // ====================================================================
+        Tool {
+            name: "list_stacks".to_string(),
+            description: "List all instance stacks with counts of total and running instances.".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
+        Tool {
+            name: "get_stack".to_string(),
+            description: "Get a stack with the list of instances inside it.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": { "id": { "type": "string", "description": "Stack UUID" } },
+                "required": ["id"]
+            }),
+        },
+        Tool {
+            name: "create_stack".to_string(),
+            description: "Create a stack from a set of existing instance UUIDs.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "description": { "type": "string" },
+                    "instance_ids": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["name"]
+            }),
+        },
+        Tool {
+            name: "update_stack".to_string(),
+            description: "Update a stack's name and/or description.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string" },
+                    "name": { "type": "string" },
+                    "description": { "type": ["string", "null"] }
+                },
+                "required": ["id"]
+            }),
+        },
+        Tool {
+            name: "delete_stack".to_string(),
+            description: "Delete a stack. Member instances are kept (use delete_instance to remove them).".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": { "id": { "type": "string" } },
+                "required": ["id"]
+            }),
+        },
+        Tool {
+            name: "start_stack".to_string(),
+            description: "Start every instance in the stack. Returns per-instance results.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": { "id": { "type": "string" } },
+                "required": ["id"]
+            }),
+        },
+        Tool {
+            name: "stop_stack".to_string(),
+            description: "Stop every instance in the stack. Returns per-instance results.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": { "id": { "type": "string" } },
+                "required": ["id"]
+            }),
+        },
+
+        // ====================================================================
+        // Logs (system-wide, beyond per-instance)
+        // ====================================================================
+        Tool {
+            name: "list_log_sources".to_string(),
+            description: "List available log sources (caddy + per-service-type derived from running instances).".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
+        Tool {
+            name: "get_recent_logs".to_string(),
+            description: "Get recent log entries across sources. Optional 'source' filter ('caddy' or a service-type slug). Limit defaults to 200.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "source": { "type": "string" },
+                    "limit": { "type": "integer", "minimum": 1, "maximum": 5000 }
+                }
+            }),
+        },
+
+        // ====================================================================
+        // Mail extras
+        // ====================================================================
+        Tool {
+            name: "delete_all_emails".to_string(),
+            description: "Delete every message in the Mailpit inbox.".to_string(),
+            input_schema: json!({ "type": "object", "properties": {} }),
+        },
     ]
 }

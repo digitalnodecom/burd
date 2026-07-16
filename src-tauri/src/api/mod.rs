@@ -8,6 +8,10 @@ pub mod state;
 pub mod types;
 
 use axum::{
+    extract::Request,
+    http::StatusCode,
+    middleware::{self, Next},
+    response::Response,
     routing::{delete, get, post, put},
     Router,
 };
@@ -20,9 +24,64 @@ use state::ApiState;
 /// Default port for the API server
 pub const API_PORT: u16 = 19840;
 
+/// Is `host` (the value of a Host or the authority of an Origin header) a
+/// loopback name? Port is ignored; only the hostname is checked. Handles
+/// bracketed IPv6 (`[::1]:port`) as well as `host:port` and bare forms.
+fn is_loopback_host(host: &str) -> bool {
+    let hostname = if let Some(rest) = host.strip_prefix('[') {
+        // [ipv6] or [ipv6]:port
+        rest.split(']').next().unwrap_or(rest)
+    } else if host.matches(':').count() == 1 {
+        // host:port (IPv4 or name) — strip the single port colon
+        host.rsplit_once(':').map(|(h, _)| h).unwrap_or(host)
+    } else {
+        // bare IPv6 (multiple colons, no brackets) or a plain hostname
+        host
+    };
+    matches!(hostname, "127.0.0.1" | "localhost" | "::1")
+}
+
+/// Guard every request against DNS-rebinding and cross-site (CSRF) access.
+///
+/// The API has no auth and binds to loopback, so its whole security model rests
+/// on "only local, first-party callers reach it." Two browser-driven ways to
+/// defeat that, both closed here:
+///
+/// * **DNS rebinding** — an attacker page on `evil.com` rebinds the name to
+///   `127.0.0.1`; the browser then treats `evil.com:19840` as same-origin and
+///   CORS stops applying. We reject any request whose `Host` is not loopback,
+///   so the rebound name is turned away.
+/// * **CSRF** — a plain cross-site `POST` (no preflight) carries an `Origin`.
+///   We reject any request whose `Origin` is present and non-loopback.
+///
+/// The first-party CLI/MCP client sends neither header against a loopback Host,
+/// so it passes untouched.
+async fn local_only_guard(req: Request, next: Next) -> Result<Response, StatusCode> {
+    let headers = req.headers();
+
+    if let Some(host) = headers.get(axum::http::header::HOST).and_then(|h| h.to_str().ok()) {
+        if !is_loopback_host(host) {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
+
+    if let Some(origin) = headers.get(axum::http::header::ORIGIN).and_then(|h| h.to_str().ok()) {
+        let authority = origin.split_once("://").map(|(_, a)| a).unwrap_or(origin);
+        if !is_loopback_host(authority) {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
+
+    Ok(next.run(req).await)
+}
+
 /// Create the API router with all routes
 pub fn create_router(app_state: Arc<AppState>) -> Router {
-    let api_state = ApiState::new(app_state);
+    create_router_with_state(ApiState::new(app_state))
+}
+
+/// Create the API router from a pre-built ApiState (allows passing AppHandle).
+pub fn create_router_with_state(api_state: ApiState) -> Router {
 
     Router::new()
         // Status
@@ -41,6 +100,11 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         )
         .route("/instances/{id}/logs", get(handlers::instances::logs))
         .route("/instances/{id}/env", get(handlers::instances::env))
+        .route("/instances/{id}/open", post(handlers::instances::open))
+        .route(
+            "/instances/{id}/validate",
+            get(handlers::instances::validate),
+        )
         // Domains
         .route("/domains", get(handlers::domains::list))
         .route("/domains", post(handlers::domains::create))
@@ -65,12 +129,52 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
             "/services/{service_type}/versions",
             get(handlers::services::get_versions),
         )
+        .route(
+            "/services/{service_type}/available",
+            get(handlers::services::get_available),
+        )
+        .route(
+            "/services/{service_type}/versions/{version}",
+            post(handlers::services::download_version),
+        )
+        .route(
+            "/services/{service_type}/versions/{version}",
+            delete(handlers::services::delete_version),
+        )
+        // Proxy
+        .route("/proxy/status", get(handlers::proxy::status))
+        .route("/proxy/restart", post(handlers::proxy::restart))
+        .route("/proxy/conflicts", get(handlers::proxy::conflicts))
+        // Parks
+        .route("/parks", get(handlers::parks::list))
+        .route("/parks/projects", get(handlers::parks::list_projects))
+        // Tunnels
+        .route("/tunnels", get(handlers::tunnels::list))
+        .route("/tunnels/start", post(handlers::tunnels::start))
+        .route("/tunnels/stop", post(handlers::tunnels::stop))
+        .route("/tunnels/status", get(handlers::tunnels::status))
+        // Stacks
+        .route("/stacks", get(handlers::stacks::list))
+        .route("/stacks", post(handlers::stacks::create))
+        .route("/stacks/{id}", get(handlers::stacks::get))
+        .route("/stacks/{id}", put(handlers::stacks::update))
+        .route("/stacks/{id}", delete(handlers::stacks::remove))
+        .route("/stacks/{id}/start", post(handlers::stacks::start_stack))
+        .route("/stacks/{id}/stop", post(handlers::stacks::stop_stack))
+        // Logs
+        .route("/logs/sources", get(handlers::logs::sources))
+        .route("/logs", get(handlers::logs::recent))
+        .layer(middleware::from_fn(local_only_guard))
         .with_state(api_state)
 }
 
 /// Start the API server on localhost:19840
 pub async fn start_server(app_state: Arc<AppState>) -> Result<(), String> {
-    let router = create_router(app_state);
+    start_server_with_state(ApiState::new(app_state)).await
+}
+
+pub async fn start_server_with_state(api_state: ApiState) -> Result<(), String> {
+    let router = create_router_with_state(api_state);
     let addr = SocketAddr::from(([127, 0, 0, 1], API_PORT));
 
     let listener = tokio::net::TcpListener::bind(addr)
@@ -85,4 +189,93 @@ pub async fn start_server(app_state: Arc<AppState>) -> Result<(), String> {
         .map_err(|e| format!("API server error: {}", e))?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod guard_tests {
+    use super::{is_loopback_host, local_only_guard};
+    use axum::{body::Body, http::Request, middleware, routing::get, Router};
+    use tower::ServiceExt;
+
+    fn guarded_router() -> Router {
+        Router::new()
+            .route("/status", get(|| async { "ok" }))
+            .layer(middleware::from_fn(local_only_guard))
+    }
+
+    async fn status_of(req: Request<Body>) -> u16 {
+        guarded_router().oneshot(req).await.unwrap().status().as_u16()
+    }
+
+    #[tokio::test]
+    async fn first_party_loopback_request_passes() {
+        // CLI/MCP shape: loopback Host, no Origin.
+        let req = Request::builder()
+            .uri("/status")
+            .header("host", "127.0.0.1:19840")
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(status_of(req).await, 200);
+    }
+
+    #[tokio::test]
+    async fn dns_rebinding_host_is_blocked() {
+        let req = Request::builder()
+            .uri("/status")
+            .header("host", "evil.com:19840")
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(status_of(req).await, 403);
+    }
+
+    #[tokio::test]
+    async fn cross_site_origin_is_blocked() {
+        // CSRF shape: loopback Host but a foreign Origin.
+        let req = Request::builder()
+            .uri("/status")
+            .header("host", "127.0.0.1:19840")
+            .header("origin", "https://evil.com")
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(status_of(req).await, 403);
+    }
+
+    #[tokio::test]
+    async fn same_origin_loopback_is_allowed() {
+        let req = Request::builder()
+            .uri("/status")
+            .header("host", "127.0.0.1:19840")
+            .header("origin", "http://localhost:19840")
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(status_of(req).await, 200);
+    }
+
+    #[test]
+    fn accepts_loopback_hosts_any_port() {
+        for h in [
+            "127.0.0.1",
+            "127.0.0.1:19840",
+            "localhost",
+            "localhost:19840",
+            "::1",
+            "[::1]:19840",
+        ] {
+            assert!(is_loopback_host(h), "{} should be loopback", h);
+        }
+    }
+
+    #[test]
+    fn rejects_rebinding_and_external_hosts() {
+        for h in [
+            "evil.com",
+            "evil.com:19840",
+            "burd.dev",
+            "127.0.0.1.evil.com",
+            "notlocalhost",
+            "0.0.0.0:19840",
+        ] {
+            assert!(!is_loopback_host(h), "{} must be rejected", h);
+        }
+    }
 }
