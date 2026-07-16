@@ -43,7 +43,10 @@ pub fn get_caddy_data_dir() -> PathBuf {
 fn generate_plist() -> String {
     // Use user-space paths explicitly (not dirs::data_dir which varies by user)
     let user_app_dir = get_user_app_dir();
-    let caddy_bin = user_app_dir.join("bin/caddy");
+    // The binary is the one thing the root daemon must NOT read from user space
+    // (a user-writable binary run as root = privilege escalation). Config, data,
+    // and logs stay in user space; only the executable is root-owned.
+    let caddy_bin = crate::caddy::get_caddy_daemon_bin();
     let caddyfile = user_app_dir.join("Caddyfile");
     let logs_dir = get_user_logs_dir();
     let caddy_data = get_caddy_data_dir();

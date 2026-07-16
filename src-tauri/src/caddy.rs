@@ -36,12 +36,17 @@ pub fn get_logs_dir() -> PathBuf {
         .join("Library/Logs/Burd")
 }
 
-/// Get the path where we install Caddy binary for the daemon (in user space)
+/// Root-owned location of the Caddy binary the proxy daemon executes.
+///
+/// This is a system path, NOT under the user's home: the proxy runs it as root
+/// via launchd, so it must not sit anywhere an unprivileged process could
+/// overwrite it (which would be arbitrary root code execution on next start).
+/// The helper installs it here root:wheel and locks the directory down.
+pub const DAEMON_CADDY_BIN: &str = "/Library/Application Support/Burd/bin/caddy";
+
+/// Get the path the proxy daemon runs Caddy from (root-owned system path).
 pub fn get_caddy_daemon_bin() -> PathBuf {
-    get_data_dir()
-        .unwrap_or_else(|_| PathBuf::from("/tmp"))
-        .join("bin")
-        .join("caddy")
+    PathBuf::from(DAEMON_CADDY_BIN)
 }
 
 /// Type of route for Caddyfile generation
@@ -599,30 +604,35 @@ pub fn touch_caddyfile() -> Result<(), String> {
     Ok(())
 }
 
-/// Copy Caddy binary to the daemon location (user space)
-/// This is needed because the launchd daemon needs a fixed path to the binary
+/// Install the Caddy binary at the root-owned daemon location.
+///
+/// The proxy daemon runs Caddy as root, so the binary must live in a path only
+/// root can write. We hand the privileged helper the user-space source binary
+/// and it copies it into place root:wheel. There is no user-space fallback:
+/// writing the daemon binary somewhere world-writable is exactly the exposure
+/// this function exists to avoid.
 pub fn install_caddy_for_daemon() -> Result<(), String> {
+    use crate::helper_client::{HelperClient, HelperRequest};
+
     let source = get_caddy_binary_path()?;
-    let dest = get_caddy_daemon_bin();
 
-    // Ensure parent directory exists
-    if let Some(parent) = dest.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directory {:?}: {}", parent, e))?;
+    if !HelperClient::is_running() {
+        return Err(
+            "Privileged helper is not running; it is required to install the proxy Caddy binary \
+             into a root-owned location."
+                .to_string(),
+        );
     }
 
-    // Copy the binary
-    fs::copy(&source, &dest).map_err(|e| format!("Failed to copy Caddy binary: {}", e))?;
+    let response = HelperClient::send_request(HelperRequest::InstallDaemonCaddy {
+        source_path: source.to_string_lossy().to_string(),
+    })?;
 
-    // Make it executable
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(&dest, fs::Permissions::from_mode(0o755))
-            .map_err(|e| format!("Failed to set permissions: {}", e))?;
+    if response.success {
+        Ok(())
+    } else {
+        Err(response.message)
     }
-
-    Ok(())
 }
 
 /// Check if Caddy is installed for the daemon

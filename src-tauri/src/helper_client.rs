@@ -37,6 +37,8 @@ pub enum HelperRequest {
     FixCaddyPermissions { path: String },
     /// Setup /opt/burd directory with user ownership
     SetupOptBurd { username: String },
+    /// Install the Caddy binary the proxy daemon runs, into a root-owned path.
+    InstallDaemonCaddy { source_path: String },
 }
 
 /// Response from the helper

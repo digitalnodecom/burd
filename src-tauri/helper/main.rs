@@ -19,6 +19,11 @@ const PROXY_PLIST_PATH: &str = "/Library/LaunchDaemons/com.burd.proxy.plist";
 /// to the caller's home. All path-taking operations are constrained to it.
 const BURD_SUPPORT_SUFFIX: &str = "Library/Application Support/Burd";
 
+/// Root-owned directory holding binaries the root proxy daemon executes. Kept
+/// out of any user-writable path so an unprivileged process cannot swap the
+/// binary that launchd then runs as root.
+const DAEMON_BIN_DIR: &str = "/Library/Application Support/Burd/bin";
+
 /// Request types the helper can handle
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -43,6 +48,8 @@ pub enum HelperRequest {
     FixCaddyPermissions { path: String },
     /// Setup /opt/burd directory with user ownership
     SetupOptBurd { username: String },
+    /// Install the Caddy binary the proxy daemon runs, into a root-owned path.
+    InstallDaemonCaddy { source_path: String },
 }
 
 /// Response from the helper
@@ -197,6 +204,8 @@ fn handle_request(request: HelperRequest) -> HelperResponse {
         HelperRequest::FixCaddyPermissions { path } => fix_caddy_permissions(&path),
 
         HelperRequest::SetupOptBurd { username } => setup_opt_burd(&username),
+
+        HelperRequest::InstallDaemonCaddy { source_path } => install_daemon_caddy(&source_path),
     }
 }
 
@@ -451,6 +460,58 @@ fn fix_caddy_permissions(path: &str) -> HelperResponse {
         }
         Err(e) => HelperResponse::error(format!("Failed to run chmod: {}", e)),
     }
+}
+
+// ============================================================================
+// Daemon Binary Installation
+// ============================================================================
+
+/// Install the Caddy binary that the root proxy daemon executes, placing it in
+/// a root-owned, root-only-writable directory.
+///
+/// The proxy plist runs this binary as root. If it lived in a user-writable
+/// path, any unprivileged process could overwrite it and have launchd execute
+/// arbitrary code as root on the next start. Both the file and its parent dir
+/// are left owned root:wheel mode 755 — world-executable, but writable only by
+/// root — so no non-root process can swap the file or replace it via the dir.
+fn install_daemon_caddy(source_path: &str) -> HelperResponse {
+    let src = Path::new(source_path);
+
+    // The source must be a real file of plausible Caddy size (~40MB). This is a
+    // sanity check, not a trust boundary — caller authorization is enforced at
+    // the socket (getpeereid). A checksum/signature check belongs here too and
+    // is tracked as follow-up work.
+    match fs::metadata(src) {
+        Ok(m) if m.is_file() && m.len() > 1_000_000 => {}
+        Ok(_) => return HelperResponse::error("Source is not a plausible Caddy binary"),
+        Err(e) => return HelperResponse::error(format!("Source binary not found: {}", e)),
+    }
+
+    if let Err(e) = fs::create_dir_all(DAEMON_BIN_DIR) {
+        return HelperResponse::error(format!("Failed to create daemon bin dir: {}", e));
+    }
+
+    let dest = format!("{}/caddy", DAEMON_BIN_DIR);
+    // Write to a temp path in the same dir, then rename into place so a running
+    // daemon never reads a half-copied binary.
+    let tmp = format!("{}/caddy.new", DAEMON_BIN_DIR);
+    let _ = fs::remove_file(&tmp);
+    if let Err(e) = fs::copy(src, &tmp) {
+        return HelperResponse::error(format!("Failed to copy Caddy: {}", e));
+    }
+    if let Err(e) = fs::rename(&tmp, &dest) {
+        let _ = fs::remove_file(&tmp);
+        return HelperResponse::error(format!("Failed to place Caddy: {}", e));
+    }
+
+    // Lock down ownership/permissions: root-owned, writable only by root, for
+    // both the binary and the directory that contains it.
+    for target in [dest.as_str(), DAEMON_BIN_DIR] {
+        let _ = Command::new("chown").args(["root:wheel", target]).output();
+        let _ = Command::new("chmod").args(["755", target]).output();
+    }
+
+    HelperResponse::ok(format!("Daemon Caddy installed at {}", dest))
 }
 
 // ============================================================================
