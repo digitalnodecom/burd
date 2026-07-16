@@ -9,6 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.0] - 2026-07-16
+
+First release since 1.2.5; rolls up the 1.3–1.7 work plus a security
+hardening pass across the privileged helper and the localhost control API.
+
+### Security
+
+- **Privileged helper now authenticates its caller.** The root helper
+  verifies the connecting process (via `getpeereid`) and serves only the
+  console user or root, closing an unauthenticated local privilege
+  escalation through its world-connectable socket.
+- **Localhost API rejects cross-site and DNS-rebinding requests.** New
+  guard middleware turns away non-loopback `Host` and foreign `Origin`
+  headers, closing CSRF/rebinding access to the unauthenticated API.
+- **Proxy daemon runs Caddy from a root-owned path.** The binary launchd
+  executes as root was moved out of the user-writable app directory so an
+  unprivileged process can no longer swap it; the helper installs it
+  root-owned and can verify its SHA-256.
+- **Path-traversal hardening.** Validate the `version` parameter on binary
+  download/delete, the resolver TLD and Caddy-permissions path in the
+  helper, and database-tool names before they are executed.
+- Wire optional per-version SHA-256 verification into the binary download
+  path (`scripts/generate-checksums.sh` generates the digests).
+
+### Added
+
+- Expose the Mailpit inbox over the HTTP API and MCP tools.
+- macOS menu-bar tray with instance overview and quick controls.
+- On-demand macOS ARM (aarch64) build workflow.
+- `SECURITY.md` disclosure policy.
+
+### Fixed
+
+- Sync `package-lock.json` so `npm ci` (and CI) works again.
+- Correct the documented local TLD (`.burd`) and other README drift.
+
+---
+
 ## [1.2.5] - 2026-02-17
 
 ### Fixed
