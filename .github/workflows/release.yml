@@ -312,3 +312,41 @@ jobs:
             gh release edit "$TAG" --draft=false
             echo "Release published!"
           fi
+
+  # Update the Homebrew tap (formula + cask) to point at this release.
+  # Requires the app builds to have succeeded (the cask needs the DMGs) and a
+  # HOMEBREW_TAP_TOKEN secret with write access to digitalnodecom/homebrew-tap.
+  update-homebrew-tap:
+    needs: [prepare, build-tauri-aarch64, build-tauri-x64, publish-release]
+    if: ${{ !contains(needs.prepare.outputs.version, '-') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout burd (for the update script)
+        uses: actions/checkout@v4
+
+      - name: Checkout homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: digitalnodecom/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Regenerate formula and cask
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: ./scripts/update-homebrew-tap.sh homebrew-tap
+
+      - name: Commit and push tap
+        working-directory: homebrew-tap
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/burd.rb Casks/burd.rb
+          if git diff --cached --quiet; then
+            echo "Tap already up to date for v${{ needs.prepare.outputs.version }}"
+          else
+            git commit -m "burd ${{ needs.prepare.outputs.version }}"
+            git push
+          fi
