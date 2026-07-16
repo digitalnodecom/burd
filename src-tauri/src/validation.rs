@@ -425,9 +425,51 @@ pub fn validate_version(version: &str) -> Result<(), AppError> {
     Ok(())
 }
 
+/// Validate a database-tool name before it is joined into a binary directory
+/// and executed. The name must be a single bare filename — no path separators,
+/// no `..`, not absolute — so it can only resolve to a tool inside the resolved
+/// version's bin directory, never an arbitrary binary elsewhere on disk.
+pub fn validate_tool_name(tool: &str) -> Result<(), AppError> {
+    use std::path::{Component, Path};
+
+    if tool.is_empty() {
+        return Err(AppError::invalid_config("Tool name cannot be empty"));
+    }
+
+    let mut components = Path::new(tool).components();
+    match (components.next(), components.next()) {
+        (Some(Component::Normal(_)), None) => Ok(()),
+        _ => Err(AppError::invalid_config(format!(
+            "Invalid tool name: '{}'. Must be a bare tool name (e.g. 'mysqldump'), \
+             not a path.",
+            tool
+        ))),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_validate_tool_name() {
+        // Legitimate bare tool names
+        for ok in ["mysqldump", "mysql", "psql", "pg_dump", "mariadb-admin"] {
+            assert!(validate_tool_name(ok).is_ok(), "{} should be allowed", ok);
+        }
+        // Traversal / path escapes must be rejected
+        for bad in [
+            "",
+            "../../../../bin/sh",
+            "..",
+            "/bin/sh",
+            "sub/dir/tool",
+            "./mysql",
+            "a/b",
+        ] {
+            assert!(validate_tool_name(bad).is_err(), "{} must be rejected", bad);
+        }
+    }
 
     // Port validation tests
     #[test]

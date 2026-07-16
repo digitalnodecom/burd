@@ -49,7 +49,13 @@ pub enum HelperRequest {
     /// Setup /opt/burd directory with user ownership
     SetupOptBurd { username: String },
     /// Install the Caddy binary the proxy daemon runs, into a root-owned path.
-    InstallDaemonCaddy { source_path: String },
+    /// If `expected_sha256` is set, the source must match it or the install is
+    /// refused — so the bytes placed root-owned are exactly what the caller
+    /// vetted (and, when the hash is pinned, authentic).
+    InstallDaemonCaddy {
+        source_path: String,
+        expected_sha256: Option<String>,
+    },
 }
 
 /// Response from the helper
@@ -159,6 +165,20 @@ fn is_authorized_uid(uid: u32) -> bool {
     uid == 0 || console_uid() == Some(uid)
 }
 
+/// Hex-encoded SHA-256 of a file, streamed so a large binary need not be held
+/// in memory.
+fn sha256_of(path: &Path) -> std::io::Result<String> {
+    use sha2::{Digest, Sha256};
+    let mut file = fs::File::open(path)?;
+    let mut hasher = Sha256::new();
+    std::io::copy(&mut file, &mut hasher)?;
+    Ok(hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect())
+}
+
 fn handle_client(mut stream: UnixStream) -> Result<(), String> {
     let reader = BufReader::new(stream.try_clone().map_err(|e| e.to_string())?);
 
@@ -205,7 +225,10 @@ fn handle_request(request: HelperRequest) -> HelperResponse {
 
         HelperRequest::SetupOptBurd { username } => setup_opt_burd(&username),
 
-        HelperRequest::InstallDaemonCaddy { source_path } => install_daemon_caddy(&source_path),
+        HelperRequest::InstallDaemonCaddy {
+            source_path,
+            expected_sha256,
+        } => install_daemon_caddy(&source_path, expected_sha256.as_deref()),
     }
 }
 
@@ -474,17 +497,33 @@ fn fix_caddy_permissions(path: &str) -> HelperResponse {
 /// arbitrary code as root on the next start. Both the file and its parent dir
 /// are left owned root:wheel mode 755 — world-executable, but writable only by
 /// root — so no non-root process can swap the file or replace it via the dir.
-fn install_daemon_caddy(source_path: &str) -> HelperResponse {
+fn install_daemon_caddy(source_path: &str, expected_sha256: Option<&str>) -> HelperResponse {
     let src = Path::new(source_path);
 
     // The source must be a real file of plausible Caddy size (~40MB). This is a
     // sanity check, not a trust boundary — caller authorization is enforced at
-    // the socket (getpeereid). A checksum/signature check belongs here too and
-    // is tracked as follow-up work.
+    // the socket (getpeereid).
     match fs::metadata(src) {
         Ok(m) if m.is_file() && m.len() > 1_000_000 => {}
         Ok(_) => return HelperResponse::error("Source is not a plausible Caddy binary"),
         Err(e) => return HelperResponse::error(format!("Source binary not found: {}", e)),
+    }
+
+    // If the caller pinned a hash, the source must match it before we place it
+    // root-owned — this closes the window where the vetted binary is swapped
+    // between the caller's check and our copy, and enforces authenticity when
+    // the expected hash comes from a trusted source.
+    if let Some(expected) = expected_sha256 {
+        match sha256_of(src) {
+            Ok(actual) if actual.eq_ignore_ascii_case(expected) => {}
+            Ok(actual) => {
+                return HelperResponse::error(format!(
+                    "Caddy checksum mismatch: expected {}, got {}",
+                    expected, actual
+                ));
+            }
+            Err(e) => return HelperResponse::error(format!("Failed to hash source: {}", e)),
+        }
     }
 
     if let Err(e) = fs::create_dir_all(DAEMON_BIN_DIR) {

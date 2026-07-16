@@ -10,6 +10,11 @@ use std::process::Command;
 /// Finds the running PostgreSQL instance, resolves the versioned binary path,
 /// injects connection arguments, and executes the tool with any additional args.
 pub fn run_postgres(tool: &str, args: Vec<String>) -> Result<(), String> {
+    // Reject path-shaped tool names before they reach the filesystem — `tool`
+    // is joined into the bin dir and executed, so `../../../bin/sh` would run
+    // an arbitrary binary.
+    crate::validation::validate_tool_name(tool).map_err(|e| e.to_string())?;
+
     // Load config to find running instances
     let config_store = ConfigStore::new()?;
     let config = config_store.load()?;

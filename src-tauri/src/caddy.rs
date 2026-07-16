@@ -624,8 +624,13 @@ pub fn install_caddy_for_daemon() -> Result<(), String> {
         );
     }
 
+    // Hash the source we just vetted and pin it, so the helper places exactly
+    // these bytes root-owned (rejecting any swap between here and the copy).
+    let expected_sha256 = crate::binary::sha256_file(&source).ok();
+
     let response = HelperClient::send_request(HelperRequest::InstallDaemonCaddy {
         source_path: source.to_string_lossy().to_string(),
+        expected_sha256,
     })?;
 
     if response.success {

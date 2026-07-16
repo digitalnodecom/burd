@@ -38,7 +38,12 @@ pub enum HelperRequest {
     /// Setup /opt/burd directory with user ownership
     SetupOptBurd { username: String },
     /// Install the Caddy binary the proxy daemon runs, into a root-owned path.
-    InstallDaemonCaddy { source_path: String },
+    /// `expected_sha256`, if set, must match the source or the install is
+    /// refused.
+    InstallDaemonCaddy {
+        source_path: String,
+        expected_sha256: Option<String>,
+    },
 }
 
 /// Response from the helper

@@ -61,23 +61,14 @@ pub struct BinaryStatus {
     pub path: Option<String>,
 }
 
-/// Verify the SHA256 checksum of a downloaded file
-///
-/// # Arguments
-/// * `file_path` - Path to the file to verify
-/// * `expected_checksum` - Expected SHA256 checksum as a hex string
-///
-/// # Returns
-/// * `Ok(())` if checksum matches
-/// * `Err(String)` with error message if verification fails
-fn verify_checksum(file_path: &Path, expected_checksum: &str) -> Result<(), String> {
-    // Read the file
-    let mut file = File::open(file_path)
-        .map_err(|e| format!("Failed to open file for checksum verification: {}", e))?;
+/// Compute the hex-encoded SHA-256 of a file, streamed in chunks so large
+/// binaries are not held in memory.
+pub fn sha256_file(file_path: &Path) -> Result<String, String> {
+    let mut file =
+        File::open(file_path).map_err(|e| format!("Failed to open file for checksum: {}", e))?;
 
-    // Compute SHA256 hash
     let mut hasher = Sha256::new();
-    let mut buffer = vec![0; 8192]; // 8KB buffer for reading
+    let mut buffer = vec![0; 8192];
     loop {
         let bytes_read = file
             .read(&mut buffer)
@@ -88,8 +79,13 @@ fn verify_checksum(file_path: &Path, expected_checksum: &str) -> Result<(), Stri
         hasher.update(&buffer[..bytes_read]);
     }
 
-    let computed_hash = hasher.finalize();
-    let computed_hex = format!("{:x}", computed_hash);
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
+/// Verify a downloaded file's SHA-256 against an expected hex digest
+/// (case-insensitive).
+fn verify_checksum(file_path: &Path, expected_checksum: &str) -> Result<(), String> {
+    let computed_hex = sha256_file(file_path)?;
 
     // Compare checksums (case-insensitive)
     if computed_hex.eq_ignore_ascii_case(expected_checksum) {
@@ -367,12 +363,16 @@ impl BinaryManager {
 
                             let final_version =
                                 release.tag_name.trim_start_matches('v').to_string();
+                            let checksum = platform_config
+                                .checksums
+                                .get(&final_version)
+                                .map(|s| s.as_str());
                             (
                                 asset.browser_download_url.clone(),
                                 final_version,
                                 platform_config.is_archive,
                                 binary_name,
-                                None, // Checksum not yet supported in JSON config
+                                checksum,
                             )
                         } else {
                             return Err(
@@ -397,12 +397,17 @@ impl BinaryManager {
                             .replace("{version}", clean_version)
                             .replace("{VERSION}", version);
 
+                        let checksum = platform_config
+                            .checksums
+                            .get(version)
+                            .or_else(|| platform_config.checksums.get(clean_version))
+                            .map(|s| s.as_str());
                         (
                             url,
                             version.to_string(),
                             platform_config.is_archive,
                             binary_name,
-                            None,
+                            checksum,
                         )
                     }
                     DownloadConfig::Homebrew { formula } => {

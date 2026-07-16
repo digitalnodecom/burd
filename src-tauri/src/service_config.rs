@@ -104,6 +104,13 @@ pub struct PlatformConfig {
     pub requires_build: bool,
     #[serde(default)]
     pub build_commands: Vec<String>,
+    /// Expected SHA-256 of the downloaded artifact, keyed by resolved version.
+    /// When an entry exists for the version being installed, the download is
+    /// verified against it and rejected on mismatch. Absent entries download
+    /// unverified (unchanged behavior), so checksums can be filled in per
+    /// version incrementally.
+    #[serde(default)]
+    pub checksums: std::collections::HashMap<String, String>,
 }
 
 /// Download configuration
