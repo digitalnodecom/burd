@@ -94,7 +94,7 @@ pub async fn recent(
         }
     }
 
-    all.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    all.sort_by_key(|b| std::cmp::Reverse(b.timestamp));
     all.truncate(limit);
     Json(ApiResponse::ok(all))
 }

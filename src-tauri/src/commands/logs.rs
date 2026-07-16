@@ -125,7 +125,7 @@ pub async fn get_recent_logs(
     }
 
     // Sort by timestamp (newest first)
-    all_logs.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    all_logs.sort_by_key(|b| std::cmp::Reverse(b.timestamp));
 
     // Limit results
     all_logs.truncate(limit);
