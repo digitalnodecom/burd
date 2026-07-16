@@ -8,7 +8,9 @@ A local development environment manager for macOS. Run PHP sites, databases, cac
 
 Burd provides both a desktop GUI and a powerful CLI to manage FrankenPHP instances, databases, domains with automatic SSL, mail testing, tunnels, and other services — everything you need for local PHP development.
 
-![Burd](static/burd.png)
+<p align="center">
+  <img src="static/burd.png" alt="Burd" width="160">
+</p>
 
 ## Features
 
@@ -30,6 +32,18 @@ Burd provides both a desktop GUI and a powerful CLI to manage FrankenPHP instanc
 - Releases are code-signed and notarized by Apple
 
 ## Installation
+
+### Homebrew
+
+```bash
+brew tap digitalnodecom/tap
+brew install burd          # the burd CLI
+brew install --cask burd   # the Burd.app desktop app
+```
+
+Installing the cask from a third-party tap may require `brew trust digitalnodecom/tap` first.
+
+### Direct download
 
 Download the latest `.dmg` from [Releases](https://github.com/digitalnodecom/burd/releases) and drag Burd to your Applications folder.
 
