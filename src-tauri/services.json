@@ -793,17 +793,31 @@
       "versions": {
         "source": "static",
         "versions": [
-          "1.28.0"
+          "1.30.4"
         ]
       },
       "platforms": {
         "darwin-arm64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/mailpit/{version}/mailpit-{version}-arm64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/mailpit-{version}/mailpit-{version}-arm64.tar.gz"
           },
           "is_archive": true,
-          "archive_binary_path": "bin/mailpit"
+          "archive_binary_path": "bin/mailpit",
+          "checksums": {
+            "1.30.4": "4671b84883a71c3ffea7f6d3063eaf7a660a8fc767cb50e08ac0fb8e08a2f640"
+          }
+        },
+        "darwin-x64": {
+          "download": {
+            "type": "direct",
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/mailpit-{version}/mailpit-{version}-x86_64.tar.gz"
+          },
+          "is_archive": true,
+          "archive_binary_path": "bin/mailpit",
+          "checksums": {
+            "1.30.4": "819f3ed5e16381715c45315c86c3719c0f2e06c35671ce1f9fae87a337f8d395"
+          }
         }
       }
     },
@@ -938,23 +952,31 @@
       "versions": {
         "source": "static",
         "versions": [
-          "0.65.0"
+          "0.70.0"
         ]
       },
       "platforms": {
         "darwin-arm64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/frpc/{version}/frpc-{version}-arm64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/frpc-{version}/frpc-{version}-arm64.tar.gz"
           },
-          "is_archive": true
+          "is_archive": true,
+          "archive_binary_path": "bin/frpc",
+          "checksums": {
+            "0.70.0": "29125e17821c5e31fa01dfca6d5ee8574c8a72080501b2958fefeb600a55e707"
+          }
         },
         "darwin-x64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/frpc/{version}/frpc-{version}-x64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/frpc-{version}/frpc-{version}-x86_64.tar.gz"
           },
-          "is_archive": true
+          "is_archive": true,
+          "archive_binary_path": "bin/frpc",
+          "checksums": {
+            "0.70.0": "c5493d780f98cb07ff73073c64b64e279235edaa2b960818aa6c65fc3f479f65"
+          }
         },
         "linux-x64": {
           "download": {
