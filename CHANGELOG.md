@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.9.2] - 2026-07-17
+
+### Added
+
+- The updater now checks for new versions every 30 minutes (not only at
+  launch), and shows a small clickable badge next to the version in the
+  sidebar when an update is available — click it to install and restart.
+
+---
+
 ## [1.9.1] - 2026-07-17
 
 ### Changed
