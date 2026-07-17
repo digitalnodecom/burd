@@ -18,14 +18,20 @@
         }
       ],
       "start_args": [
-        "--db-path", "{data_dir}",
-        "--http-addr", "127.0.0.1:{port}",
-        "--env", "development"
+        "--db-path",
+        "{data_dir}",
+        "--http-addr",
+        "127.0.0.1:{port}",
+        "--env",
+        "development"
       ],
       "start_args_conditional": [
         {
           "if_config": "master_key",
-          "args": ["--master-key", "{master_key}"]
+          "args": [
+            "--master-key",
+            "{master_key}"
+          ]
         }
       ],
       "versions": {
@@ -64,7 +70,6 @@
         }
       }
     },
-
     "typesense": {
       "display_name": "Typesense",
       "binary_name": "typesense-server",
@@ -84,10 +89,13 @@
         }
       ],
       "start_args": [
-        "--data-dir", "{data_dir}",
-        "--api-port", "{port}",
+        "--data-dir",
+        "{data_dir}",
+        "--api-port",
+        "{port}",
         "--enable-cors",
-        "--api-key", "{api_key}"
+        "--api-key",
+        "{api_key}"
       ],
       "versions": {
         "source": "github_releases",
@@ -117,7 +125,6 @@
         }
       }
     },
-
     "mongodb": {
       "display_name": "MongoDB",
       "binary_name": "mongod",
@@ -128,13 +135,23 @@
       },
       "config_fields": [],
       "start_args": [
-        "--dbpath", "{data_dir}",
-        "--port", "{port}",
-        "--bind_ip", "127.0.0.1"
+        "--dbpath",
+        "{data_dir}",
+        "--port",
+        "{port}",
+        "--bind_ip",
+        "127.0.0.1"
       ],
       "versions": {
         "source": "static",
-        "versions": ["8.0.4", "8.0.3", "7.0.15", "7.0.14", "6.0.19", "6.0.18"]
+        "versions": [
+          "8.0.4",
+          "8.0.3",
+          "7.0.15",
+          "7.0.14",
+          "6.0.19",
+          "6.0.18"
+        ]
       },
       "platforms": {
         "darwin-arm64": {
@@ -168,7 +185,6 @@
         }
       }
     },
-
     "minio": {
       "display_name": "MinIO",
       "binary_name": "minio",
@@ -195,13 +211,22 @@
         }
       ],
       "start_args": [
-        "server", "{data_dir}",
-        "--address", "127.0.0.1:{port}",
-        "--console-address", "127.0.0.1:{console_port}"
+        "server",
+        "{data_dir}",
+        "--address",
+        "127.0.0.1:{port}",
+        "--console-address",
+        "127.0.0.1:{console_port}"
       ],
       "env_vars": [
-        { "name": "MINIO_ROOT_USER", "value": "{root_user}" },
-        { "name": "MINIO_ROOT_PASSWORD", "value": "{root_password}" }
+        {
+          "name": "MINIO_ROOT_USER",
+          "value": "{root_user}"
+        },
+        {
+          "name": "MINIO_ROOT_PASSWORD",
+          "value": "{root_password}"
+        }
       ],
       "computed_values": {
         "console_port": "{port} + 1"
@@ -251,7 +276,6 @@
         }
       }
     },
-
     "frankenphp": {
       "display_name": "PHP",
       "binary_name": "frankenphp",
@@ -303,14 +327,28 @@
       ],
       "start_args": [
         "php-server",
-        "--listen", "127.0.0.1:{port}",
-        "--root", "{document_root}"
+        "--listen",
+        "127.0.0.1:{port}",
+        "--root",
+        "{document_root}"
       ],
       "env_vars": [
-        { "name": "PHP_MEMORY_LIMIT", "value": "{php_memory_limit}" },
-        { "name": "PHP_UPLOAD_MAX_FILESIZE", "value": "{php_upload_max_filesize}" },
-        { "name": "PHP_POST_MAX_SIZE", "value": "{php_post_max_size}" },
-        { "name": "PHP_MAX_EXECUTION_TIME", "value": "{php_max_execution_time}" }
+        {
+          "name": "PHP_MEMORY_LIMIT",
+          "value": "{php_memory_limit}"
+        },
+        {
+          "name": "PHP_UPLOAD_MAX_FILESIZE",
+          "value": "{php_upload_max_filesize}"
+        },
+        {
+          "name": "PHP_POST_MAX_SIZE",
+          "value": "{php_post_max_size}"
+        },
+        {
+          "name": "PHP_MAX_EXECUTION_TIME",
+          "value": "{php_max_execution_time}"
+        }
       ],
       "versions": {
         "source": "github_releases",
@@ -359,7 +397,6 @@
         "v1.0.0": "PHP 8.3"
       }
     },
-
     "frankenphp-park": {
       "display_name": "PHP Park",
       "binary_name": "frankenphp",
@@ -406,13 +443,26 @@
       ],
       "start_args": [
         "run",
-        "--config", "{config_file}"
+        "--config",
+        "{config_file}"
       ],
       "env_vars": [
-        { "name": "PHP_MEMORY_LIMIT", "value": "{php_memory_limit}" },
-        { "name": "PHP_UPLOAD_MAX_FILESIZE", "value": "{php_upload_max_filesize}" },
-        { "name": "PHP_POST_MAX_SIZE", "value": "{php_post_max_size}" },
-        { "name": "PHP_MAX_EXECUTION_TIME", "value": "{php_max_execution_time}" }
+        {
+          "name": "PHP_MEMORY_LIMIT",
+          "value": "{php_memory_limit}"
+        },
+        {
+          "name": "PHP_UPLOAD_MAX_FILESIZE",
+          "value": "{php_upload_max_filesize}"
+        },
+        {
+          "name": "PHP_POST_MAX_SIZE",
+          "value": "{php_post_max_size}"
+        },
+        {
+          "name": "PHP_MAX_EXECUTION_TIME",
+          "value": "{php_max_execution_time}"
+        }
       ],
       "versions": {
         "source": "github_releases",
@@ -442,7 +492,6 @@
         }
       }
     },
-
     "mariadb": {
       "display_name": "MariaDB",
       "binary_name": "mariadbd",
@@ -455,28 +504,35 @@
       "start_args": [],
       "versions": {
         "source": "static",
-        "versions": ["12.1.2"]
+        "versions": [
+          "12.3.2"
+        ]
       },
       "platforms": {
         "darwin-arm64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/mariadb/{version}/mariadb-{version}-arm64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/mariadb-{version}/mariadb-{version}-arm64.tar.gz"
           },
           "is_archive": true,
-          "archive_binary_path": "bin/mariadbd"
+          "archive_binary_path": "bin/mariadbd",
+          "checksums": {
+            "12.3.2": "de1fc0a977a5b48d4c531c631eaeacd121804f9fbe6a8358759dbbe3811c4ac3"
+          }
         },
         "darwin-x64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/mariadb/{version}/mariadb-{version}-x64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/mariadb-{version}/mariadb-{version}-x86_64.tar.gz"
           },
           "is_archive": true,
-          "archive_binary_path": "bin/mariadbd"
+          "archive_binary_path": "bin/mariadbd",
+          "checksums": {
+            "12.3.2": "a6d1494560226370860958658bf371ffb231f740df9fb3bb9450b153d101ade7"
+          }
         }
       }
     },
-
     "mysql": {
       "display_name": "MySQL",
       "binary_name": "mysqld",
@@ -489,28 +545,35 @@
       "start_args": [],
       "versions": {
         "source": "static",
-        "versions": ["9.5.0"]
+        "versions": [
+          "9.7.1"
+        ]
       },
       "platforms": {
         "darwin-arm64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/mysql/{version}/mysql-{version}-arm64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/mysql-{version}/mysql-{version}-arm64.tar.gz"
           },
           "is_archive": true,
-          "archive_binary_path": "bin/mysqld"
+          "archive_binary_path": "bin/mysqld",
+          "checksums": {
+            "9.7.1": "2b6eca44bd5ab0963d35bd11baf3f1226b92a5065ebc509c7cec3cf743a13e2e"
+          }
         },
         "darwin-x64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/mysql/{version}/mysql-{version}-x64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/mysql-{version}/mysql-{version}-x86_64.tar.gz"
           },
           "is_archive": true,
-          "archive_binary_path": "bin/mysqld"
+          "archive_binary_path": "bin/mysqld",
+          "checksums": {
+            "9.7.1": "2e648defed8ad16cfafde4924d721d45efbee2449b6294a741fe91437c8c106c"
+          }
         }
       }
     },
-
     "postgresql": {
       "display_name": "PostgreSQL",
       "binary_name": "postgres",
@@ -523,28 +586,35 @@
       "start_args": [],
       "versions": {
         "source": "static",
-        "versions": ["17.7"]
+        "versions": [
+          "17.10"
+        ]
       },
       "platforms": {
         "darwin-arm64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/postgresql/{version}/postgresql-{version}-arm64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/postgresql-{version}/postgresql-{version}-arm64.tar.gz"
           },
           "is_archive": true,
-          "archive_binary_path": "bin/postgres"
+          "archive_binary_path": "bin/postgres",
+          "checksums": {
+            "17.10": "b7fec386d31abd6769fb4b9f9756eec9df8dceb975ba0599107e5f78f50e3370"
+          }
         },
         "darwin-x64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/postgresql/{version}/postgresql-{version}-x64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/postgresql-{version}/postgresql-{version}-x86_64.tar.gz"
           },
           "is_archive": true,
-          "archive_binary_path": "bin/postgres"
+          "archive_binary_path": "bin/postgres",
+          "checksums": {
+            "17.10": "f035eb469b0d092e0853883c371e9e751f4f202e33c828a04a4ad2261248f2bb"
+          }
         }
       }
     },
-
     "redis": {
       "display_name": "Redis",
       "binary_name": "redis-server",
@@ -562,37 +632,50 @@
         }
       ],
       "start_args": [
-        "--port", "{port}",
-        "--dir", "{data_dir}",
-        "--bind", "127.0.0.1"
+        "--port",
+        "{port}",
+        "--dir",
+        "{data_dir}",
+        "--bind",
+        "127.0.0.1"
       ],
       "start_args_conditional": [
         {
           "if_config": "password",
-          "args": ["--requirepass", "{password}"]
+          "args": [
+            "--requirepass",
+            "{password}"
+          ]
         }
       ],
       "versions": {
         "source": "static",
-        "versions": ["8.4.0"]
+        "versions": [
+          "8.8.0"
+        ]
       },
       "platforms": {
         "darwin-arm64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/redis/{version}/redis-{version}-arm64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/redis-{version}/redis-{version}-arm64.tar.gz"
           },
           "is_archive": true,
-          "archive_binary_path": "bin/redis-server"
+          "archive_binary_path": "bin/redis-server",
+          "checksums": {
+            "8.8.0": "b54808ced67ad929c0d82873502083d44b27fb1386afcddf737e5a237150a3d4"
+          }
         },
         "darwin-x64": {
           "download": {
             "type": "direct",
-            "url_template": "https://download.redis.io/releases/redis-{version}.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/redis-{version}/redis-{version}-x86_64.tar.gz"
           },
           "is_archive": true,
-          "requires_build": true,
-          "build_commands": ["make"]
+          "archive_binary_path": "bin/redis-server",
+          "checksums": {
+            "8.8.0": "6f1c89d3ff805f3f5c43484dd4296540cf7d79342e6862e0875cb01bf05a9c33"
+          }
         },
         "linux-x64": {
           "download": {
@@ -601,11 +684,12 @@
           },
           "is_archive": true,
           "requires_build": true,
-          "build_commands": ["make"]
+          "build_commands": [
+            "make"
+          ]
         }
       }
     },
-
     "valkey": {
       "display_name": "Valkey",
       "binary_name": "valkey-server",
@@ -623,37 +707,50 @@
         }
       ],
       "start_args": [
-        "--port", "{port}",
-        "--dir", "{data_dir}",
-        "--bind", "127.0.0.1"
+        "--port",
+        "{port}",
+        "--dir",
+        "{data_dir}",
+        "--bind",
+        "127.0.0.1"
       ],
       "start_args_conditional": [
         {
           "if_config": "password",
-          "args": ["--requirepass", "{password}"]
+          "args": [
+            "--requirepass",
+            "{password}"
+          ]
         }
       ],
       "versions": {
         "source": "static",
-        "versions": ["9.0.1"]
+        "versions": [
+          "9.1.0"
+        ]
       },
       "platforms": {
         "darwin-arm64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/valkey/{version}/valkey-{version}-arm64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/valkey-{version}/valkey-{version}-arm64.tar.gz"
           },
           "is_archive": true,
-          "archive_binary_path": "bin/valkey-server"
+          "archive_binary_path": "bin/valkey-server",
+          "checksums": {
+            "9.1.0": "4df8133c70dd90ea8a50a35f2fc5eb8b3e6ff735f3fa873bc15e4079d15e3de7"
+          }
         },
         "darwin-x64": {
           "download": {
             "type": "direct",
-            "url_template": "https://github.com/valkey-io/valkey/releases/download/{version}/valkey-{version}.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/valkey-{version}/valkey-{version}-x86_64.tar.gz"
           },
           "is_archive": true,
-          "requires_build": true,
-          "build_commands": ["make"]
+          "archive_binary_path": "bin/valkey-server",
+          "checksums": {
+            "9.1.0": "a57d98ea8757bda72bdc8219d59c5bd16709de504c322bf880e84f9d9f4402c5"
+          }
         },
         "linux-x64": {
           "download": {
@@ -662,11 +759,12 @@
           },
           "is_archive": true,
           "requires_build": true,
-          "build_commands": ["make"]
+          "build_commands": [
+            "make"
+          ]
         }
       }
     },
-
     "mailpit": {
       "display_name": "Mailpit",
       "binary_name": "mailpit",
@@ -687,12 +785,16 @@
         }
       ],
       "start_args": [
-        "--listen", "127.0.0.1:{port}",
-        "--smtp", "127.0.0.1:{smtp_port}"
+        "--listen",
+        "127.0.0.1:{port}",
+        "--smtp",
+        "127.0.0.1:{smtp_port}"
       ],
       "versions": {
         "source": "static",
-        "versions": ["1.28.0"]
+        "versions": [
+          "1.28.0"
+        ]
       },
       "platforms": {
         "darwin-arm64": {
@@ -705,7 +807,6 @@
         }
       }
     },
-
     "beanstalkd": {
       "display_name": "Beanstalkd",
       "binary_name": "beanstalkd",
@@ -716,25 +817,42 @@
       },
       "config_fields": [],
       "start_args": [
-        "-l", "127.0.0.1",
-        "-p", "{port}"
+        "-l",
+        "127.0.0.1",
+        "-p",
+        "{port}"
       ],
       "versions": {
         "source": "static",
-        "versions": ["1.13"]
+        "versions": [
+          "1.13"
+        ]
       },
       "platforms": {
         "darwin-arm64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/beanstalkd/{version}/beanstalkd-{version}-arm64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/beanstalkd-{version}/beanstalkd-{version}-arm64.tar.gz"
           },
           "is_archive": true,
-          "archive_binary_path": "bin/beanstalkd"
+          "archive_binary_path": "bin/beanstalkd",
+          "checksums": {
+            "1.13": "28505923977790d8abb8a0a0760d52a854c2a56f226a11a5848bf71f3ca0b277"
+          }
+        },
+        "darwin-x64": {
+          "download": {
+            "type": "direct",
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/beanstalkd-{version}/beanstalkd-{version}-x86_64.tar.gz"
+          },
+          "is_archive": true,
+          "archive_binary_path": "bin/beanstalkd",
+          "checksums": {
+            "1.13": "f0a2edca7127b642428f7e4f7730deb66421c55ef7f7c37159b5b75faab5d3b4"
+          }
         }
       }
     },
-
     "memcached": {
       "display_name": "Memcached",
       "binary_name": "memcached",
@@ -753,26 +871,44 @@
         }
       ],
       "start_args": [
-        "-l", "127.0.0.1",
-        "-p", "{port}",
-        "-m", "{memory}"
+        "-l",
+        "127.0.0.1",
+        "-p",
+        "{port}",
+        "-m",
+        "{memory}"
       ],
       "versions": {
         "source": "static",
-        "versions": ["1.6.40"]
+        "versions": [
+          "1.6.42"
+        ]
       },
       "platforms": {
         "darwin-arm64": {
           "download": {
             "type": "direct",
-            "url_template": "https://burdbin.s3.fr-par.scw.cloud/memcached/{version}/memcached-{version}-arm64.tar.gz"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/memcached-{version}/memcached-{version}-arm64.tar.gz"
           },
           "is_archive": true,
-          "archive_binary_path": "bin/memcached"
+          "archive_binary_path": "bin/memcached",
+          "checksums": {
+            "1.6.42": "01d3c26cd7fa1136894c3e9501fa3d401dc263f0e988459fb4501542313d972b"
+          }
+        },
+        "darwin-x64": {
+          "download": {
+            "type": "direct",
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/memcached-{version}/memcached-{version}-x86_64.tar.gz"
+          },
+          "is_archive": true,
+          "archive_binary_path": "bin/memcached",
+          "checksums": {
+            "1.6.42": "1e46382bb885450942ba4492545adb008fd97decf7f675bb0d57e41aef315e21"
+          }
         }
       }
     },
-
     "frpc": {
       "display_name": "Tunnels (frpc)",
       "binary_name": "frpc",
@@ -801,7 +937,9 @@
       "start_args": [],
       "versions": {
         "source": "static",
-        "versions": ["0.65.0"]
+        "versions": [
+          "0.65.0"
+        ]
       },
       "platforms": {
         "darwin-arm64": {
@@ -837,7 +975,6 @@
         }
       }
     },
-
     "caddy": {
       "display_name": "Caddy Server",
       "binary_name": "caddy",
@@ -877,7 +1014,6 @@
         }
       }
     },
-
     "centrifugo": {
       "display_name": "Centrifugo",
       "binary_name": "centrifugo",
@@ -918,26 +1054,39 @@
         }
       ],
       "start_args": [
-        "--port", "{port}",
-        "--address", "127.0.0.1",
+        "--port",
+        "{port}",
+        "--address",
+        "127.0.0.1",
         "--health"
       ],
       "start_args_conditional": [
         {
           "if_config": "api_key",
-          "args": ["--api_key", "{api_key}"]
+          "args": [
+            "--api_key",
+            "{api_key}"
+          ]
         },
         {
           "if_config": "token_hmac_secret",
-          "args": ["--token_hmac_secret_key", "{token_hmac_secret}"]
+          "args": [
+            "--token_hmac_secret_key",
+            "{token_hmac_secret}"
+          ]
         },
         {
           "if_config": "admin",
-          "args": ["--admin"]
+          "args": [
+            "--admin"
+          ]
         },
         {
           "if_config": "admin_password",
-          "args": ["--admin_password", "{admin_password}"]
+          "args": [
+            "--admin_password",
+            "{admin_password}"
+          ]
         }
       ],
       "versions": {
@@ -968,7 +1117,6 @@
         }
       }
     },
-
     "bun": {
       "display_name": "Bun",
       "binary_name": "bun",
@@ -995,10 +1143,14 @@
         }
       ],
       "start_args": [
-        "run", "{script}"
+        "run",
+        "{script}"
       ],
       "env_vars": [
-        { "name": "PORT", "value": "{port}" }
+        {
+          "name": "PORT",
+          "value": "{port}"
+        }
       ],
       "versions": {
         "source": "github_releases",
@@ -1028,7 +1180,6 @@
         }
       }
     },
-
     "gitea": {
       "display_name": "Gitea",
       "binary_name": "gitea",
