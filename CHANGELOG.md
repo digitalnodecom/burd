@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.9.0] - 2026-07-17
+
+### Added
+
+- **In-app auto-updater.** On launch, Burd checks GitHub Releases for a
+  newer signed build and offers to install it and relaunch, with a
+  progress bar. Updates are cryptographically verified (minisign) before
+  install. Apple Silicon only for now; Intel continues to update via the
+  DMG or Homebrew.
+
+---
+
 ## [1.8.2] - 2026-07-17
 
 ### Fixed
