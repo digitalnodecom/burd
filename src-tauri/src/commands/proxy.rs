@@ -39,6 +39,15 @@ pub fn check_health_sync() -> Option<bool> {
         return None;
     }
 
+    // The catch-all health route only matches the configured TLD, so probe with
+    // the actual TLD — a hardcoded `.burd` would always miss (and report the
+    // proxy unhealthy) for anyone using a different TLD such as `.test`.
+    let tld = crate::config::ConfigStore::new()
+        .ok()
+        .and_then(|cs| cs.load().ok())
+        .map(|c| c.tld)
+        .unwrap_or_else(|| "burd".to_string());
+
     // Make a quick HTTP request to the health endpoint on 127.0.0.1:80
     let client = reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(2))
@@ -47,7 +56,7 @@ pub fn check_health_sync() -> Option<bool> {
 
     match client
         .get("http://127.0.0.1/_burd/health")
-        .header("Host", "health-check.burd")
+        .header("Host", format!("health-check.{}", tld))
         .send()
     {
         Ok(resp) => {

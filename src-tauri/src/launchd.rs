@@ -244,16 +244,22 @@ pub fn get_status() -> LaunchdStatus {
         };
     }
 
-    // Check if daemon is running by trying to connect to port 80
-    use std::net::TcpStream;
-    use std::time::Duration;
+    // Ask launchd directly for the daemon's state and PID. The daemon runs as
+    // root, so an unprivileged `lsof` on port 80 can't see it (it returns no
+    // PID even while the daemon serves) — which made the app think its own
+    // proxy wasn't fully up and try to (re)install it, fighting the running
+    // daemon for the port. `launchctl print` reports the PID without root.
+    let pid = get_daemon_pid();
 
-    let running =
+    let running = if pid.is_some() {
+        true
+    } else {
+        // Fallback: something may be serving even if we couldn't read the PID.
+        use std::net::TcpStream;
+        use std::time::Duration;
         TcpStream::connect_timeout(&"127.0.0.1:80".parse().unwrap(), Duration::from_millis(100))
-            .is_ok();
-
-    // Try to get PID using lsof
-    let pid = if running { get_pid_on_port(80) } else { None };
+            .is_ok()
+    };
 
     LaunchdStatus {
         installed: true,
@@ -262,24 +268,23 @@ pub fn get_status() -> LaunchdStatus {
     }
 }
 
-/// Get the PID of the process listening on a given port using lsof
-fn get_pid_on_port(port: u16) -> Option<u32> {
-    let output = Command::new("lsof")
-        .args(["-i", &format!(":{}", port), "-t", "-sTCP:LISTEN"])
+/// Read the proxy daemon's PID from launchd. Works for the root daemon without
+/// elevation (unlike `lsof`), and returns `None` when it isn't running.
+fn get_daemon_pid() -> Option<u32> {
+    let output = Command::new("launchctl")
+        .args(["print", &format!("system/{}", PROXY_IDENTIFIER)])
         .output()
         .ok()?;
-
     if !output.status.success() {
         return None;
     }
-
     let stdout = String::from_utf8_lossy(&output.stdout);
-    // lsof -t returns just the PID(s), one per line
-    // Take the first one if there are multiple
-    stdout
-        .lines()
-        .next()
-        .and_then(|line| line.trim().parse::<u32>().ok())
+    for line in stdout.lines() {
+        if let Some(rest) = line.trim().strip_prefix("pid = ") {
+            return rest.trim().parse::<u32>().ok();
+        }
+    }
+    None
 }
 
 /// Parse the PID from launchctl list output
