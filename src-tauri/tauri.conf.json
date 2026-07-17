@@ -35,6 +35,15 @@
     ],
     "externalBin": [
       "binaries/mkcert"
-    ]
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/digitalnodecom/burd/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDAyODUzN0IwQkUzRTNCQUQKUldTdE96NitzRGVGQWl6dGxaZjBxQkJMNFBMS2p4bkQvVTFYa0NNYWZpQnBuSXVHdmh2T3NKS3QK"
+    }
   }
 }

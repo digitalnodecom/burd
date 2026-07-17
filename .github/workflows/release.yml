@@ -55,6 +55,10 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Updater signing: produces the .app.tar.gz + .sig and the
+          # `latest.json` manifest the app's updater endpoint points at.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: v__VERSION__
           releaseName: 'Burd v__VERSION__'
@@ -265,7 +269,7 @@ jobs:
 
           # Generate CLI manifest
           mkdir -p cli
-          cat > cli/latest.json << EOF
+          cat > cli/cli-latest.json << EOF
           {
             "version": "$VERSION",
             "notes": "See https://github.com/${{ github.repository }}/releases/tag/v$VERSION for details.",
@@ -283,7 +287,7 @@ jobs:
           }
           EOF
 
-          cat cli/latest.json
+          cat cli/cli-latest.json
 
       - name: Upload CLI assets to release
         env:
@@ -295,7 +299,7 @@ jobs:
             burd-darwin-aarch64.sha256 \
             burd-darwin-x64 \
             burd-darwin-x64.sha256 \
-            cli/latest.json \
+            cli/cli-latest.json \
             --clobber
 
   # Publish the GitHub release (remove draft status)

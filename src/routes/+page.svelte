@@ -4,8 +4,10 @@
   import { open, confirm, message } from "@tauri-apps/plugin-dialog";
   import { onMount } from "svelte";
   import { useKonamiCode } from "$lib/composables/useKonamiCode.svelte";
+  import { createUpdater } from "$lib/composables/useUpdater.svelte";
 
   // Import components
+  import UpdateBanner from "$lib/components/UpdateBanner.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
   import BurdNest from "$lib/components/BurdNest.svelte";
   import ImportStackModal from "$lib/components/ImportStackModal.svelte";
@@ -1121,8 +1123,12 @@
   });
 
   // === Lifecycle ===
+  const updater = createUpdater();
+
   onMount(() => {
     loadData();
+    // Check for an app update in the background (silent if none / offline).
+    updater.checkForUpdate();
     const unlistenPromise = listen<DownloadProgress>("download-progress", (event) => {
       downloadProgress = { ...downloadProgress, [event.payload.service_type]: event.payload };
     });
@@ -1168,6 +1174,8 @@
     };
   });
 </script>
+
+<UpdateBanner {updater} />
 
 <div class="app-layout">
   <Sidebar bind:activeSection onNavigate={handleNavigate} {parkEnabled} {mailpitExists} {unreadMailCount} {frpcDownloaded} />
