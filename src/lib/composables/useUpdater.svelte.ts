@@ -69,6 +69,22 @@ export function createUpdater() {
     dismissed = true;
   }
 
+  // Poll for updates on an interval (default 30 min) in addition to the
+  // startup check, so long-running windows still notice new releases.
+  let timer: ReturnType<typeof setInterval> | null = null;
+  function startAutoCheck(intervalMs = 30 * 60 * 1000) {
+    if (timer) return;
+    timer = setInterval(() => {
+      void checkForUpdate();
+    }, intervalMs);
+  }
+  function stopAutoCheck() {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+  }
+
   return {
     get available() {
       return available;
@@ -94,5 +110,7 @@ export function createUpdater() {
     checkForUpdate,
     installAndRestart,
     dismiss,
+    startAutoCheck,
+    stopAutoCheck,
   };
 }

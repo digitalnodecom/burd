@@ -13,6 +13,14 @@
 
   type Theme = 'system' | 'light' | 'dark';
 
+  interface Updater {
+    readonly available: boolean;
+    readonly version: string | null;
+    readonly downloading: boolean;
+    readonly progress: number;
+    installAndRestart: () => Promise<void>;
+  }
+
   interface Props {
     activeSection: string;
     onNavigate: (id: string) => void;
@@ -20,9 +28,10 @@
     unreadMailCount?: number;
     frpcDownloaded?: boolean;
     parkEnabled?: boolean;
+    updater?: Updater;
   }
 
-  let { activeSection = $bindable(), onNavigate, mailpitExists = false, unreadMailCount = 0, frpcDownloaded = false, parkEnabled = false }: Props = $props();
+  let { activeSection = $bindable(), onNavigate, mailpitExists = false, unreadMailCount = 0, frpcDownloaded = false, parkEnabled = false, updater }: Props = $props();
 
   let theme = $state<Theme>('system');
 
@@ -186,6 +195,26 @@
   {#if appVersion}
     <div class="sidebar-footer">
       <span class="version">v{appVersion}</span>
+      {#if updater?.available}
+        <button
+          class="update-badge"
+          class:downloading={updater.downloading}
+          onclick={() => updater.installAndRestart()}
+          disabled={updater.downloading}
+          title={updater.downloading
+            ? `Updating to ${updater.version}… ${updater.progress}%`
+            : `Update to ${updater.version} available — click to install & restart`}
+          aria-label="Install update"
+        >
+          {#if updater.downloading}
+            <span class="update-spinner"></span>
+          {:else}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+          {/if}
+        </button>
+      {/if}
     </div>
   {/if}
 </nav>
@@ -258,6 +287,9 @@
   }
 
   .sidebar-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 12px 20px;
     border-top: 1px solid rgba(0, 0, 0, 0.1);
   }
@@ -265,6 +297,42 @@
   .version {
     font-size: 11px;
     color: #86868b;
+  }
+
+  .update-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #34c759;
+    color: white;
+    cursor: pointer;
+    flex: none;
+    transition: transform 0.1s ease, opacity 0.1s ease;
+  }
+  .update-badge:hover {
+    transform: scale(1.12);
+  }
+  .update-badge:disabled {
+    cursor: default;
+    background: #86868b;
+  }
+  .update-spinner {
+    width: 10px;
+    height: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: update-spin 0.7s linear infinite;
+  }
+  @keyframes update-spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .nav-item {

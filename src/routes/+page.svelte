@@ -1127,8 +1127,9 @@
 
   onMount(() => {
     loadData();
-    // Check for an app update in the background (silent if none / offline).
+    // Check for an app update now, then every 30 minutes.
     updater.checkForUpdate();
+    updater.startAutoCheck();
     const unlistenPromise = listen<DownloadProgress>("download-progress", (event) => {
       downloadProgress = { ...downloadProgress, [event.payload.service_type]: event.payload };
     });
@@ -1178,7 +1179,7 @@
 <UpdateBanner {updater} />
 
 <div class="app-layout">
-  <Sidebar bind:activeSection onNavigate={handleNavigate} {parkEnabled} {mailpitExists} {unreadMailCount} {frpcDownloaded} />
+  <Sidebar bind:activeSection onNavigate={handleNavigate} {parkEnabled} {mailpitExists} {unreadMailCount} {frpcDownloaded} {updater} />
 
   <main class="main-content">
     {#if error}
