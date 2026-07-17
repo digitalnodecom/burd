@@ -212,6 +212,12 @@ jobs:
           cargo build --release --bin burd
           cp target/release/burd ../${{ matrix.name }}
 
+      # Ad-hoc code sign so the binary runs when downloaded directly or via
+      # `burd upgrade`. Apple Silicon kills unsigned binaries (SIGKILL); an
+      # ad-hoc signature satisfies that requirement and travels with the file.
+      - name: Sign CLI
+        run: codesign --force --sign - ${{ matrix.name }}
+
       - name: Generate checksum
         run: shasum -a 256 ${{ matrix.name }} | cut -d ' ' -f 1 > ${{ matrix.name }}.sha256
 

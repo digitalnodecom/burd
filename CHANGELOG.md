@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.2] - 2026-07-17
+
+### Fixed
+
+- The reverse-proxy daemon status is now read correctly: the app queries
+  `launchctl` for the root daemon's PID (an unprivileged `lsof` couldn't
+  see it, so a healthy proxy looked down), and the health check probes the
+  configured TLD instead of a hardcoded one. This stops the app from
+  trying to reinstall/restart an already-running proxy and colliding on
+  ports 80/443.
+- CLI release binaries are now ad-hoc code-signed, so they run when
+  downloaded directly or via `burd upgrade` (Apple Silicon rejects
+  unsigned binaries).
+
+---
+
 ## [1.8.1] - 2026-07-17
 
 ### Changed
