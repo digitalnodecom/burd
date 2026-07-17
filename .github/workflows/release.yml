@@ -97,6 +97,12 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app (unsigned)
+        # createUpdaterArtifacts is global, so this build also produces + signs
+        # an updater bundle; provide the key so it doesn't error. The x64
+        # updater artifact is unused (only aarch64 is published to latest.json).
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run tauri build -- --target x86_64-apple-darwin
 
       - name: Import signing certificate
