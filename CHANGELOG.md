@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.8.1] - 2026-07-17
+
+### Changed
+
+- Service binaries (mariadb, mysql, postgresql, redis, valkey, memcached,
+  beanstalkd, frpc, mailpit) are now downloaded from the
+  [`burd-binaries`](https://github.com/digitalnodecom/burd-binaries) GitHub
+  releases with a pinned SHA-256 that is verified before install, replacing
+  the previous object-storage host. Bumps these services to current upstream
+  versions.
+
+---
+
 ## [1.8.0] - 2026-07-16
 
 First release since 1.2.5; rolls up the 1.3–1.7 work plus a security
