@@ -139,6 +139,9 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     append_infrastructure(app, &menu)?;
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
+    append_php_versions(app, &menu)?;
+    menu.append(&PredefinedMenuItem::separator(app)?)?;
+
     append_sites(app, &menu)?;
     menu.append(&PredefinedMenuItem::separator(app)?)?;
 
@@ -189,6 +192,45 @@ fn append_infrastructure(app: &AppHandle, menu: &Menu<tauri::Wry>) -> tauri::Res
         None::<&str>,
     )?;
     menu.append(&dns)?;
+    Ok(())
+}
+
+/// Append a "PHP Version" submenu listing every installed PHP CLI version.
+/// The active (default) version is marked with a leading checkmark; selecting
+/// another emits a `php-use:<version>` id handled in `handle_menu_event`.
+fn append_php_versions(app: &AppHandle, menu: &Menu<tauri::Wry>) -> tauri::Result<()> {
+    let installed = crate::pvm::list_installed_versions().unwrap_or_default();
+    let active = crate::pvm::get_default_version();
+
+    let sub = Submenu::with_id(app, "php-versions", "PHP Version", true)?;
+
+    if installed.is_empty() {
+        sub.append(&MenuItem::with_id(
+            app,
+            "php-empty",
+            "No PHP versions installed",
+            false,
+            None::<&str>,
+        )?)?;
+    } else {
+        for v in &installed {
+            let is_active = active.as_deref() == Some(v.version.as_str());
+            let label = if is_active {
+                format!("✓ {}", v.version)
+            } else {
+                format!("   {}", v.version)
+            };
+            sub.append(&MenuItem::with_id(
+                app,
+                format!("php-use:{}", v.version),
+                label,
+                !is_active,
+                None::<&str>,
+            )?)?;
+        }
+    }
+
+    menu.append(&sub)?;
     Ok(())
 }
 
@@ -362,6 +404,16 @@ fn handle_menu_event(app: &AppHandle, event: MenuEvent) {
         _ => {}
     }
 
+    // PHP version switch: "php-use:<version>"
+    if let Some(version) = id.strip_prefix("php-use:") {
+        let version = version.to_string();
+        if version.is_empty() {
+            return;
+        }
+        dispatch_php_switch(app, version);
+        return;
+    }
+
     // Site actions: "site:<uuid>:<action>"
     if let Some(rest) = id.strip_prefix("site:") {
         let mut parts = rest.splitn(2, ':');
@@ -379,6 +431,24 @@ fn focus_main(app: &AppHandle) {
         let _ = win.show();
         let _ = win.unminimize();
         let _ = win.set_focus();
+    }
+}
+
+/// Switch the active PHP CLI version and rebuild the tray so the checkmark
+/// moves to the newly-selected version.
+fn dispatch_php_switch(app: &AppHandle, version: String) {
+    match crate::pvm::set_default_version(&version) {
+        Ok(()) => {
+            if let Err(e) = rebuild(app) {
+                eprintln!(
+                    "tray: rebuild after php switch to {} failed: {}",
+                    version, e
+                );
+            }
+        }
+        Err(e) => {
+            eprintln!("tray: switching PHP version to {} failed: {}", version, e);
+        }
     }
 }
 
