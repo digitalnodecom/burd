@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.9.3] - 2026-07-19
+
+### Added
+
+- **Switch the active CLI PHP version from the menubar** — a "PHP Version"
+  submenu lists installed versions and switches the global default in one
+  click (Herd-like).
+- **Custom PHP builds with a full extension set.** FrankenPHP (web) and the
+  PHP CLI now come from Burd's own builds (PHP 8.3/8.4/8.5) carrying redis,
+  mongodb, imagick, intl, ffi, xlswriter, memcached, and ~60 more — the
+  extensions the official builds omit. FrankenPHP versions read as
+  `<php>-<frankenphp>` (e.g. `8.4-1.12.4`) so the PHP line is visible.
+- **PostgreSQL ships pgvector and pg_partman** (plus the 60 bundled contrib
+  extensions), available via `CREATE EXTENSION`.
+
+### Changed
+
+- The PHP version manager downloads CLI binaries from Burd's own release
+  channel, verifies each against its published checksum, and code-signs it
+  on install.
+
+### Fixed
+
+- Reverse-proxy status is read from launchd (not an unprivileged `lsof`),
+  so the app no longer mistakes its own running root daemon for a port
+  conflict on reopen.
+
+---
+
 ## [1.9.2] - 2026-07-17
 
 ### Added
