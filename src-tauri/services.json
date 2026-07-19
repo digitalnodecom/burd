@@ -353,6 +353,7 @@
       "versions": {
         "source": "static",
         "versions": [
+          "8.5-1.12.4",
           "8.4-1.12.4",
           "8.3-1.12.4"
         ]
@@ -366,7 +367,8 @@
           "is_archive": false,
           "checksums": {
             "8.4-1.12.4": "c30a8aee918d203d65fb4d30bb5427498890efe8d75c7ebdcb48f9f6f8012e4e",
-            "8.3-1.12.4": "76d283200528a71a42e54176f988e37efa02d9968e56c28bfd145258f5baf2c3"
+            "8.3-1.12.4": "76d283200528a71a42e54176f988e37efa02d9968e56c28bfd145258f5baf2c3",
+            "8.5-1.12.4": "029bd00550b674421c7735063d7f5a844045648cbd3c298d293adb4568094809"
           }
         },
         "darwin-x64": {
@@ -377,7 +379,8 @@
           "is_archive": false,
           "checksums": {
             "8.4-1.12.4": "0010d34b817d4e061e8fa645f2f308e9b5a5b4144ce0b24f0752072cf21ddc9b",
-            "8.3-1.12.4": "29ca23ba0f1afdaa6223e76fba55a2e2ed88fe6916980fcb8da672e0839cbb6a"
+            "8.3-1.12.4": "29ca23ba0f1afdaa6223e76fba55a2e2ed88fe6916980fcb8da672e0839cbb6a",
+            "8.5-1.12.4": "89c61938d1400a5dd9c9a12e009efa7a0784d11bf7089384c546d1fc49f83c17"
           }
         },
         "linux-x64": {
@@ -478,6 +481,7 @@
       "versions": {
         "source": "static",
         "versions": [
+          "8.5-1.12.4",
           "8.4-1.12.4",
           "8.3-1.12.4"
         ]
@@ -491,7 +495,8 @@
           "is_archive": false,
           "checksums": {
             "8.4-1.12.4": "c30a8aee918d203d65fb4d30bb5427498890efe8d75c7ebdcb48f9f6f8012e4e",
-            "8.3-1.12.4": "76d283200528a71a42e54176f988e37efa02d9968e56c28bfd145258f5baf2c3"
+            "8.3-1.12.4": "76d283200528a71a42e54176f988e37efa02d9968e56c28bfd145258f5baf2c3",
+            "8.5-1.12.4": "029bd00550b674421c7735063d7f5a844045648cbd3c298d293adb4568094809"
           }
         },
         "darwin-x64": {
@@ -502,7 +507,8 @@
           "is_archive": false,
           "checksums": {
             "8.4-1.12.4": "0010d34b817d4e061e8fa645f2f308e9b5a5b4144ce0b24f0752072cf21ddc9b",
-            "8.3-1.12.4": "29ca23ba0f1afdaa6223e76fba55a2e2ed88fe6916980fcb8da672e0839cbb6a"
+            "8.3-1.12.4": "29ca23ba0f1afdaa6223e76fba55a2e2ed88fe6916980fcb8da672e0839cbb6a",
+            "8.5-1.12.4": "89c61938d1400a5dd9c9a12e009efa7a0784d11bf7089384c546d1fc49f83c17"
           }
         },
         "linux-x64": {
