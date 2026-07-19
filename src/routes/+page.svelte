@@ -7,7 +7,6 @@
   import { createUpdater } from "$lib/composables/useUpdater.svelte";
 
   // Import components
-  import UpdateBanner from "$lib/components/UpdateBanner.svelte";
   import Sidebar from "$lib/components/Sidebar.svelte";
   import BurdNest from "$lib/components/BurdNest.svelte";
   import ImportStackModal from "$lib/components/ImportStackModal.svelte";
@@ -1175,8 +1174,6 @@
     };
   });
 </script>
-
-<UpdateBanner {updater} />
 
 <div class="app-layout">
   <Sidebar bind:activeSection onNavigate={handleNavigate} {parkEnabled} {mailpitExists} {unreadMailCount} {frpcDownloaded} {updater} />
