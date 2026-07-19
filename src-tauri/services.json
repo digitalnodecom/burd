@@ -621,7 +621,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/postgres",
           "checksums": {
-            "17.10": "b7fec386d31abd6769fb4b9f9756eec9df8dceb975ba0599107e5f78f50e3370"
+            "17.10": "897d558511e6dc188359fc514cb9421bac913efea98e85fbbc651c760a6b76ac"
           }
         },
         "darwin-x64": {
@@ -632,7 +632,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/postgres",
           "checksums": {
-            "17.10": "f035eb469b0d092e0853883c371e9e751f4f202e33c828a04a4ad2261248f2bb"
+            "17.10": "c019bd286985a4a683556ec3711c5ad1eba146ebdda756ff8f51102c97c15d7a"
           }
         }
       }
