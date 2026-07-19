@@ -1,6 +1,7 @@
 //! PHP Version Manager (PVM)
 //!
-//! Manages PHP CLI versions by downloading static binaries from static-php.dev.
+//! Manages PHP CLI versions by downloading Burd's custom static binaries from
+//! the `digitalnodecom/burd-binaries` GitHub releases (full extension set).
 //! Similar to NVM but for PHP, with shell integration for version switching.
 
 use crate::config::get_app_dir;
@@ -11,8 +12,12 @@ use std::path::PathBuf;
 use std::process::Command;
 use tauri::{AppHandle, Emitter};
 
-/// Base URL for PHP binary downloads
-const DOWNLOAD_BASE_URL: &str = "https://dl.static-php.dev/static-php-cli/common";
+/// GitHub releases API for the burd-binaries repo (lists PHP CLI releases)
+const RELEASES_API_URL: &str =
+    "https://api.github.com/repos/digitalnodecom/burd-binaries/releases?per_page=100";
+
+/// Base URL for downloading release assets
+const DOWNLOAD_BASE_URL: &str = "https://github.com/digitalnodecom/burd-binaries/releases/download";
 
 /// Shell profile marker comment
 const SHELL_MARKER: &str = "# Added by Burd - PHP Version Manager";
@@ -348,12 +353,17 @@ fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
 
 // === Remote Versions ===
 
-/// Fetch available PHP versions from static-php.dev
+/// Fetch available PHP versions from the burd-binaries GitHub releases
 pub async fn list_remote_versions() -> Result<Vec<RemotePHPVersion>, String> {
     let arch = get_arch_string();
-    let url = format!("{}/?format=json", DOWNLOAD_BASE_URL);
 
-    let response = reqwest::get(&url)
+    // GitHub's API rejects requests without a User-Agent header (HTTP 403),
+    // and reqwest::get() does not set one — use an explicit client.
+    let client = reqwest::Client::new();
+    let response = client
+        .get(RELEASES_API_URL)
+        .header("User-Agent", "Burd")
+        .send()
         .await
         .map_err(|e| format!("Failed to fetch version list: {}", e))?;
 
@@ -369,42 +379,62 @@ pub async fn list_remote_versions() -> Result<Vec<RemotePHPVersion>, String> {
         .await
         .map_err(|e| format!("Failed to read response: {}", e))?;
 
-    // Parse the JSON response - it's an array of file entries
-    let entries: Vec<serde_json::Value> =
+    // Parse the JSON response - it's an array of GitHub release objects
+    let releases: Vec<serde_json::Value> =
         serde_json::from_str(&body).map_err(|e| format!("Failed to parse response: {}", e))?;
 
-    // Pattern to match PHP CLI binaries for our architecture
-    // e.g., php-8.4.12-cli-macos-aarch64.tar.gz
-    let pattern = format!(r"^php-(\d+\.\d+\.\d+)-cli-macos-{}\.tar\.gz$", arch);
-    let re = Regex::new(&pattern).map_err(|e| format!("Failed to compile regex: {}", e))?;
+    // Match release tags of the form `php-cli-{version}` (version = x.y.z)
+    let re = Regex::new(r"^php-cli-(\d+\.\d+\.\d+)$")
+        .map_err(|e| format!("Failed to compile regex: {}", e))?;
 
     let installed = list_installed_versions().unwrap_or_default();
     let installed_versions: Vec<&str> = installed.iter().map(|v| v.version.as_str()).collect();
 
     let mut versions = Vec::new();
 
-    for entry in entries {
-        if let Some(name) = entry.get("name").and_then(|n| n.as_str()) {
-            if let Some(caps) = re.captures(name) {
-                if let Some(version_match) = caps.get(1) {
-                    let version = version_match.as_str().to_string();
+    for release in releases {
+        let tag = match release.get("tag_name").and_then(|t| t.as_str()) {
+            Some(t) => t,
+            None => continue,
+        };
 
-                    // Skip already installed versions
-                    if installed_versions.contains(&version.as_str()) {
-                        continue;
-                    }
+        let version = match re.captures(tag).and_then(|caps| caps.get(1)) {
+            Some(m) => m.as_str().to_string(),
+            None => continue,
+        };
 
-                    let download_url = format!("{}/{}", DOWNLOAD_BASE_URL, name);
-                    let size = entry.get("size").and_then(|s| s.as_u64());
-
-                    versions.push(RemotePHPVersion {
-                        version,
-                        download_url,
-                        size,
-                    });
-                }
-            }
+        // Skip already installed versions
+        if installed_versions.contains(&version.as_str()) {
+            continue;
         }
+
+        // Confirm the release ships the raw binary asset for our architecture
+        let asset_name = format!("php-cli-{}-{}", version, arch);
+        let asset = release
+            .get("assets")
+            .and_then(|a| a.as_array())
+            .and_then(|assets| {
+                assets.iter().find(|asset| {
+                    asset.get("name").and_then(|n| n.as_str()) == Some(asset_name.as_str())
+                })
+            });
+
+        let asset = match asset {
+            Some(a) => a,
+            None => continue,
+        };
+
+        let download_url = match asset.get("browser_download_url").and_then(|u| u.as_str()) {
+            Some(u) => u.to_string(),
+            None => continue,
+        };
+        let size = asset.get("size").and_then(|s| s.as_u64());
+
+        versions.push(RemotePHPVersion {
+            version,
+            download_url,
+            size,
+        });
     }
 
     // Sort by version (newest first)
@@ -438,7 +468,7 @@ fn get_minor_version(version: &str) -> String {
 /// Get the architecture string for downloads
 fn get_arch_string() -> &'static str {
     match std::env::consts::ARCH {
-        "aarch64" => "aarch64",
+        "aarch64" => "arm64",
         "x86_64" => "x86_64",
         _ => "x86_64", // Fallback
     }
@@ -452,8 +482,10 @@ pub async fn download_version(version: &str, app_handle: &AppHandle) -> Result<(
     use std::io::Write;
 
     let arch = get_arch_string();
-    let filename = format!("php-{}-cli-macos-{}.tar.gz", version, arch);
-    let url = format!("{}/{}", DOWNLOAD_BASE_URL, filename);
+    // burd-binaries publishes the CLI as a RAW binary (not an archive):
+    //   .../releases/download/php-cli-<version>/php-cli-<version>-<arch>
+    let asset = format!("php-cli-{}-{}", version, arch);
+    let url = format!("{}/php-cli-{}/{}", DOWNLOAD_BASE_URL, version, asset);
 
     // Ensure PVM directory exists
     ensure_pvm_dir()?;
@@ -482,7 +514,7 @@ pub async fn download_version(version: &str, app_handle: &AppHandle) -> Result<(
 
     // Create temp file
     let temp_dir = std::env::temp_dir();
-    let temp_file = temp_dir.join(&filename);
+    let temp_file = temp_dir.join(&asset);
     let mut file =
         fs::File::create(&temp_file).map_err(|e| format!("Failed to create temp file: {}", e))?;
 
@@ -515,35 +547,37 @@ pub async fn download_version(version: &str, app_handle: &AppHandle) -> Result<(
         );
     }
 
-    // Create version directory
-    fs::create_dir_all(&version_dir)
-        .map_err(|e| format!("Failed to create version directory: {}", e))?;
+    // Flush the temp file before hashing.
+    drop(file);
 
-    // Extract the tarball
-    let tar_gz =
-        fs::File::open(&temp_file).map_err(|e| format!("Failed to open temp file: {}", e))?;
-    let tar = flate2::read::GzDecoder::new(tar_gz);
-    let mut archive = tar::Archive::new(tar);
-
-    archive
-        .unpack(&version_dir)
-        .map_err(|e| format!("Failed to extract archive: {}", e))?;
-
-    // Clean up temp file
-    let _ = fs::remove_file(&temp_file);
-
-    // The archive might have the binary in root or in a subdirectory
-    // Try to find the php binary
-    let php_binary = find_php_binary(&version_dir)?;
-
-    // Move the binary to the version directory root if needed
-    let target_binary = version_dir.join("php");
-    if php_binary != target_binary {
-        fs::rename(&php_binary, &target_binary)
-            .map_err(|e| format!("Failed to move PHP binary: {}", e))?;
+    // Verify the download against the published .sha256 sidecar before
+    // installing — never place an unverified binary that we then execute.
+    let expected = fetch_sha256_sidecar(&url).await?;
+    let actual = sha256_of_file(&temp_file)?;
+    if !actual.eq_ignore_ascii_case(&expected) {
+        let _ = fs::remove_file(&temp_file);
+        return Err(format!(
+            "Checksum mismatch for PHP {} — expected {}, got {}",
+            version, expected, actual
+        ));
     }
 
-    // Make it executable
+    // Create version directory and place the raw binary as `php`.
+    fs::create_dir_all(&version_dir)
+        .map_err(|e| format!("Failed to create version directory: {}", e))?;
+    let target_binary = version_dir.join("php");
+    fs::rename(&temp_file, &target_binary).or_else(|_| {
+        // rename can fail across filesystems (temp dir vs pvm dir) — fall back
+        // to copy + remove.
+        fs::copy(&temp_file, &target_binary)
+            .map(|_| ())
+            .map_err(|e| format!("Failed to install PHP binary: {}", e))
+            .inspect(|_| {
+                let _ = fs::remove_file(&temp_file);
+            })
+    })?;
+
+    // Make it executable.
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -555,59 +589,58 @@ pub async fn download_version(version: &str, app_handle: &AppHandle) -> Result<(
             .map_err(|e| format!("Failed to set permissions: {}", e))?;
     }
 
-    // Remove quarantine attribute on macOS
+    // Remove quarantine, then ad-hoc code-sign. The published binaries are not
+    // Developer-ID signed, and Apple Silicon SIGKILLs unsigned binaries — an
+    // ad-hoc signature makes the installed `php` runnable.
     let _ = Command::new("xattr")
-        .args(["-d", "com.apple.quarantine"])
+        .args(["-dr", "com.apple.quarantine"])
         .arg(&target_binary)
         .output();
-
-    // Clean up any leftover directories from extraction
-    cleanup_extraction(&version_dir)?;
+    let sign = Command::new("codesign")
+        .args(["--force", "--sign", "-"])
+        .arg(&target_binary)
+        .output()
+        .map_err(|e| format!("Failed to run codesign: {}", e))?;
+    if !sign.status.success() {
+        return Err(format!(
+            "Failed to sign PHP binary: {}",
+            String::from_utf8_lossy(&sign.stderr)
+        ));
+    }
 
     Ok(())
 }
 
-/// Find the php binary in the extracted directory
-fn find_php_binary(dir: &PathBuf) -> Result<PathBuf, String> {
-    // Check direct binary
-    let direct = dir.join("php");
-    if direct.exists() && direct.is_file() {
-        return Ok(direct);
+/// Fetch and parse the `<url>.sha256` sidecar (hex digest, possibly with a
+/// trailing newline or a "  filename" suffix).
+async fn fetch_sha256_sidecar(url: &str) -> Result<String, String> {
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("{}.sha256", url))
+        .header("User-Agent", "Burd")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch checksum: {}", e))?;
+    if !resp.status().is_success() {
+        return Err(format!("Failed to fetch checksum: HTTP {}", resp.status()));
     }
-
-    // Check for binary in subdirectories
-    if let Ok(entries) = fs::read_dir(dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                let nested = path.join("php");
-                if nested.exists() && nested.is_file() {
-                    return Ok(nested);
-                }
-                // Also check bin subdirectory
-                let bin_nested = path.join("bin").join("php");
-                if bin_nested.exists() && bin_nested.is_file() {
-                    return Ok(bin_nested);
-                }
-            }
-        }
-    }
-
-    Err("PHP binary not found in archive".to_string())
+    let text = resp
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read checksum: {}", e))?;
+    text.split_whitespace()
+        .next()
+        .map(|s| s.to_string())
+        .ok_or_else(|| "Empty checksum response".to_string())
 }
 
-/// Clean up extraction artifacts (empty directories, etc.)
-fn cleanup_extraction(version_dir: &PathBuf) -> Result<(), String> {
-    if let Ok(entries) = fs::read_dir(version_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            // Remove any directories that aren't the php binary
-            if path.is_dir() {
-                let _ = fs::remove_dir_all(&path);
-            }
-        }
-    }
-    Ok(())
+/// Hex-encoded SHA-256 of a file, streamed.
+fn sha256_of_file(path: &std::path::Path) -> Result<String, String> {
+    use sha2::{Digest, Sha256};
+    let mut f = fs::File::open(path).map_err(|e| format!("Failed to open for hashing: {}", e))?;
+    let mut hasher = Sha256::new();
+    std::io::copy(&mut f, &mut hasher).map_err(|e| format!("Failed to hash: {}", e))?;
+    Ok(format!("{:x}", hasher.finalize()))
 }
 
 // === Version Management ===
