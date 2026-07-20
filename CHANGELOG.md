@@ -9,6 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.10.0] - 2026-07-20
+
+### Added
+
+- **Manage PostgreSQL extensions from the GUI.** Running PostgreSQL instances
+  now have an Extensions button that opens a per-database manager to enable or
+  disable pgvector, pg_partman, and the bundled contrib extensions with a
+  single toggle (`CREATE`/`DROP EXTENSION` under the hood).
+- **PostgreSQL extensions over the HTTP API and MCP.** New tools
+  `list_database_extensions`, `enable_database_extension`, and
+  `disable_database_extension` let AI agents turn on pgvector (for vector
+  search) and other extensions without leaving the assistant.
+- **Manage the CLI PHP version over the HTTP API and MCP.** New tools
+  `list_php_cli_versions`, `list_available_php_cli_versions`,
+  `install_php_cli_version`, `uninstall_php_cli_version`,
+  `switch_php_cli_version`, `get_php_cli_status`, and `configure_php_cli_shell`
+  expose the nvm-style PHP version manager that was previously GUI-only.
+
+### Changed
+
+- **MCP surface repositioned as a Docker alternative for AI harnesses.** The
+  usage guide now leads with a Docker-alternative overview, don't/do pairs, and
+  a concept map (`create_instance` ≈ `docker run`, `list_instances` ≈
+  `docker ps`, `create_stack`/`start_stack` ≈ `docker-compose up`,
+  `get_instance_env` ≈ a container's published ports/env). Individual tool
+  descriptions gained Docker analogies and next-step hints so agents reach for
+  Burd instead of `docker run`, docker-compose, or bare `redis-server` /
+  `php artisan serve`.
+- **Slimmer in-app updater UI.** Dropped the top header update banner; the
+  sidebar badge is now the single update affordance.
+
+---
+
 ## [1.9.3] - 2026-07-19
 
 ### Added
