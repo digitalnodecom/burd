@@ -86,12 +86,62 @@ export class MailState {
   currentPage = $state(0);
   pageSize = 25;
 
+  // Mailpit instance status, so the Mail page can offer to start it when down.
+  statusChecked = $state(false);
+  mailpitExists = $state(false);
+  mailpitRunning = $state(false);
+  mailpitInstanceId = $state<string | null>(null);
+  starting = $state(false);
+
   get hasNextPage() {
     return (this.currentPage + 1) * this.pageSize < this.totalEmails;
   }
 
   get hasPrevPage() {
     return this.currentPage > 0;
+  }
+
+  /** Refresh whether a Mailpit instance exists and is running. */
+  async checkMailpitStatus() {
+    try {
+      const instances = await invoke<Array<{ id: string; service_type: string; running: boolean }>>(
+        "list_instances",
+      );
+      const mp = instances.find((i) => i.service_type?.toLowerCase() === "mailpit");
+      this.mailpitExists = !!mp;
+      this.mailpitRunning = !!mp?.running;
+      this.mailpitInstanceId = mp?.id ?? null;
+    } catch (e) {
+      console.error("[Mail] checkMailpitStatus error", e);
+    } finally {
+      this.statusChecked = true;
+    }
+  }
+
+  /** Start the Mailpit instance and load its inbox once it is ready. */
+  async startMailpit() {
+    if (!this.mailpitInstanceId || this.starting) {
+      return;
+    }
+    this.starting = true;
+    this.error = null;
+    try {
+      await invoke("start_instance", { id: this.mailpitInstanceId });
+      this.mailpitRunning = true;
+      await this.loadSmtpConfig();
+      // Mailpit's HTTP API takes a moment to accept connections after launch.
+      for (let attempt = 0; attempt < 8; attempt++) {
+        await this.loadEmails();
+        if (!this.error) {
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 600));
+      }
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : String(e);
+    } finally {
+      this.starting = false;
+    }
   }
 
   async loadSmtpConfig() {
@@ -127,6 +177,9 @@ export class MailState {
       console.error("[Mail] loadEmails error", e);
       this.error = e instanceof Error ? e.message : String(e);
       this.emails = [];
+      // A failure usually means Mailpit isn't reachable — refresh its status
+      // so the page can offer to start it instead of showing a raw error.
+      this.checkMailpitStatus();
     } finally {
       this.loading = false;
     }

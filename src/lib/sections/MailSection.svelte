@@ -45,8 +45,13 @@
   }
 
   onMount(() => {
-    mail.loadSmtpConfig();
-    mail.loadEmails();
+    (async () => {
+      await mail.checkMailpitStatus();
+      if (mail.mailpitRunning) {
+        mail.loadSmtpConfig();
+        mail.loadEmails();
+      }
+    })();
 
     // Listen for real-time new email events from backend WebSocket
     listen("new-email", () => {
@@ -55,9 +60,11 @@
       unlisten = fn;
     });
 
-    // Poll for new emails every 10 seconds as fallback
+    // Poll for new emails every 10 seconds as fallback (only while running)
     pollingInterval = setInterval(() => {
-      mail.refreshEmails();
+      if (mail.mailpitRunning) {
+        mail.refreshEmails();
+      }
     }, 10000);
 
     // Listen for ESC key to close modals
@@ -215,7 +222,36 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
       </div>
     </div>
 
-    {#if mail.loading && mail.emails.length === 0}
+    {#if !mail.statusChecked}
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <span>Checking Mailpit...</span>
+      </div>
+    {:else if !mail.mailpitRunning}
+      <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+        </svg>
+        {#if mail.mailpitExists}
+          <span>Mailpit is not running</span>
+          <p class="empty-hint">Start it to capture and view outgoing mail.</p>
+          {#if mail.error}
+            <p class="empty-error">{mail.error}</p>
+          {/if}
+          <button class="btn-primary" onclick={() => mail.startMailpit()} disabled={mail.starting}>
+            {#if mail.starting}
+              <span class="spinner-sm"></span>
+              Starting...
+            {:else}
+              Start Mailpit
+            {/if}
+          </button>
+        {:else}
+          <span>Mailpit isn't set up</span>
+          <p class="empty-hint">Add a Mailpit instance from the Services page to capture outgoing mail.</p>
+        {/if}
+      </div>
+    {:else if mail.loading && mail.emails.length === 0}
       <div class="loading-state">
         <div class="spinner"></div>
         <span>Loading emails...</span>
@@ -803,6 +839,49 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
   .empty-hint {
     font-size: 13px;
     margin: 0;
+  }
+
+  .empty-error {
+    font-size: 12px;
+    margin: 0;
+    color: #ff3b30;
+    max-width: 360px;
+    text-align: center;
+    word-break: break-word;
+  }
+
+  .btn-primary {
+    margin-top: 8px;
+    background: #007aff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    transition: background 0.15s ease;
+  }
+
+  .btn-primary:hover {
+    background: #0071e3;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .spinner-sm {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
   }
 
   .spinner {
