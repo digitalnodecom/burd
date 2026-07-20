@@ -510,6 +510,49 @@ fn execute_tool(client: &BurdApiClient, name: &str, args: Option<Value>) -> Resu
                 .ok_or("Missing 'name' parameter")?;
             client.delete(&format!("/databases/{}", name))
         }
+        "list_database_extensions" => {
+            let database = args
+                .get("database")
+                .and_then(|v| v.as_str())
+                .ok_or("Missing 'database' parameter")?;
+            client.get(&format!(
+                "/databases/{}/extensions",
+                urlencoding::encode(database)
+            ))
+        }
+        "enable_database_extension" => {
+            let database = args
+                .get("database")
+                .and_then(|v| v.as_str())
+                .ok_or("Missing 'database' parameter")?;
+            let extension = args
+                .get("extension")
+                .and_then(|v| v.as_str())
+                .ok_or("Missing 'extension' parameter")?;
+            client.post(
+                &format!(
+                    "/databases/{}/extensions/{}",
+                    urlencoding::encode(database),
+                    urlencoding::encode(extension)
+                ),
+                &serde_json::json!({}),
+            )
+        }
+        "disable_database_extension" => {
+            let database = args
+                .get("database")
+                .and_then(|v| v.as_str())
+                .ok_or("Missing 'database' parameter")?;
+            let extension = args
+                .get("extension")
+                .and_then(|v| v.as_str())
+                .ok_or("Missing 'extension' parameter")?;
+            client.delete(&format!(
+                "/databases/{}/extensions/{}",
+                urlencoding::encode(database),
+                urlencoding::encode(extension)
+            ))
+        }
         "import_database" => {
             let database = args
                 .get("database")

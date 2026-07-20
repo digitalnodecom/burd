@@ -2,7 +2,7 @@
 //!
 //! Provides database operations using the psql CLI tools.
 
-use super::{DatabaseInfo, DatabaseManager};
+use super::{DatabaseInfo, DatabaseManager, ExtensionInfo};
 use std::path::Path;
 use std::process::Command;
 
@@ -63,12 +63,12 @@ impl PostgresManager {
     }
 
     /// Execute a SQL query on a specific database
-    #[allow(dead_code)]
     fn execute_query_on_db(&self, database: &str, query: &str) -> Result<String, String> {
         let mut cmd = self.build_command("psql");
         cmd.arg("-d").arg(database);
         cmd.arg("-t");
         cmd.arg("-A");
+        cmd.arg("-F").arg("\u{1f}"); // unit-separator field delimiter
         cmd.arg("-c").arg(query);
 
         let output = cmd
@@ -81,6 +81,22 @@ impl PostgresManager {
         }
 
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    }
+}
+
+/// Validate a PostgreSQL extension name (interpolated into SQL). Allows the
+/// lowercase-alnum, underscore and hyphen used by real extension names, and
+/// nothing else — no quotes, semicolons or whitespace that could break out.
+fn validate_extension_name(name: &str) -> Result<&str, String> {
+    let ok = !name.is_empty()
+        && name.len() <= 64
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_' || b == b'-');
+    if ok {
+        Ok(name)
+    } else {
+        Err(format!("Invalid extension name: '{}'", name))
     }
 }
 
@@ -221,5 +237,53 @@ impl DatabaseManager for PostgresManager {
 
     fn connection_info(&self) -> String {
         format!("PostgreSQL at {}:{}", self.host, self.port)
+    }
+
+    /// List extensions available in this database, marking which are installed.
+    /// Covers both the bundled contrib extensions and the companion extensions
+    /// Burd ships (pgvector, pg_partman).
+    fn list_extensions(&self, database: &str) -> Result<Vec<ExtensionInfo>, String> {
+        let query = "SELECT ae.name, ae.default_version, COALESCE(e.extversion, ''), \
+             COALESCE(ae.comment, '') \
+             FROM pg_available_extensions ae \
+             LEFT JOIN pg_extension e ON e.extname = ae.name \
+             ORDER BY (e.extversion IS NOT NULL) DESC, ae.name";
+        let out = self.execute_query_on_db(database, query)?;
+        let mut exts = Vec::new();
+        for line in out.lines() {
+            if line.trim().is_empty() {
+                continue;
+            }
+            let cols: Vec<&str> = line.split('\u{1f}').collect();
+            if cols.len() < 4 {
+                continue;
+            }
+            let installed_version = cols[2].trim();
+            exts.push(ExtensionInfo {
+                name: cols[0].trim().to_string(),
+                default_version: cols[1].trim().to_string(),
+                installed: !installed_version.is_empty(),
+                installed_version: if installed_version.is_empty() {
+                    None
+                } else {
+                    Some(installed_version.to_string())
+                },
+                comment: cols[3].trim().to_string(),
+            });
+        }
+        Ok(exts)
+    }
+
+    fn enable_extension(&self, database: &str, extension: &str) -> Result<(), String> {
+        let ext = validate_extension_name(extension)?;
+        // ext is validated to a safe identifier; quote it to preserve case.
+        let query = format!("CREATE EXTENSION IF NOT EXISTS \"{}\" CASCADE", ext);
+        self.execute_query_on_db(database, &query).map(|_| ())
+    }
+
+    fn disable_extension(&self, database: &str, extension: &str) -> Result<(), String> {
+        let ext = validate_extension_name(extension)?;
+        let query = format!("DROP EXTENSION IF EXISTS \"{}\"", ext);
+        self.execute_query_on_db(database, &query).map(|_| ())
     }
 }

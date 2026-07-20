@@ -324,6 +324,56 @@ pub fn get_tools() -> Vec<Tool> {
             }),
         },
         Tool {
+            name: "list_database_extensions".to_string(),
+            description: "List PostgreSQL extensions available in a database and whether each is enabled. Includes the bundled contrib extensions plus the ones Burd ships (pgvector for embeddings/vector search, pg_partman for partitioning).".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "database": {
+                        "type": "string",
+                        "description": "Database name to inspect"
+                    }
+                },
+                "required": ["database"]
+            }),
+        },
+        Tool {
+            name: "enable_database_extension".to_string(),
+            description: "Enable a PostgreSQL extension on a database (runs CREATE EXTENSION). Use for pgvector ('vector'), pg_partman, or any bundled contrib extension (pgcrypto, uuid-ossp, hstore, postgis if installed, etc.). Idempotent.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "database": {
+                        "type": "string",
+                        "description": "Database name"
+                    },
+                    "extension": {
+                        "type": "string",
+                        "description": "Extension name, e.g. 'vector', 'pg_partman', 'pgcrypto', 'uuid-ossp'"
+                    }
+                },
+                "required": ["database", "extension"]
+            }),
+        },
+        Tool {
+            name: "disable_database_extension".to_string(),
+            description: "Disable a PostgreSQL extension on a database (runs DROP EXTENSION). Idempotent.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "database": {
+                        "type": "string",
+                        "description": "Database name"
+                    },
+                    "extension": {
+                        "type": "string",
+                        "description": "Extension name to disable"
+                    }
+                },
+                "required": ["database", "extension"]
+            }),
+        },
+        Tool {
             name: "import_database".to_string(),
             description: "Import a SQL file into a database. The database must exist in a running MariaDB or PostgreSQL instance.".to_string(),
             input_schema: json!({

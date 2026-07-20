@@ -22,6 +22,16 @@ pub struct DatabaseInfo {
     pub tables: Option<u32>,
 }
 
+/// A database extension (currently PostgreSQL only) and its install state.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ExtensionInfo {
+    pub name: String,
+    pub default_version: String,
+    pub installed: bool,
+    pub installed_version: Option<String>,
+    pub comment: String,
+}
+
 /// Trait for database management operations
 pub trait DatabaseManager {
     /// List all databases
@@ -47,6 +57,21 @@ pub trait DatabaseManager {
 
     /// Get connection info for display
     fn connection_info(&self) -> String;
+
+    /// List extensions available in a database (PostgreSQL only by default).
+    fn list_extensions(&self, _database: &str) -> Result<Vec<ExtensionInfo>, String> {
+        Err("Extensions are only supported on PostgreSQL".to_string())
+    }
+
+    /// Enable an extension on a database (PostgreSQL only by default).
+    fn enable_extension(&self, _database: &str, _extension: &str) -> Result<(), String> {
+        Err("Extensions are only supported on PostgreSQL".to_string())
+    }
+
+    /// Disable an extension on a database (PostgreSQL only by default).
+    fn disable_extension(&self, _database: &str, _extension: &str) -> Result<(), String> {
+        Err("Extensions are only supported on PostgreSQL".to_string())
+    }
 }
 
 /// Database type enum

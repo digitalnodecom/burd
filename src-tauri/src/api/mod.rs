@@ -120,6 +120,18 @@ pub fn create_router_with_state(api_state: ApiState) -> Router {
         .route("/databases", get(handlers::databases::list))
         .route("/databases", post(handlers::databases::create))
         .route("/databases/{name}", delete(handlers::databases::drop))
+        .route(
+            "/databases/{name}/extensions",
+            get(handlers::databases::list_extensions),
+        )
+        .route(
+            "/databases/{name}/extensions/{extension}",
+            post(handlers::databases::enable_extension),
+        )
+        .route(
+            "/databases/{name}/extensions/{extension}",
+            delete(handlers::databases::disable_extension),
+        )
         // Mail (Mailpit)
         .route("/mail/config", get(handlers::mail::config))
         .route("/mail/unread-count", get(handlers::mail::unread_count))

@@ -252,3 +252,88 @@ pub async fn drop(
         db_name
     )))
 }
+
+// === PostgreSQL extensions ===
+
+/// Find a running PostgreSQL instance and build its manager.
+fn postgres_manager(
+    state: &ApiState,
+) -> Result<Box<dyn crate::db_manager::DatabaseManager>, String> {
+    let config_store = state
+        .inner
+        .config_store
+        .lock()
+        .map_err(|_| "Failed to acquire config lock".to_string())?;
+    let process_manager = state
+        .inner
+        .process_manager
+        .lock()
+        .map_err(|_| "Failed to acquire process manager lock".to_string())?;
+    let config = config_store.load().map_err(|e| e.to_string())?;
+    let instance = config
+        .instances
+        .iter()
+        .find(|i| {
+            i.service_type == ServiceType::PostgreSQL && process_manager.get_status(i).running
+        })
+        .cloned()
+        .ok_or_else(|| "No running PostgreSQL instance found".to_string())?;
+    create_manager_for_instance(&instance)
+}
+
+/// GET /databases/{name}/extensions - list extensions and their install state.
+pub async fn list_extensions(
+    State(state): State<ApiState>,
+    Path(name): Path<String>,
+) -> Json<ApiResponse<Vec<crate::db_manager::ExtensionInfo>>> {
+    let db = match sanitize_db_name(&name) {
+        Ok(n) => n,
+        Err(e) => return Json(ApiResponse::err(e)),
+    };
+    let manager = match postgres_manager(&state) {
+        Ok(m) => m,
+        Err(e) => return Json(ApiResponse::err(e)),
+    };
+    match manager.list_extensions(&db) {
+        Ok(exts) => Json(ApiResponse::ok(exts)),
+        Err(e) => Json(ApiResponse::err(e)),
+    }
+}
+
+/// POST /databases/{name}/extensions/{extension} - enable an extension.
+pub async fn enable_extension(
+    State(state): State<ApiState>,
+    Path((name, extension)): Path<(String, String)>,
+) -> Json<ApiResponse<()>> {
+    let db = match sanitize_db_name(&name) {
+        Ok(n) => n,
+        Err(e) => return Json(ApiResponse::err(e)),
+    };
+    let manager = match postgres_manager(&state) {
+        Ok(m) => m,
+        Err(e) => return Json(ApiResponse::err(e)),
+    };
+    match manager.enable_extension(&db, &extension) {
+        Ok(()) => Json(ApiResponse::success()),
+        Err(e) => Json(ApiResponse::err(e)),
+    }
+}
+
+/// DELETE /databases/{name}/extensions/{extension} - disable an extension.
+pub async fn disable_extension(
+    State(state): State<ApiState>,
+    Path((name, extension)): Path<(String, String)>,
+) -> Json<ApiResponse<()>> {
+    let db = match sanitize_db_name(&name) {
+        Ok(n) => n,
+        Err(e) => return Json(ApiResponse::err(e)),
+    };
+    let manager = match postgres_manager(&state) {
+        Ok(m) => m,
+        Err(e) => return Json(ApiResponse::err(e)),
+    };
+    match manager.disable_extension(&db, &extension) {
+        Ok(()) => Json(ApiResponse::success()),
+        Err(e) => Json(ApiResponse::err(e)),
+    }
+}
