@@ -438,6 +438,88 @@ pub fn get_tools() -> Vec<Tool> {
         },
 
         // ====================================================================
+        // PHP CLI Version Manager (PVM) Tools
+        // ====================================================================
+        Tool {
+            name: "get_php_cli_status".to_string(),
+            description: "Get the status of Burd's command-line PHP version manager: how many CLI PHP versions are installed, which one is active (default), the PHP currently resolved in the terminal PATH, and whether shell integration is configured.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        },
+        Tool {
+            name: "list_php_cli_versions".to_string(),
+            description: "List the command-line PHP versions installed via Burd's PHP version manager (like `nvm ls` for PHP). Marks which one is the active default.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        },
+        Tool {
+            name: "list_available_php_cli_versions".to_string(),
+            description: "List command-line PHP versions available to install from Burd's binary releases (like `nvm ls-remote` for PHP). Returns the newest patch per minor version. Slow — hits GitHub.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        },
+        Tool {
+            name: "install_php_cli_version".to_string(),
+            description: "Download and install a command-line PHP version via Burd's PHP version manager. These are Burd's custom static builds with a full extension set (redis, mongodb, imagick, intl, ffi, gd, pdo_mysql, pdo_pgsql, and more). Use list_available_php_cli_versions to see installable versions. Installing does not switch the active version — call switch_php_cli_version afterwards.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "string",
+                        "description": "PHP version to install, e.g. '8.4.12' (see list_available_php_cli_versions)"
+                    }
+                },
+                "required": ["version"]
+            }),
+        },
+        Tool {
+            name: "uninstall_php_cli_version".to_string(),
+            description: "Uninstall a command-line PHP version previously installed via Burd's PHP version manager.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "string",
+                        "description": "Installed PHP version to remove, e.g. '8.3.15'"
+                    }
+                },
+                "required": ["version"]
+            }),
+        },
+        Tool {
+            name: "switch_php_cli_version".to_string(),
+            description: "Set the active command-line PHP version (like `nvm use` for PHP). This is the global CLI PHP switch — it changes which `php` the terminal runs. Requires the version to be installed first (use install_php_cli_version).".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "string",
+                        "description": "Installed PHP version to activate, e.g. '8.4.12'"
+                    }
+                },
+                "required": ["version"]
+            }),
+        },
+        Tool {
+            name: "configure_php_cli_shell".to_string(),
+            description: "Configure shell integration so `php` in the terminal uses Burd's active version. Adds Burd's PHP directory to PATH in the user's shell profile (.zshrc/.bash_profile). Run once after installing your first CLI PHP version; open a new terminal for it to take effect.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        },
+
+        // ====================================================================
         // Mail Tools (Mailpit)
         // ====================================================================
         Tool {

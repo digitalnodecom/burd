@@ -440,6 +440,24 @@ fn execute_tool(client: &BurdApiClient, name: &str, args: Option<Value>) -> Resu
             client.delete(&format!("/services/{}/versions/{}", svc, version))
         }
 
+        // PHP CLI tools (PVM — PHP version manager)
+        "get_php_cli_status" => client.get("/php/status"),
+        "list_php_cli_versions" => client.get("/php/versions"),
+        "list_available_php_cli_versions" => client.get("/php/versions/available"),
+        "install_php_cli_version" => {
+            let version = arg_str(&args, "version")?;
+            client.post(&format!("/php/versions/{}", version), &json!({}))
+        }
+        "uninstall_php_cli_version" => {
+            let version = arg_str(&args, "version")?;
+            client.delete(&format!("/php/versions/{}", version))
+        }
+        "switch_php_cli_version" => {
+            let version = arg_str(&args, "version")?;
+            client.post(&format!("/php/default/{}", version), &json!({}))
+        }
+        "configure_php_cli_shell" => client.post("/php/shell", &json!({})),
+
         // Proxy tools
         "get_proxy_status" => client.get("/proxy/status"),
         "restart_proxy" => client.post("/proxy/restart", &json!({})),

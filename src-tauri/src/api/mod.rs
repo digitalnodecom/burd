@@ -158,6 +158,24 @@ pub fn create_router_with_state(api_state: ApiState) -> Router {
             "/services/{service_type}/versions/{version}",
             delete(handlers::services::delete_version),
         )
+        // PHP CLI (PVM — PHP version manager)
+        .route("/php/status", get(handlers::php::status))
+        .route("/php/versions", get(handlers::php::list_versions))
+        .route(
+            "/php/versions/available",
+            get(handlers::php::available_versions),
+        )
+        .route(
+            "/php/versions/{version}",
+            post(handlers::php::install_version),
+        )
+        .route(
+            "/php/versions/{version}",
+            delete(handlers::php::uninstall_version),
+        )
+        .route("/php/default/{version}", post(handlers::php::set_default))
+        .route("/php/shell", get(handlers::php::shell_status))
+        .route("/php/shell", post(handlers::php::configure_shell))
         // Proxy
         .route("/proxy/status", get(handlers::proxy::status))
         .route("/proxy/restart", post(handlers::proxy::restart))
