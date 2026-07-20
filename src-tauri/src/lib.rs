@@ -129,12 +129,14 @@ use commands::{
     is_nvm_installed,
     // Park commands
     is_park_enabled,
+    list_database_extensions,
     list_domains,
     list_emails,
     // Tunnel commands
     list_frp_servers,
     list_installed_node_versions,
     list_installed_php_versions,
+    list_instance_databases,
     list_instances,
     list_parked_directories,
     list_remote_node_versions,
@@ -161,6 +163,7 @@ use commands::{
     restart_instance,
     restart_proxy_daemon,
     restart_proxy_for_certs,
+    set_database_extension,
     set_default_node_version,
     set_default_php_version,
     set_instance_domain,
@@ -399,6 +402,9 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            list_instance_databases,
+            list_database_extensions,
+            set_database_extension,
             list_instances,
             create_instance,
             rename_instance,

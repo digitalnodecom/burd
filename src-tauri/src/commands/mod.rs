@@ -1,4 +1,5 @@
 // Sub-modules
+mod db_extensions;
 mod dns;
 mod domains;
 mod instances;
@@ -37,6 +38,9 @@ pub use php::{
 };
 
 // Re-export instance commands
+pub use db_extensions::{
+    list_database_extensions, list_instance_databases, set_database_extension,
+};
 pub use instances::{
     change_instance_version, check_instance_health, check_port_status, create_instance,
     delete_instance, generate_env_for_service, get_instance_config, get_instance_env,

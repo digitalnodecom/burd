@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
   import { confirm } from '@tauri-apps/plugin-dialog';
+  import ExtensionsModal from '$lib/components/ExtensionsModal.svelte';
 
   interface Instance {
     id: string;
@@ -129,6 +130,7 @@
   let draggedInstanceId = $state<string | null>(null);
   let dragOverTarget = $state<string | null>(null);
   let errorMessage = $state<string | null>(null);
+  let extensionsInstance = $state<Instance | null>(null);
 
   // Reordering state
   let dragOverIndex = $state<number | null>(null);
@@ -960,6 +962,14 @@
   {/each}
 </div>
 
+{#if extensionsInstance}
+  <ExtensionsModal
+    instanceId={extensionsInstance.id}
+    instanceName={extensionsInstance.name}
+    onClose={() => (extensionsInstance = null)}
+  />
+{/if}
+
 {#snippet instanceRow(instance: Instance, showCheckbox: boolean = false, index: number = 0)}
             <div
               class="grid-row"
@@ -1106,6 +1116,17 @@
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                   </svg>
                 </button>
+                {#if instance.service_type === "postgresql" && instance.running}
+                  <button
+                    class="icon-btn"
+                    onclick={() => (extensionsInstance = instance)}
+                    title="Extensions (pgvector, pg_partman, …)"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 5h-2.5a2.5 2.5 0 1 0-5 0H10a2 2 0 0 0-2 2v2.5a2.5 2.5 0 1 1 0 5V17a2 2 0 0 0 2 2h2.5a2.5 2.5 0 1 1 5 0H20a2 2 0 0 0 2-2v-2.5a2.5 2.5 0 1 0 0-5V7a2 2 0 0 0-2-2z"></path>
+                    </svg>
+                  </button>
+                {/if}
                 <button
                   class="icon-btn"
                   onclick={() => onViewLogs(instance.id, instance.name)}
