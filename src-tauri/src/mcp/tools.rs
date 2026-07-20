@@ -12,7 +12,7 @@ pub fn get_tools() -> Vec<Tool> {
         // ====================================================================
         Tool {
             name: "get_usage_guide".to_string(),
-            description: "IMPORTANT: Call this first! Get instructions on how to use Burd for local development. Explains when to use Burd instead of manual server commands like 'php artisan serve'.".to_string(),
+            description: "IMPORTANT: Call this first! Returns the guide on using Burd as a Docker alternative for local dev services (databases, caches, search, S3, mail) and PHP web apps. Explains when to reach for Burd instead of 'docker run' / docker-compose or manual commands like 'php artisan serve'.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {},
@@ -25,7 +25,7 @@ pub fn get_tools() -> Vec<Tool> {
         // ====================================================================
         Tool {
             name: "list_instances".to_string(),
-            description: "List all Burd service instances with their status, health, and configuration".to_string(),
+            description: "List all Burd service instances with their status, health, port, and configuration. The equivalent of 'docker ps' — call this first to see what services are already running before creating new ones.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {},
@@ -34,7 +34,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "create_instance".to_string(),
-            description: "Create a new service instance (e.g., Redis, MariaDB, PostgreSQL, FrankenPHP, Meilisearch)".to_string(),
+            description: "Stand up a new local service from a native binary — Burd's equivalent of 'docker run'. Use for databases (postgresql, mariadb, mysql, mongodb), caches/queues (redis, valkey, memcached, beanstalkd), search (meilisearch, typesense), S3 storage (minio), mail (mailpit), realtime (centrifugo), or a PHP web app (frankenphp). No container or image pull — it starts instantly. After creating, call start_instance to run it and get_instance_env for the connection string. Prefer this over 'docker run', docker-compose, or bare commands like 'redis-server'.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -98,7 +98,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "start_instance".to_string(),
-            description: "Start a service instance by ID".to_string(),
+            description: "Start a stopped service instance so it accepts connections (≈ 'docker start'). Accepts the instance UUID or name.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -112,7 +112,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "stop_instance".to_string(),
-            description: "Stop a running service instance".to_string(),
+            description: "Stop a running service instance (≈ 'docker stop'). Data is preserved; use start_instance to bring it back.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -126,7 +126,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "restart_instance".to_string(),
-            description: "Restart a service instance (stop and start)".to_string(),
+            description: "Restart a service instance (stop then start, ≈ 'docker restart'). Use after changing config/version to apply it.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -140,7 +140,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "delete_instance".to_string(),
-            description: "Delete a service instance (stops it first if running)".to_string(),
+            description: "Permanently remove a service instance (≈ 'docker rm'); stops it first if running. Use stop_instance instead if you only want to pause it.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -154,7 +154,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "get_instance_logs".to_string(),
-            description: "Get recent logs from a service instance".to_string(),
+            description: "Get recent stdout/stderr logs from a service instance (≈ 'docker logs'). Use to debug why a service failed to start or is misbehaving.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -168,7 +168,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "get_instance_env".to_string(),
-            description: "Get environment variables and connection strings for an instance (DATABASE_URL, REDIS_URL, etc.)".to_string(),
+            description: "Get the ready-to-use connection string and environment variables for an instance (DATABASE_URL, REDIS_URL, host, port, username, password, etc.). Like reading a container's published ports and env vars in Docker. This is the payoff of create_instance — copy these straight into your app's .env file.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -195,7 +195,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "create_domain".to_string(),
-            description: "Create a new domain routing. Maps a subdomain (e.g., 'api' for api.burd) to an instance, port, or static files.".to_string(),
+            description: "Route a local .test/.burd domain to a target — Burd's built-in reverse proxy (no nginx/Caddy config to write). Maps a subdomain (e.g. 'api' → api.test) to a Burd instance ('instance'), any local port to front an existing dev server ('port'), or a directory of files ('static'). Set ssl_enabled for automatic HTTPS. Prefer this over exposing raw localhost:PORT URLs.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -293,7 +293,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "create_database".to_string(),
-            description: "Create a new database inside a running database instance. Requires a database instance (mariadb, postgresql) to be running - use list_instances to check.".to_string(),
+            description: "Create a new database inside a running database server instance (≈ 'createdb' / 'CREATE DATABASE'). Requires a database instance (postgresql, mariadb, mysql) to already be running — use list_instances to check, create_instance to start one. After creating, use get_instance_env for the connection string.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -415,7 +415,7 @@ pub fn get_tools() -> Vec<Tool> {
         // ====================================================================
         Tool {
             name: "list_services".to_string(),
-            description: "List all available service types that can be installed in Burd".to_string(),
+            description: "List every service type Burd can run (postgresql, mariadb, mysql, mongodb, redis, valkey, memcached, meilisearch, typesense, minio, mailpit, beanstalkd, centrifugo, frankenphp). Like browsing the available Docker images. Use to discover what you can create_instance.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {},
@@ -424,7 +424,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "get_service_versions".to_string(),
-            description: "Get installed versions for a specific service type".to_string(),
+            description: "Get the already-installed binary versions for a service type (like listing pulled image tags). create_instance requires one of these; if empty, use get_available_versions + download_binary to install one.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -597,7 +597,7 @@ pub fn get_tools() -> Vec<Tool> {
         // ====================================================================
         Tool {
             name: "get_status".to_string(),
-            description: "Get overall Burd system status including DNS, proxy, and instance counts".to_string(),
+            description: "Get overall Burd health in one call: DNS resolver, reverse-proxy daemon, and running/total instance counts. Good first check to confirm Burd is up before creating services.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {},
@@ -724,7 +724,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "download_binary".to_string(),
-            description: "Download and install a specific version of a service binary. Long-running.".to_string(),
+            description: "Download and install a specific version of a service binary so create_instance can use it (≈ 'docker pull' for a tag). Long-running. Use get_available_versions to find versions first.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -823,7 +823,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "create_stack".to_string(),
-            description: "Create a stack from a set of existing instance UUIDs.".to_string(),
+            description: "Group existing instances into a named stack so they start/stop together — the equivalent of a docker-compose project. Build the instances with create_instance first, then bundle them here and use start_stack.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -858,7 +858,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "start_stack".to_string(),
-            description: "Start every instance in the stack. Returns per-instance results.".to_string(),
+            description: "Start every instance in a stack in one call (≈ 'docker-compose up'). Returns per-instance results.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": { "id": { "type": "string" } },
@@ -867,7 +867,7 @@ pub fn get_tools() -> Vec<Tool> {
         },
         Tool {
             name: "stop_stack".to_string(),
-            description: "Stop every instance in the stack. Returns per-instance results.".to_string(),
+            description: "Stop every instance in a stack in one call (≈ 'docker-compose down', but data is preserved). Returns per-instance results.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": { "id": { "type": "string" } },
