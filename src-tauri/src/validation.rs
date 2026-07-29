@@ -383,7 +383,7 @@ pub fn validate_tld(tld: &str) -> Result<(), AppError> {
 
 /// Regex for semantic version strings
 static VERSION_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$|^[0-9]+\.[0-9]+$|^system$").unwrap()
+    Regex::new(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$|^[0-9]+\.[0-9]+$|^[0-9]+\.[0-9]+-[0-9]+\.[0-9]+\.[0-9]+$|^system$").unwrap()
 });
 
 /// Validate a version string
@@ -391,6 +391,8 @@ static VERSION_REGEX: Lazy<Regex> = Lazy::new(|| {
 /// Accepts:
 /// - Semantic versions (e.g., "1.2.3", "1.0.0-alpha", "2.0.0+build.123")
 /// - Simple versions (e.g., "8.0", "7.4")
+/// - Compound `{php}-{frankenphp}` versions (e.g., "8.5-1.12.4"), the scheme
+///   FrankenPHP release tags/assets use
 /// - The special value "system" for system-installed binaries
 ///
 /// # Arguments
@@ -417,7 +419,7 @@ pub fn validate_version(version: &str) -> Result<(), AppError> {
 
     if !VERSION_REGEX.is_match(version) {
         return Err(AppError::invalid_config(format!(
-            "Invalid version format: '{}'. Expected semantic version (e.g., 1.2.3), simple version (e.g., 8.0), or 'system'",
+            "Invalid version format: '{}'. Expected semantic version (e.g., 1.2.3), simple version (e.g., 8.0), compound PHP-FrankenPHP version (e.g., 8.5-1.12.4), or 'system'",
             version
         )));
     }
@@ -575,8 +577,15 @@ mod tests {
         assert!(validate_version("1.0.0-alpha").is_ok());
         assert!(validate_version("2.0.0+build.123").is_ok());
 
+        // Compound {php}-{frankenphp} versions (FrankenPHP release scheme)
+        assert!(validate_version("8.5-1.12.4").is_ok());
+        assert!(validate_version("8.4-1.12.4").is_ok());
+        assert!(validate_version("8.3-1.12.4").is_ok());
+
         assert!(validate_version("").is_err());
         assert!(validate_version("invalid").is_err());
         assert!(validate_version("1.2.3.4").is_err());
+        assert!(validate_version("8.5-1.12").is_err());
+        assert!(validate_version("8.5-").is_err());
     }
 }

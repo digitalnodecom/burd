@@ -110,6 +110,16 @@ pub fn run_doctor() -> Result<(), String> {
     let mut has_mailpit = false;
     let mut has_meilisearch = false;
 
+    // Track which categories have a *healthy* (running, port-open) instance, so
+    // the coverage summary can distinguish "configured and up" from "configured
+    // but crashed/stopped" instead of always reporting a configured service OK.
+    let mut up_frankenphp = false;
+    let mut up_mariadb = false;
+    let mut up_postgres = false;
+    let mut up_redis = false;
+    let mut up_mailpit = false;
+    let mut up_meilisearch = false;
+
     // Pull the daemon's view of `running` per instance so we can tell
     // "stopped" (user intent: not running) from "crashed" (user intent:
     // running, but the port is closed). Port-only probe can't distinguish
@@ -160,13 +170,32 @@ pub fn run_doctor() -> Result<(), String> {
             println!("      {}", h);
         }
 
+        let up = status == Status::Ok;
         match instance.service_type {
-            ServiceType::FrankenPHP | ServiceType::FrankenPhpPark => has_frankenphp = true,
-            ServiceType::MariaDB => has_mariadb = true,
-            ServiceType::PostgreSQL => has_postgres = true,
-            ServiceType::Redis => has_redis = true,
-            ServiceType::Mailpit => has_mailpit = true,
-            ServiceType::Meilisearch => has_meilisearch = true,
+            ServiceType::FrankenPHP | ServiceType::FrankenPhpPark => {
+                has_frankenphp = true;
+                up_frankenphp |= up;
+            }
+            ServiceType::MariaDB => {
+                has_mariadb = true;
+                up_mariadb |= up;
+            }
+            ServiceType::PostgreSQL => {
+                has_postgres = true;
+                up_postgres |= up;
+            }
+            ServiceType::Redis => {
+                has_redis = true;
+                up_redis |= up;
+            }
+            ServiceType::Mailpit => {
+                has_mailpit = true;
+                up_mailpit |= up;
+            }
+            ServiceType::Meilisearch => {
+                has_meilisearch = true;
+                up_meilisearch |= up;
+            }
             _ => {}
         }
     }
@@ -182,12 +211,12 @@ pub fn run_doctor() -> Result<(), String> {
     println!("Service Coverage");
     println!("----------------");
 
-    print_service_status("PHP Server", has_frankenphp);
-    print_service_status("Database (MariaDB)", has_mariadb);
-    print_service_status("Database (PostgreSQL)", has_postgres);
-    print_service_status("Cache (Redis)", has_redis);
-    print_service_status("Mail (Mailpit)", has_mailpit);
-    print_service_status("Search (Meilisearch)", has_meilisearch);
+    print_service_status("PHP Server", has_frankenphp, up_frankenphp);
+    print_service_status("Database (MariaDB)", has_mariadb, up_mariadb);
+    print_service_status("Database (PostgreSQL)", has_postgres, up_postgres);
+    print_service_status("Cache (Redis)", has_redis, up_redis);
+    print_service_status("Mail (Mailpit)", has_mailpit, up_mailpit);
+    print_service_status("Search (Meilisearch)", has_meilisearch, up_meilisearch);
 
     // === Section 2: Proxy ===
     println!();
@@ -285,17 +314,16 @@ pub fn run_doctor() -> Result<(), String> {
     Ok(())
 }
 
-/// Print service installation status
-fn print_service_status(name: &str, installed: bool) {
-    let status = if installed {
-        Status::Ok
-    } else {
-        Status::NotInstalled
-    };
-    let text = if installed {
-        "configured"
-    } else {
-        "not configured"
+/// Print service coverage status.
+///
+/// `configured` = an instance of this kind exists; `running` = at least one
+/// such instance is actually healthy (port open). A configured-but-down service
+/// is a warning, not OK — the old summary reported OK for a crashed process.
+fn print_service_status(name: &str, configured: bool, running: bool) {
+    let (status, text) = match (configured, running) {
+        (false, _) => (Status::NotInstalled, "not configured"),
+        (true, true) => (Status::Ok, "configured and running"),
+        (true, false) => (Status::Warning, "configured but not running"),
     };
     println!("  {} {} - {}", status.symbol(), name, text);
 }

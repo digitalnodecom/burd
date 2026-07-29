@@ -10,8 +10,14 @@
 use crate::api_client::BurdApiClient;
 use crate::config::{ConfigStore, DomainTarget, Instance};
 use std::env;
+use std::net::{SocketAddr, TcpStream};
 use std::path::Path;
+use std::time::{Duration, Instant};
 use uuid::Uuid;
+
+/// How long to wait for a started instance's port to begin accepting
+/// connections before we conclude the process failed to stay up.
+const READINESS_WAIT: Duration = Duration::from_secs(5);
 
 pub fn run_start(name: Option<String>) -> Result<(), String> {
     dispatch(name, Action::Start)
@@ -65,6 +71,22 @@ fn dispatch(name: Option<String>, action: Action) -> Result<(), String> {
     let path = format!("/instances/{}/{}", instance.id, action.verb());
     match client.post(&path, &serde_json::json!({})) {
         Ok(_) => {
+            // A start/restart can return success and then the process dies
+            // immediately (e.g. a bad binary that crashes on startup). Don't
+            // claim success until the port is actually accepting connections.
+            if matches!(action, Action::Start | Action::Restart)
+                && !port_becomes_ready(instance.port)
+            {
+                return Err(format!(
+                    "'{}' was {} but nothing is listening on port {} after {}s — \
+                     the process likely crashed on startup. Check logs with `burd logs {}`.",
+                    instance.name,
+                    action.past(),
+                    instance.port,
+                    READINESS_WAIT.as_secs(),
+                    instance.name
+                ));
+            }
             println!("✓ {} '{}'", capitalize(action.past()), instance.name);
             Ok(())
         }
@@ -83,6 +105,24 @@ fn dispatch(name: Option<String>, action: Action) -> Result<(), String> {
             Ok(())
         }
         Err(e) => Err(e),
+    }
+}
+
+/// Poll `127.0.0.1:port` until a TCP connection succeeds or `READINESS_WAIT`
+/// elapses. Returns true if the port became ready. This is the same TCP signal
+/// Burd uses for instance health checks, so a live service passes quickly while
+/// a process that crashed on startup never opens the port.
+fn port_becomes_ready(port: u16) -> bool {
+    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    let deadline = Instant::now() + READINESS_WAIT;
+    loop {
+        if TcpStream::connect_timeout(&addr, Duration::from_millis(300)).is_ok() {
+            return true;
+        }
+        if Instant::now() >= deadline {
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(150));
     }
 }
 
