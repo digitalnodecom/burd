@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.10.1] - 2026-07-29
+
+### Fixed
+
+- **FrankenPHP no longer crashes on macOS 26.** The custom FrankenPHP 1.12.4
+  builds (PHP 8.3/8.4/8.5) crashed nondeterministically (~75% of runs) with
+  random SIGSEGV/SIGBUS on macOS 26 arm64, making PHP unservable. Cause: the
+  builds enabled the mimalloc allocator, which is incompatible with
+  FrankenPHP's Go runtime — the build flag intended to disable it (`MIMALLOC=0`)
+  was misread as "enabled" because FrankenPHP treats any non-empty value as on.
+  All six binaries (8.3/8.4/8.5 × arm64/x86_64) have been rebuilt without
+  mimalloc and verified stable; the full extension set (redis, mongodb,
+  imagick, parallel, memcached, …) is unchanged.
+- **`download_binary` now accepts FrankenPHP's version format.** The version
+  validator rejected the `{php}-{frankenphp}` scheme every FrankenPHP release
+  uses (e.g. `8.5-1.12.4`), so the exact string from `get_available_versions`
+  couldn't be installed via the API/MCP. It now round-trips correctly.
+- **FrankenPHP versions are labelled by PHP line.** `get_available_versions`
+  had labelled all three builds "PHP 8.4"; they now read 8.3 / 8.4 / 8.5.
+- **`burd start`/`restart` verify the service actually came up.** They now wait
+  for the instance port to accept connections before reporting success, instead
+  of claiming success for a process that died on startup — and point at
+  `burd logs` when it doesn't.
+- **`burd doctor` is honest about dead services.** The coverage summary now
+  reports `configured but not running` for a service whose process isn't up,
+  rather than a misleading `[OK]`.
+
+---
+
 ## [1.10.0] - 2026-07-20
 
 ### Added
