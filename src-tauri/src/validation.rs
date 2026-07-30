@@ -381,26 +381,26 @@ pub fn validate_tld(tld: &str) -> Result<(), AppError> {
 // Version String Validation
 // ============================================================================
 
-/// Regex for semantic version strings
-static VERSION_REGEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$|^[0-9]+\.[0-9]+$|^[0-9]+\.[0-9]+-[0-9]+\.[0-9]+\.[0-9]+$|^system$").unwrap()
-});
+/// Charset for a version token: must start alphanumeric, then only
+/// alphanumerics and `. _ + -`. This admits every scheme a service catalog
+/// emits — bare semver (`1.2.3`), simple (`8.0`), v-prefixed upstream tags
+/// (`v2.11.4`), compound PHP-FrankenPHP (`8.5-1.12.4`), and `system` — while
+/// excluding path separators, whitespace, and shell metacharacters. A version
+/// is only ever used as a single path component / URL segment, so this plus the
+/// explicit `..` check below is what keeps it from escaping that context.
+static VERSION_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$").unwrap());
 
-/// Validate a version string
+/// Validate a version string for safe use as a path component / URL segment.
 ///
-/// Accepts:
-/// - Semantic versions (e.g., "1.2.3", "1.0.0-alpha", "2.0.0+build.123")
-/// - Simple versions (e.g., "8.0", "7.4")
-/// - Compound `{php}-{frankenphp}` versions (e.g., "8.5-1.12.4"), the scheme
-///   FrankenPHP release tags/assets use
-/// - The special value "system" for system-installed binaries
+/// This intentionally accepts every version scheme the service catalog emits,
+/// rather than enumerating known formats (which is brittle — it previously
+/// rejected FrankenPHP's `8.5-1.12.4` and Caddy's `v2.11.4`, blocking installs).
+/// It rejects only what is genuinely unsafe: empty strings, path traversal, and
+/// anything outside the version charset (`[A-Za-z0-9._+-]`, alphanumeric start).
 ///
-/// # Arguments
-/// * `version` - The version string to validate
-///
-/// # Returns
-/// * `Ok(())` if the version is valid
-/// * `Err(AppError)` if the version is invalid
+/// Accepts: `1.2.3`, `8.0`, `v2.11.4`, `8.5-1.12.4`, `1.0.0-alpha`,
+/// `2.0.0+build.123`, `system`. Rejects: ``, `..`, `../etc`, `a/b`, `a b`.
 ///
 /// # Example
 /// ```
@@ -408,18 +408,20 @@ static VERSION_REGEX: Lazy<Regex> = Lazy::new(|| {
 ///
 /// assert!(validate_version("1.6.0").is_ok());
 /// assert!(validate_version("8.0").is_ok());
+/// assert!(validate_version("v2.11.4").is_ok());
+/// assert!(validate_version("8.5-1.12.4").is_ok());
 /// assert!(validate_version("system").is_ok());
-/// assert!(validate_version("invalid").is_err());
 /// assert!(validate_version("").is_err());
+/// assert!(validate_version("../etc/passwd").is_err());
 /// ```
 pub fn validate_version(version: &str) -> Result<(), AppError> {
     if version.is_empty() {
         return Err(AppError::invalid_config("Version cannot be empty"));
     }
 
-    if !VERSION_REGEX.is_match(version) {
+    if version.len() > 64 || version.contains("..") || !VERSION_REGEX.is_match(version) {
         return Err(AppError::invalid_config(format!(
-            "Invalid version format: '{}'. Expected semantic version (e.g., 1.2.3), simple version (e.g., 8.0), compound PHP-FrankenPHP version (e.g., 8.5-1.12.4), or 'system'",
+            "Invalid version format: '{}'. Use a version like 1.2.3, 8.0, v2.11.4, 8.5-1.12.4, or 'system'",
             version
         )));
     }
@@ -570,22 +572,66 @@ mod tests {
     // Version validation tests
     #[test]
     fn test_validate_version() {
+        // Every scheme the service catalog emits must be accepted.
         assert!(validate_version("1.6.0").is_ok());
         assert!(validate_version("8.0").is_ok());
         assert!(validate_version("7.4").is_ok());
         assert!(validate_version("system").is_ok());
         assert!(validate_version("1.0.0-alpha").is_ok());
         assert!(validate_version("2.0.0+build.123").is_ok());
+        assert!(validate_version("8.5-1.12.4").is_ok()); // FrankenPHP compound
+        assert!(validate_version("v2.11.4").is_ok()); // Caddy v-prefixed upstream tag
 
-        // Compound {php}-{frankenphp} versions (FrankenPHP release scheme)
-        assert!(validate_version("8.5-1.12.4").is_ok());
-        assert!(validate_version("8.4-1.12.4").is_ok());
-        assert!(validate_version("8.3-1.12.4").is_ok());
-
+        // Only genuinely unsafe input is rejected: empty, traversal, separators.
         assert!(validate_version("").is_err());
-        assert!(validate_version("invalid").is_err());
-        assert!(validate_version("1.2.3.4").is_err());
-        assert!(validate_version("8.5-1.12").is_err());
-        assert!(validate_version("8.5-").is_err());
+        assert!(validate_version("..").is_err());
+        assert!(validate_version("../etc/passwd").is_err());
+        assert!(validate_version("8.4/../../evil").is_err());
+        assert!(validate_version("1.0 0").is_err()); // whitespace
+        assert!(validate_version(".hidden").is_err()); // must start alphanumeric
+        assert!(validate_version(&"9".repeat(65)).is_err()); // length cap
+    }
+
+    /// Property test (the one that would have caught the FrankenPHP + Caddy
+    /// install failures): every version string the catalog can emit must pass
+    /// `validate_version`, so `get_available_versions` output always round-trips
+    /// into `download_binary`. Covers the static versions and label keys in
+    /// services.json plus the v-prefixed upstream tag shape.
+    #[test]
+    fn catalog_versions_pass_validation() {
+        let catalog: serde_json::Value =
+            serde_json::from_str(include_str!("../services.json")).expect("services.json parses");
+        let services = catalog
+            .get("services")
+            .and_then(|s| s.as_object())
+            .expect("services.json has a services object");
+        for svc in services.values() {
+            // Static version lists (e.g. FrankenPHP's 8.5-1.12.4).
+            if let Some(versions) = svc
+                .get("versions")
+                .and_then(|v| v.get("versions"))
+                .and_then(|v| v.as_array())
+            {
+                for v in versions.iter().filter_map(|v| v.as_str()) {
+                    assert!(
+                        validate_version(v).is_ok(),
+                        "catalog version {:?} rejected by validate_version",
+                        v
+                    );
+                }
+            }
+            // Version-label keys (excluding the "default" sentinel).
+            if let Some(labels) = svc.get("version_labels").and_then(|l| l.as_object()) {
+                for key in labels.keys().filter(|k| k.as_str() != "default") {
+                    assert!(
+                        validate_version(key).is_ok(),
+                        "catalog label key {:?} rejected by validate_version",
+                        key
+                    );
+                }
+            }
+        }
+        // GitHub-release services emit v-prefixed tags at runtime.
+        assert!(validate_version("v2.11.4").is_ok());
     }
 }

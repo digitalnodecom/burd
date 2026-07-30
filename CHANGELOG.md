@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.10.2] - 2026-07-30
+
+### Fixed
+
+- **`download_binary` accepts every version scheme the catalog emits.** The
+  1.10.1 fix covered FrankenPHP's compound `8.5-1.12.4` but still rejected
+  Caddy's v-prefixed upstream tags (`v2.11.4`) — the version validator was a
+  brittle format allow-list. It is now a permissive-but-safe charset check
+  (accepts `1.2.3`, `8.0`, `v2.11.4`, `8.5-1.12.4`, `system`; still blocks
+  empty, path traversal, and separators), so any string from
+  `get_available_versions` installs. Added a property test asserting every
+  catalog version passes validation, which would have caught both cases.
+- **Caddy binary download works.** The GitHub asset matcher treated the
+  `caddy_*_mac_arm64.tar.gz` pattern literally, so the `*` never matched the
+  real versioned asset name ("No binary found"). It now expands `*` wildcards.
+  Combined with the validator fix, the HTTPS proxy's Caddy binary installs from
+  the correct `v2.11.4` release tag.
+
+### Note
+
+The 1.10.1 fixes for the FrankenPHP version format and the "PHP 8.4"
+mislabelling only take effect once the Burd app is fully restarted onto 1.10.1+
+— a downloaded-but-not-yet-installed update keeps the old daemon (and its old
+validator) serving the API/MCP.
+
+---
+
 ## [1.10.1] - 2026-07-29
 
 ### Fixed

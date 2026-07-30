@@ -37,6 +37,44 @@ pub struct VersionInfo {
     pub label: Option<String>,
 }
 
+/// Match a GitHub release asset name against a catalog `asset_pattern`.
+///
+/// Patterns may contain `*` wildcards (e.g. `caddy_*_mac_arm64.tar.gz`, where
+/// the `*` stands in for the version). Each literal segment between wildcards
+/// must appear in order; the first/last segment anchors the start/end unless the
+/// pattern begins/ends with `*`. Patterns without a `*` keep the previous
+/// exact-or-substring behavior for backward compatibility.
+fn asset_matches(name: &str, pattern: &str) -> bool {
+    if !pattern.contains('*') {
+        return name == pattern || name.contains(pattern);
+    }
+    let parts: Vec<&str> = pattern.split('*').collect();
+    let last = parts.len() - 1;
+    let mut pos = 0;
+    for (i, part) in parts.iter().enumerate() {
+        if part.is_empty() {
+            continue;
+        }
+        if i == 0 {
+            if !name.starts_with(part) {
+                return false;
+            }
+            pos = part.len();
+        } else if i == last {
+            // Anchor to the end, but not before the current position.
+            if name.len() < pos || !name[pos..].ends_with(part) {
+                return false;
+            }
+        } else {
+            match name[pos..].find(part) {
+                Some(idx) => pos += idx + part.len(),
+                None => return false,
+            }
+        }
+    }
+    true
+}
+
 #[derive(Debug, Deserialize)]
 struct GitHubAsset {
     name: String,
@@ -354,9 +392,7 @@ impl BinaryManager {
                             let asset = release
                                 .assets
                                 .iter()
-                                .find(|a| {
-                                    a.name == *asset_pattern || a.name.contains(asset_pattern)
-                                })
+                                .find(|a| asset_matches(&a.name, asset_pattern))
                                 .ok_or_else(|| {
                                     format!("No binary found (looking for {})", asset_pattern)
                                 })?;
@@ -1370,6 +1406,40 @@ mod tests {
     use super::*;
     use std::io::Write;
     use tempfile::TempDir;
+
+    #[test]
+    fn test_asset_matches_wildcard() {
+        // Caddy's pattern must match the real versioned asset name.
+        assert!(asset_matches(
+            "caddy_2.11.4_mac_arm64.tar.gz",
+            "caddy_*_mac_arm64.tar.gz"
+        ));
+        assert!(asset_matches(
+            "caddy_2.11.4_mac_amd64.tar.gz",
+            "caddy_*_mac_amd64.tar.gz"
+        ));
+        // Wrong arch / different suffix must not match.
+        assert!(!asset_matches(
+            "caddy_2.11.4_mac_amd64.tar.gz",
+            "caddy_*_mac_arm64.tar.gz"
+        ));
+        assert!(!asset_matches(
+            "caddy_2.11.4_linux_arm64.tar.gz",
+            "caddy_*_mac_arm64.tar.gz"
+        ));
+        // Leading/trailing wildcards.
+        assert!(asset_matches("frankenphp-mac-arm64", "*mac-arm64"));
+        assert!(asset_matches("frankenphp-mac-arm64", "frankenphp-*"));
+        // Patterns without a wildcard keep exact/substring behavior.
+        assert!(asset_matches(
+            "frankenphp-linux-x86_64",
+            "frankenphp-linux-x86_64"
+        ));
+        assert!(!asset_matches(
+            "frankenphp-linux-arm64",
+            "frankenphp-linux-x86_64"
+        ));
+    }
 
     #[test]
     fn test_verify_checksum_success() {
