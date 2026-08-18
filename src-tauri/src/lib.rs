@@ -433,6 +433,36 @@ pub fn run() {
                 });
             }
 
+            // Repair older PostgreSQL clusters that were bootstrapped without a
+            // `postgres` superuser role, for instances already running at launch
+            // (instances started later are handled in ProcessManager::start).
+            {
+                let state = app.state::<AppState>().inner().clone();
+                std::thread::spawn(move || {
+                    let config = match state.config_store.lock().ok().and_then(|cs| cs.load().ok())
+                    {
+                        Some(c) => c,
+                        None => return,
+                    };
+                    for inst in config
+                        .instances
+                        .iter()
+                        .filter(|i| i.service_type == config::ServiceType::PostgreSQL)
+                    {
+                        let running = state
+                            .process_manager
+                            .lock()
+                            .map(|pm| pm.get_status(inst).running)
+                            .unwrap_or(false);
+                        if running {
+                            let _ = services::postgresql::PostgreSQLService::ensure_superuser(
+                                inst.port,
+                            );
+                        }
+                    }
+                });
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

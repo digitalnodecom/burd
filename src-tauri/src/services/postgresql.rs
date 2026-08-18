@@ -6,10 +6,84 @@ use crate::config::{get_service_bin_dir, Instance, ServiceType};
 use crate::services::{DownloadMethod, HealthCheck, ServiceDefinition, VersionSource};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 pub struct PostgreSQLService;
 
 impl PostgreSQLService {
+    /// Ensure a `postgres` superuser role exists in the running cluster on
+    /// `port`, creating it if the cluster was bootstrapped under a different
+    /// superuser (older Burd clusters used the OS user, so no `postgres` role
+    /// existed and the database manager — which connects as `postgres` — failed).
+    ///
+    /// Best-effort and idempotent: it waits for the server to accept
+    /// connections, connects as whichever superuser works, and never blocks or
+    /// fails an instance start on its own.
+    pub fn ensure_superuser(port: u16) -> Result<(), String> {
+        let psql = Self::get_basedir()?.join("bin/psql");
+        let os_user = std::env::var("USER").unwrap_or_default();
+        let port_s = port.to_string();
+
+        // Can we run a trivial query as `user`? (also our readiness probe)
+        let probe = |user: &str| -> bool {
+            if user.is_empty() {
+                return false;
+            }
+            Command::new(&psql)
+                .args([
+                    "-h",
+                    "127.0.0.1",
+                    "-p",
+                    &port_s,
+                    "-U",
+                    user,
+                    "-d",
+                    "postgres",
+                    "-tAc",
+                    "SELECT 1",
+                ])
+                .env("PGCONNECT_TIMEOUT", "2")
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false)
+        };
+
+        for attempt in 0..20 {
+            if probe("postgres") {
+                return Ok(()); // role already present (new clusters / already migrated)
+            }
+            if probe(&os_user) {
+                let sql = "DO $$ BEGIN \
+                     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'postgres') THEN \
+                     CREATE ROLE postgres WITH SUPERUSER LOGIN CREATEDB CREATEROLE; \
+                     END IF; END $$;";
+                let out = Command::new(&psql)
+                    .args([
+                        "-h",
+                        "127.0.0.1",
+                        "-p",
+                        &port_s,
+                        "-U",
+                        &os_user,
+                        "-d",
+                        "postgres",
+                        "-c",
+                        sql,
+                    ])
+                    .output()
+                    .map_err(|e| format!("Failed to run psql: {e}"))?;
+                return if out.status.success() {
+                    Ok(())
+                } else {
+                    Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+                };
+            }
+            if attempt < 19 {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
+        }
+        Err("timed out waiting for PostgreSQL to accept connections".to_string())
+    }
     /// Get the PostgreSQL basedir from the bundled binary
     /// Returns the versioned directory (e.g., ~/.burd/bin/postgresql/17.7/)
     pub fn get_basedir() -> Result<PathBuf, String> {
@@ -207,6 +281,11 @@ impl ServiceDefinition for PostgreSQLService {
                 "-L".to_string(),
                 share_dir.to_string_lossy().to_string(),
                 "--auth=trust".to_string(),
+                // Name the bootstrap superuser `postgres` explicitly. Without
+                // this, initdb uses the OS user as superuser and no `postgres`
+                // role exists — but the database manager connects as `postgres`,
+                // so create_database and friends fail.
+                "--username=postgres".to_string(),
                 "--no-locale".to_string(),
                 "--encoding=UTF8".to_string(),
             ],

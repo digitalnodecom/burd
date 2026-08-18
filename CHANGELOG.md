@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.6] - 2026-07-30
+
+### Fixed
+
+- **PostgreSQL `create_database` (and the database manager) work on all
+  clusters.** New clusters are now initialized with `postgres` as the superuser
+  (`initdb --username=postgres`); previously initdb used the OS user, so no
+  `postgres` role existed and every manager operation — which connects as
+  `postgres` — failed with `role "postgres" does not exist`. Existing clusters
+  are repaired automatically: on start (and for instances already running at
+  launch) Burd ensures a `postgres` superuser role exists, creating it via the
+  cluster's original superuser if needed.
+
+---
+
 ## [1.11.5] - 2026-07-30
 
 ### Fixed

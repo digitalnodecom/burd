@@ -1,6 +1,6 @@
 {
   "name": "burd",
-  "version": "1.11.5",
+  "version": "1.11.6",
   "description": "Local Development Environment Manager",
   "type": "module",
   "scripts": {

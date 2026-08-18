@@ -546,6 +546,21 @@ impl ProcessManager {
             ));
         }
 
+        // Older Burd PostgreSQL clusters were bootstrapped with the OS user as
+        // superuser and no `postgres` role, which breaks the database manager.
+        // Ensure the role exists in the background (waits for readiness itself)
+        // so it's fixed on the next start without blocking this one.
+        if instance.service_type == ServiceType::PostgreSQL {
+            let port = instance.port;
+            std::thread::spawn(move || {
+                if let Err(e) =
+                    crate::services::postgresql::PostgreSQLService::ensure_superuser(port)
+                {
+                    eprintln!("[postgres] ensure_superuser(port {port}) failed: {e}");
+                }
+            });
+        }
+
         Ok(pid)
     }
 
