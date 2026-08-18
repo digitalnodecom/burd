@@ -2,7 +2,7 @@
 //!
 //! Provides database operations using the mysql/mariadb CLI tools.
 
-use super::{DatabaseInfo, DatabaseManager};
+use super::{DatabaseInfo, DatabaseManager, DbUser};
 use std::path::Path;
 use std::process::Command;
 
@@ -138,6 +138,35 @@ impl DatabaseManager for MariaDbManager {
             .collect();
 
         Ok(databases)
+    }
+
+    fn list_users(&self) -> Result<Vec<DbUser>, String> {
+        // execute_query runs mysql -N -B, so rows are tab-separated:
+        // "User\tHost\tSuper_priv".
+        let output = self
+            .execute_query("SELECT User, Host, Super_priv FROM mysql.user ORDER BY User, Host")?;
+
+        let users = output
+            .lines()
+            .filter(|line| !line.is_empty())
+            .filter_map(|line| {
+                let mut parts = line.split('\t');
+                let name = parts.next()?.trim().to_string();
+                if name.is_empty() {
+                    return None;
+                }
+                let host = parts.next().map(|s| s.trim().to_string());
+                let is_superuser = parts.next().map(|s| s.trim() == "Y").unwrap_or(false);
+                Some(DbUser {
+                    name,
+                    host,
+                    is_superuser,
+                    can_login: true,
+                })
+            })
+            .collect();
+
+        Ok(users)
     }
 
     fn create_database(&self, name: &str) -> Result<(), String> {

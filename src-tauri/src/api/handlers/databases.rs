@@ -11,8 +11,43 @@ use crate::api::{
     state::ApiState,
     types::{ApiResponse, CreateDatabaseRequest},
 };
-use crate::config::ServiceType;
+use crate::config::{Instance, ServiceType};
 use crate::db_manager::{create_manager_for_instance, sanitize_db_name};
+
+/// Collect the running MariaDB/PostgreSQL instances (the ones with a manager).
+/// Shared by the database and user listing endpoints.
+fn running_db_instances(state: &ApiState) -> Result<Vec<Instance>, String> {
+    let config_store = state
+        .inner
+        .config_store
+        .lock()
+        .map_err(|_| "Failed to acquire config lock".to_string())?;
+    let process_manager = state
+        .inner
+        .process_manager
+        .lock()
+        .map_err(|_| "Failed to acquire process manager lock".to_string())?;
+    let config = config_store
+        .load()
+        .map_err(|e| format!("Failed to load config: {}", e))?;
+    Ok(config
+        .instances
+        .into_iter()
+        .filter(|i| {
+            (i.service_type == ServiceType::MariaDB || i.service_type == ServiceType::PostgreSQL)
+                && process_manager.get_status(i).running
+        })
+        .collect())
+}
+
+/// Human-readable service label, or None for non-DB types.
+fn db_service_label(service_type: ServiceType) -> Option<&'static str> {
+    match service_type {
+        ServiceType::MariaDB => Some("MariaDB"),
+        ServiceType::PostgreSQL => Some("PostgreSQL"),
+        _ => None,
+    }
+}
 
 /// Database info response
 #[derive(Debug, Serialize)]
@@ -27,31 +62,9 @@ pub struct DatabaseInfo {
 
 /// GET /databases - List all databases across all DB instances
 pub async fn list(State(state): State<ApiState>) -> Json<ApiResponse<Vec<DatabaseInfo>>> {
-    let instances = {
-        let config_store = match state.inner.config_store.lock() {
-            Ok(cs) => cs,
-            Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
-        };
-        let process_manager = match state.inner.process_manager.lock() {
-            Ok(pm) => pm,
-            Err(_) => return Json(ApiResponse::err("Failed to acquire process manager lock")),
-        };
-
-        let config = match config_store.load() {
-            Ok(c) => c,
-            Err(e) => return Json(ApiResponse::err(format!("Failed to load config: {}", e))),
-        };
-
-        // Get all running database instances
-        config
-            .instances
-            .into_iter()
-            .filter(|i| {
-                (i.service_type == ServiceType::MariaDB
-                    || i.service_type == ServiceType::PostgreSQL)
-                    && process_manager.get_status(i).running
-            })
-            .collect::<Vec<_>>()
+    let instances = match running_db_instances(&state) {
+        Ok(i) => i,
+        Err(e) => return Json(ApiResponse::err(e)),
     };
 
     let mut all_databases = Vec::new();
@@ -62,10 +75,8 @@ pub async fn list(State(state): State<ApiState>) -> Json<ApiResponse<Vec<Databas
             Err(_) => continue,
         };
 
-        let service_type = match instance.service_type {
-            ServiceType::MariaDB => "MariaDB",
-            ServiceType::PostgreSQL => "PostgreSQL",
-            _ => continue,
+        let Some(service_type) = db_service_label(instance.service_type) else {
+            continue;
         };
 
         if let Ok(databases) = manager.list_databases() {
@@ -83,6 +94,55 @@ pub async fn list(State(state): State<ApiState>) -> Json<ApiResponse<Vec<Databas
     }
 
     Json(ApiResponse::ok(all_databases))
+}
+
+/// Database user/role response
+#[derive(Debug, Serialize)]
+pub struct DbUserInfo {
+    pub name: String,
+    pub host: Option<String>,
+    pub is_superuser: bool,
+    pub can_login: bool,
+    pub instance_id: String,
+    pub instance_name: String,
+    pub service_type: String,
+}
+
+/// GET /database-users - List users/roles across all running DB instances
+pub async fn list_users(State(state): State<ApiState>) -> Json<ApiResponse<Vec<DbUserInfo>>> {
+    let instances = match running_db_instances(&state) {
+        Ok(i) => i,
+        Err(e) => return Json(ApiResponse::err(e)),
+    };
+
+    let mut all_users = Vec::new();
+
+    for instance in instances {
+        let manager = match create_manager_for_instance(&instance) {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+
+        let Some(service_type) = db_service_label(instance.service_type) else {
+            continue;
+        };
+
+        if let Ok(users) = manager.list_users() {
+            for u in users {
+                all_users.push(DbUserInfo {
+                    name: u.name,
+                    host: u.host,
+                    is_superuser: u.is_superuser,
+                    can_login: u.can_login,
+                    instance_id: instance.id.to_string(),
+                    instance_name: instance.name.clone(),
+                    service_type: service_type.to_string(),
+                });
+            }
+        }
+    }
+
+    Json(ApiResponse::ok(all_users))
 }
 
 /// POST /databases - Create a new database

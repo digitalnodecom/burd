@@ -79,7 +79,9 @@ Burd runs a database **server** as an instance; individual **databases** live in
 1. `create_instance` (postgresql / mariadb / mysql) — the server, once
 2. `create_database` — a database inside a running server
 3. `get_instance_env` — `DATABASE_URL` plus `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`
-- `list_databases` / `drop_database` — manage them
+- `list_databases` — every database across all DB servers, with on-disk size and owning instance
+- `list_database_users` — users/roles across all DB servers (superuser/login flags, host)
+- `drop_database` — remove a database
 - `import_database` / `export_database` — load or dump a `.sql` file
 - `execute_db_tool` — run mysql / psql / pg_dump / etc. against the instance
 
@@ -544,6 +546,7 @@ fn execute_tool(client: &BurdApiClient, name: &str, args: Option<Value>) -> Resu
 
         // Database tools
         "list_databases" => client.get("/databases"),
+        "list_database_users" => client.get("/database-users"),
         "create_database" => client.post("/databases", &args),
         "drop_database" => {
             let name = args

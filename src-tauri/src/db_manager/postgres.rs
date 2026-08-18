@@ -2,7 +2,7 @@
 //!
 //! Provides database operations using the psql CLI tools.
 
-use super::{DatabaseInfo, DatabaseManager, ExtensionInfo};
+use super::{DatabaseInfo, DatabaseManager, DbUser, ExtensionInfo};
 use std::path::Path;
 use std::process::Command;
 
@@ -129,6 +129,36 @@ impl DatabaseManager for PostgresManager {
             .collect();
 
         Ok(databases)
+    }
+
+    fn list_users(&self) -> Result<Vec<DbUser>, String> {
+        // Exclude the built-in pg_* roles; keep real users (incl. the postgres
+        // superuser). execute_query runs psql -t -A, so rows are "name|t|f".
+        let query = "SELECT rolname, rolsuper, rolcanlogin FROM pg_roles \
+             WHERE rolname NOT LIKE 'pg\\_%' ORDER BY rolname";
+        let output = self.execute_query(query)?;
+
+        let users = output
+            .lines()
+            .filter(|line| !line.is_empty())
+            .filter_map(|line| {
+                let mut parts = line.split('|');
+                let name = parts.next()?.trim().to_string();
+                if name.is_empty() {
+                    return None;
+                }
+                let is_superuser = parts.next().map(|s| s.trim() == "t").unwrap_or(false);
+                let can_login = parts.next().map(|s| s.trim() == "t").unwrap_or(false);
+                Some(DbUser {
+                    name,
+                    host: None,
+                    is_superuser,
+                    can_login,
+                })
+            })
+            .collect();
+
+        Ok(users)
     }
 
     fn create_database(&self, name: &str) -> Result<(), String> {

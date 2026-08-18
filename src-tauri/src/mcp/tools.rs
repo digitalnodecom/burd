@@ -284,7 +284,16 @@ pub fn get_tools() -> Vec<Tool> {
         // ====================================================================
         Tool {
             name: "list_databases".to_string(),
-            description: "List all databases inside running database instances (MariaDB, PostgreSQL). Use list_instances first to see available database servers.".to_string(),
+            description: "List every database across all running database server instances (MariaDB, PostgreSQL). Each entry includes the database name, its on-disk size in bytes, and which instance it belongs to (instance_id, instance_name, service_type) — so you can inspect what exists and how much space it uses without a shell. Like 'SHOW DATABASES' / '\\l' across every server at once.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        },
+        Tool {
+            name: "list_database_users".to_string(),
+            description: "List the users/roles across all running database server instances (MariaDB, PostgreSQL). Each entry gives the user name, host (MariaDB user@host; null for PostgreSQL), whether it's a superuser, whether it can log in, and the owning instance (instance_id, instance_name, service_type). Like 'SELECT User,Host FROM mysql.user' / '\\du' across every server at once — read-only introspection.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {},

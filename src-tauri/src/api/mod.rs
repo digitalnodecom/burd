@@ -119,6 +119,7 @@ pub fn create_router_with_state(api_state: ApiState) -> Router {
         // Databases
         .route("/databases", get(handlers::databases::list))
         .route("/databases", post(handlers::databases::create))
+        .route("/database-users", get(handlers::databases::list_users))
         .route("/databases/{name}", delete(handlers::databases::drop))
         .route(
             "/databases/{name}/extensions",

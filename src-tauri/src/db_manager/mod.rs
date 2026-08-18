@@ -22,6 +22,19 @@ pub struct DatabaseInfo {
     pub tables: Option<u32>,
 }
 
+/// A database user / role and its key privileges.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct DbUser {
+    /// Login/role name.
+    pub name: String,
+    /// Host the account is scoped to (MariaDB `user@host`); None for PostgreSQL.
+    pub host: Option<String>,
+    /// Superuser (PostgreSQL `rolsuper` / MariaDB `Super_priv`).
+    pub is_superuser: bool,
+    /// Whether the role can log in (always true for MariaDB accounts).
+    pub can_login: bool,
+}
+
 /// A database extension (currently PostgreSQL only) and its install state.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ExtensionInfo {
@@ -57,6 +70,11 @@ pub trait DatabaseManager {
 
     /// Get connection info for display
     fn connection_info(&self) -> String;
+
+    /// List the database server's users / roles.
+    fn list_users(&self) -> Result<Vec<DbUser>, String> {
+        Err("Listing users is not supported for this database type".to_string())
+    }
 
     /// List extensions available in a database (PostgreSQL only by default).
     fn list_extensions(&self, _database: &str) -> Result<Vec<ExtensionInfo>, String> {
