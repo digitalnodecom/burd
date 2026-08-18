@@ -14,6 +14,7 @@
 pub mod analyzer;
 pub mod api;
 pub mod api_client;
+mod app_menu;
 mod binary;
 mod caddy;
 pub mod cli;
@@ -264,6 +265,12 @@ pub fn run() {
             // Initialize menu-bar tray icon
             if let Err(e) = tray::init(app.handle()) {
                 eprintln!("Failed to initialize tray: {e}");
+            }
+
+            // Native application menu bar (incl. "Check for Updates…").
+            #[cfg(target_os = "macos")]
+            if let Err(e) = app_menu::install(app.handle()) {
+                eprintln!("Failed to install application menu: {e}");
             }
 
             // When the main window gains focus shortly after a mail notification,

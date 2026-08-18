@@ -1124,6 +1124,27 @@
   // === Lifecycle ===
   const updater = createUpdater();
 
+  // Manual "Check for Updates…" (from the macOS app menu): unlike the silent
+  // background check, this always reports the outcome to the user.
+  async function checkForUpdatesManual() {
+    if (updater.checking || updater.downloading) return;
+    await updater.checkForUpdate();
+    if (updater.error) {
+      await message(`Couldn't check for updates.\n\n${updater.error}`, {
+        title: "Check for Updates",
+        kind: "error",
+      });
+    } else if (updater.available) {
+      const install = await confirm(
+        `Burd ${updater.version} is available.\n\nDownload and install it now? Burd will restart.`,
+        { title: "Update Available", kind: "info", okLabel: "Install & Restart", cancelLabel: "Later" }
+      );
+      if (install) await updater.installAndRestart();
+    } else {
+      await message("Burd is up to date.", { title: "Check for Updates", kind: "info" });
+    }
+  }
+
   onMount(() => {
     loadData();
     // Check for an app update now, then every 30 minutes.
@@ -1155,6 +1176,9 @@
     const instancesChangedUnlistenPromise = listen("instances-changed", () => {
       loadData();
     });
+    const checkUpdatesUnlistenPromise = listen("menu:check-for-updates", () => {
+      void checkForUpdatesManual();
+    });
     const interval = setInterval(loadData, 10000);
 
     // Easter egg: Konami Code reveals The Burd Nest
@@ -1170,6 +1194,7 @@
       trayNavUnlistenPromise.then((unlisten) => unlisten());
       openEmailUnlistenPromise.then((unlisten) => unlisten());
       instancesChangedUnlistenPromise.then((unlisten) => unlisten());
+      checkUpdatesUnlistenPromise.then((unlisten) => unlisten());
       konamiListener.destroy();
     };
   });
