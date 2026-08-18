@@ -382,16 +382,41 @@ pub fn run() {
                 let app_handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
                     use std::sync::atomic::Ordering;
+                    // Attempt the automatic daemon restart at most once per app
+                    // run, so a genuinely-broken proxy doesn't get restarted in a
+                    // loop.
+                    let mut self_heal_attempted = false;
                     loop {
                         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
-                        let health = tokio::task::spawn_blocking({
-                            let _ph = proxy_healthy.clone();
-                            commands::check_health_sync
-                        })
-                        .await
-                        .ok()
-                        .flatten();
+                        let mut health = tokio::task::spawn_blocking(commands::check_health_sync)
+                            .await
+                            .ok()
+                            .flatten();
+
+                        // Self-heal: the daemon is running but not answering. The
+                        // usual cause is a stale in-memory Caddy config after an
+                        // app upgrade (the app relaunches but the root daemon does
+                        // not) or a failed `--watch` reload. Restart the daemon
+                        // once — exactly what the "Restart" button does — and
+                        // re-check, rather than surfacing a false "port conflict".
+                        if health == Some(false) && !self_heal_attempted {
+                            self_heal_attempted = true;
+                            let daemon = launchd::get_status();
+                            if daemon.installed && daemon.running {
+                                let restarted =
+                                    tokio::task::spawn_blocking(restart_proxy_daemon).await;
+                                if matches!(restarted, Ok(Ok(()))) {
+                                    // Give Caddy a moment to rebind, then re-check.
+                                    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                                    health =
+                                        tokio::task::spawn_blocking(commands::check_health_sync)
+                                            .await
+                                            .ok()
+                                            .flatten();
+                                }
+                            }
+                        }
 
                         let new_val: u8 = match health {
                             Some(true) => 1,

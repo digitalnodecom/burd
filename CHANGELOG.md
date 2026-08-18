@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.5] - 2026-07-30
+
+### Fixed
+
+- **The reverse proxy heals itself after an app upgrade.** Updating Burd
+  relaunches the app but not the privileged Caddy daemon, so Caddy could keep
+  serving a stale in-memory config (e.g. from before a TLD change, or after a
+  failed live reload) — making the health check fail and showing a misleading
+  "port conflict" until you clicked Restart. Burd now detects a running-but-
+  unresponsive daemon and restarts it automatically, once, on your behalf.
+
+---
+
 ## [1.11.4] - 2026-07-30
 
 ### Fixed
