@@ -12,7 +12,7 @@ use crate::config::{Config, Instance, ServiceType};
 use std::path::Path;
 
 /// Database information
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct DatabaseInfo {
     /// Database name
     pub name: String,

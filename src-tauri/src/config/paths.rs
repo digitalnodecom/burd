@@ -2,10 +2,37 @@
 //!
 //! Handles paths for app data, binaries, instances, and PIDs.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 use super::ServiceType;
+
+/// Recursively sum the byte size of every file under `path` (an instance's data
+/// directory). Returns 0 if the path is missing or unreadable. Symlinks are not
+/// followed, so cycles can't loop and linked targets aren't double-counted.
+pub fn directory_size(path: &Path) -> u64 {
+    let mut total: u64 = 0;
+    let mut stack = vec![path.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        for entry in entries.flatten() {
+            let Ok(file_type) = entry.file_type() else {
+                continue;
+            };
+            if file_type.is_dir() {
+                stack.push(entry.path());
+            } else if file_type.is_file() {
+                if let Ok(meta) = entry.metadata() {
+                    total = total.saturating_add(meta.len());
+                }
+            }
+        }
+    }
+    total
+}
 
 pub fn get_app_dir() -> Result<PathBuf, String> {
     dirs::data_dir()

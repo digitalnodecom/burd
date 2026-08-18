@@ -1,12 +1,12 @@
-//! Tauri commands for managing PostgreSQL extensions on a database instance.
-//!
-//! Backs the extensions manager in the PostgreSQL instance settings UI.
+//! Tauri commands for a database instance's data views: PostgreSQL extensions,
+//! the per-database size breakdown, and the instance's on-disk usage.
 
 use tauri::State;
 use uuid::Uuid;
 
 use super::AppState;
-use crate::db_manager::{create_manager_for_instance, ExtensionInfo};
+use crate::config::{directory_size, get_instance_dir};
+use crate::db_manager::{create_manager_for_instance, DatabaseInfo, ExtensionInfo};
 use crate::error::LockExt;
 use crate::lock;
 
@@ -36,6 +36,33 @@ pub async fn list_instance_databases(
         .into_iter()
         .map(|d| d.name)
         .collect())
+}
+
+/// On-disk size (bytes) of an instance's data directory. Works for any service
+/// type — stopped or running — since the data directory persists either way.
+#[tauri::command]
+pub async fn get_instance_disk_usage(
+    state: State<'_, AppState>,
+    instance_id: String,
+) -> Result<u64, String> {
+    let instance = find_instance(&state, &instance_id)?;
+    let dir = get_instance_dir(&instance.id)?;
+    // The directory walk hits the filesystem, so keep it off the async runtime.
+    tokio::task::spawn_blocking(move || directory_size(&dir))
+        .await
+        .map_err(|e| format!("Failed to compute disk usage: {e}"))
+}
+
+/// List the databases in a DB instance with each database's size — backs the
+/// "Databases" view shown on PostgreSQL/MariaDB instances.
+#[tauri::command]
+pub async fn list_instance_database_details(
+    state: State<'_, AppState>,
+    instance_id: String,
+) -> Result<Vec<DatabaseInfo>, String> {
+    let instance = find_instance(&state, &instance_id)?;
+    let manager = create_manager_for_instance(&instance)?;
+    manager.list_databases()
 }
 
 /// List extensions available in a database and whether each is enabled.

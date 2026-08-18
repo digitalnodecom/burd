@@ -39,7 +39,8 @@ pub use php::{
 
 // Re-export instance commands
 pub use db_extensions::{
-    list_database_extensions, list_instance_databases, set_database_extension,
+    get_instance_disk_usage, list_database_extensions, list_instance_database_details,
+    list_instance_databases, set_database_extension,
 };
 pub use instances::{
     change_instance_version, check_instance_health, check_port_status, create_instance,

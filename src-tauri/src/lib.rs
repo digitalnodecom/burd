@@ -99,6 +99,8 @@ use commands::{
     get_helper_status,
     get_installed_versions,
     get_instance_config,
+    // Park commands
+    get_instance_disk_usage,
     get_instance_env,
     get_instance_info,
     get_instance_logs,
@@ -127,7 +129,6 @@ use commands::{
     install_node_version,
     install_resolver,
     is_nvm_installed,
-    // Park commands
     is_park_enabled,
     list_database_extensions,
     list_domains,
@@ -136,6 +137,7 @@ use commands::{
     list_frp_servers,
     list_installed_node_versions,
     list_installed_php_versions,
+    list_instance_database_details,
     list_instance_databases,
     list_instances,
     list_parked_directories,
@@ -403,6 +405,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             list_instance_databases,
+            list_instance_database_details,
+            get_instance_disk_usage,
             list_database_extensions,
             set_database_extension,
             list_instances,

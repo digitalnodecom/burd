@@ -107,22 +107,33 @@ impl MariaDbManager {
 
 impl DatabaseManager for MariaDbManager {
     fn list_databases(&self) -> Result<Vec<DatabaseInfo>, String> {
-        let output = self.execute_query("SHOW DATABASES")?;
+        // LEFT JOIN so databases with no tables still appear (with size 0).
+        // Size is data_length + index_length summed across the schema's tables —
+        // the standard MySQL/MariaDB on-disk estimate (approximate for InnoDB).
+        // execute_query runs mysql with -N -B, so rows are tab-separated:
+        // "name\tsize".
+        let query = "SELECT s.SCHEMA_NAME, COALESCE(SUM(t.data_length + t.index_length), 0) \
+             FROM information_schema.SCHEMATA s \
+             LEFT JOIN information_schema.TABLES t ON t.TABLE_SCHEMA = s.SCHEMA_NAME \
+             WHERE s.SCHEMA_NAME NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys') \
+             GROUP BY s.SCHEMA_NAME ORDER BY s.SCHEMA_NAME";
+        let output = self.execute_query(query)?;
 
         let databases: Vec<DatabaseInfo> = output
             .lines()
             .filter(|line| !line.is_empty())
-            .filter(|name| {
-                // Filter out system databases
-                !matches!(
-                    *name,
-                    "information_schema" | "performance_schema" | "mysql" | "sys"
-                )
-            })
-            .map(|name| DatabaseInfo {
-                name: name.to_string(),
-                size: None,
-                tables: None,
+            .filter_map(|line| {
+                let mut parts = line.splitn(2, '\t');
+                let name = parts.next()?.trim().to_string();
+                if name.is_empty() {
+                    return None;
+                }
+                let size = parts.next().and_then(|s| s.trim().parse::<u64>().ok());
+                Some(DatabaseInfo {
+                    name,
+                    size,
+                    tables: None,
+                })
             })
             .collect();
 

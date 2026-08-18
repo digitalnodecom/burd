@@ -102,20 +102,29 @@ fn validate_extension_name(name: &str) -> Result<&str, String> {
 
 impl DatabaseManager for PostgresManager {
     fn list_databases(&self) -> Result<Vec<DatabaseInfo>, String> {
-        let query = "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname";
+        // pg_database_size gives the on-disk size of each database in bytes.
+        // execute_query runs psql with -t -A, so rows come back as
+        // "datname|size" (default unaligned field separator is '|').
+        let query = "SELECT datname, pg_database_size(datname) FROM pg_database \
+             WHERE datistemplate = false ORDER BY datname";
         let output = self.execute_query(query)?;
 
         let databases: Vec<DatabaseInfo> = output
             .lines()
             .filter(|line| !line.is_empty())
-            .filter(|name| {
+            .filter_map(|line| {
+                let mut parts = line.splitn(2, '|');
+                let name = parts.next()?.trim().to_string();
                 // Filter out system databases
-                !matches!(*name, "postgres")
-            })
-            .map(|name| DatabaseInfo {
-                name: name.to_string(),
-                size: None,
-                tables: None,
+                if name.is_empty() || name == "postgres" {
+                    return None;
+                }
+                let size = parts.next().and_then(|s| s.trim().parse::<u64>().ok());
+                Some(DatabaseInfo {
+                    name,
+                    size,
+                    tables: None,
+                })
             })
             .collect();
 

@@ -2,6 +2,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { confirm } from '@tauri-apps/plugin-dialog';
   import ExtensionsModal from '$lib/components/ExtensionsModal.svelte';
+  import DatabasesModal from '$lib/components/DatabasesModal.svelte';
 
   interface Instance {
     id: string;
@@ -131,6 +132,45 @@
   let dragOverTarget = $state<string | null>(null);
   let errorMessage = $state<string | null>(null);
   let extensionsInstance = $state<Instance | null>(null);
+  let databasesInstance = $state<Instance | null>(null);
+
+  // Per-instance data-directory size (bytes), loaded lazily after the list
+  // renders so the walk never blocks the instance list. null = still loading.
+  let diskUsage = $state<Record<string, number | null>>({});
+
+  // DB service types that expose a per-database size view (have a db_manager).
+  const DB_TYPES = new Set(["postgresql", "mariadb"]);
+  const isDbInstance = (t: string) => DB_TYPES.has(t);
+
+  function formatBytes(n: number | null | undefined): string {
+    if (n == null) return "…";
+    if (n < 1024) return `${n} B`;
+    const units = ["KB", "MB", "GB", "TB"];
+    let value = n / 1024;
+    let i = 0;
+    while (value >= 1024 && i < units.length - 1) {
+      value /= 1024;
+      i++;
+    }
+    return `${value.toFixed(value < 10 ? 1 : 0)} ${units[i]}`;
+  }
+
+  // Fetch disk usage for any instance we haven't measured yet whenever the
+  // instance set changes. Failures fall back to 0 rather than blocking the row.
+  $effect(() => {
+    for (const inst of instances) {
+      if (!(inst.id in diskUsage)) {
+        diskUsage[inst.id] = null;
+        invoke<number>("get_instance_disk_usage", { instanceId: inst.id })
+          .then((bytes) => {
+            diskUsage[inst.id] = bytes;
+          })
+          .catch(() => {
+            diskUsage[inst.id] = 0;
+          });
+      }
+    }
+  });
 
   // Reordering state
   let dragOverIndex = $state<number | null>(null);
@@ -970,6 +1010,14 @@
   />
 {/if}
 
+{#if databasesInstance}
+  <DatabasesModal
+    instanceId={databasesInstance.id}
+    instanceName={databasesInstance.name}
+    onClose={() => (databasesInstance = null)}
+  />
+{/if}
+
 {#snippet instanceRow(instance: Instance, showCheckbox: boolean = false, index: number = 0)}
             <div
               class="grid-row"
@@ -1073,6 +1121,7 @@
               </div>
               <div class="grid-cell pid" title="Process ID">{instance.pid ?? "-"}</div>
               <div class="grid-cell port" title="Port">{instance.port}</div>
+              <div class="grid-cell disk" title="Data directory size on disk">{formatBytes(diskUsage[instance.id])}</div>
               <div class="grid-cell actions">
                 {#if instance.running}
                   <button
@@ -1116,6 +1165,19 @@
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                   </svg>
                 </button>
+                {#if isDbInstance(instance.service_type) && instance.running}
+                  <button
+                    class="icon-btn"
+                    onclick={() => (databasesInstance = instance)}
+                    title="Databases and their sizes"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                      <path d="M3 5v14a9 3 0 0 0 18 0V5"></path>
+                      <path d="M3 12a9 3 0 0 0 18 0"></path>
+                    </svg>
+                  </button>
+                {/if}
                 {#if instance.service_type === "postgresql" && instance.running}
                   <button
                     class="icon-btn"
@@ -1321,7 +1383,7 @@
   .instances-grid {
     width: 100%;
     font-size: 0.875rem;
-    --grid-columns: 32px auto 1fr 2fr auto auto auto;
+    --grid-columns: 32px auto 1fr 2fr auto auto auto auto;
   }
 
   .grid-body {
@@ -1422,6 +1484,14 @@
     color: #86868b;
     white-space: nowrap;
     justify-content: flex-start;
+  }
+
+  .grid-cell.disk {
+    font-family: monospace;
+    color: #86868b;
+    white-space: nowrap;
+    justify-content: flex-start;
+    font-variant-numeric: tabular-nums;
   }
 
   .url-cell {
