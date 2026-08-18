@@ -351,13 +351,13 @@
         </p>
       {:else if proxyStatus?.daemon_running && proxyStatus?.proxy_healthy === false}
         <div class="network-hint warning">
-          <p>
-            Burd's reverse proxy cannot serve your sites &mdash; another service is bound to port 80 or 443.
-          </p>
           {#if loadingConflicts}
-            <p>Checking which processes are holding the ports&hellip;</p>
+            <p>Burd's reverse proxy isn't responding yet. Checking for conflicting processes&hellip;</p>
           {:else if portConflicts && portConflicts.length > 0}
-            <p>The following {portConflicts.length === 1 ? "process is" : "processes are"} blocking the ports:</p>
+            <p>
+              Another service is bound to port 80 or 443, so Burd's reverse proxy can't serve your
+              sites. The following {portConflicts.length === 1 ? "process is" : "processes are"} holding the ports:
+            </p>
             <ul class="conflict-list">
               {#each portConflicts as c (c.port + "-" + c.pid)}
                 <li>
@@ -368,9 +368,14 @@
             <p>
               Stop {portConflicts.length === 1 ? "it" : "them"} with <code>kill {portConflicts.map((c) => c.pid).join(" ")}</code>, then restart the daemon.
             </p>
-          {:else if portConflicts}
+          {:else}
+            <p>The proxy daemon is running but hasn't answered a health check yet.</p>
             <p>
-              Couldn't identify the process holding the ports (it may be owned by another user or require root to inspect). Try <code>sudo lsof -iTCP:80 -iTCP:443 -sTCP:LISTEN -n -P</code> in a terminal.
+              This is usually temporary: after a restart, Caddy can take up to a minute to provision
+              HTTPS certificates and bind port 443. If it doesn't clear on its own,
+              <strong>Restart</strong> the daemon above &mdash; or, if you suspect another process has
+              taken the ports, check with
+              <code>sudo lsof -iTCP:80 -iTCP:443 -sTCP:LISTEN -n -P</code> in a terminal.
             </p>
           {/if}
         </div>
