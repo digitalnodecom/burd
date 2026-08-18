@@ -19,9 +19,49 @@ jobs:
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+  # Gate: fail the release if any hosted-binary checksum in services.json is
+  # stale versus its published .sha256 sidecar. A mismatch means users would hit
+  # "Checksum verification failed!" on download — don't ship it. Merge the
+  # auto-sync PR (from burd-binaries) and re-tag.
+  verify-checksums:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify services.json checksums match published assets
+        run: |
+          python3 - <<'PY'
+          import json, re, sys, urllib.request
+          catalog = json.load(open("src-tauri/services.json"))
+          def sidecar(url):
+              with urllib.request.urlopen(url + ".sha256", timeout=30) as r:
+                  return r.read().decode().split()[0]
+          stale = []
+          for sid, svc in catalog["services"].items():
+              for plat, pc in (svc.get("platforms") or {}).items():
+                  dl = pc.get("download") or {}
+                  tmpl = dl.get("url_template"); checksums = pc.get("checksums") or {}
+                  if not tmpl or not checksums or "burd-binaries" not in tmpl:
+                      continue
+                  for ver, pinned in checksums.items():
+                      try:
+                          live = sidecar(tmpl.replace("{version}", ver))
+                      except Exception as e:
+                          print(f"WARN could not fetch sidecar for {sid} {plat} {ver}: {e}")
+                          continue
+                      if re.fullmatch(r"[0-9a-f]{64}", live) and live != pinned:
+                          stale.append(f"{sid} {plat} {ver}: pinned {pinned[:12]}… != live {live[:12]}…")
+          if stale:
+              print("Stale checksums in services.json:")
+              for s in stale:
+                  print("  -", s)
+              print("\nMerge the checksum-sync PR from burd-binaries, then re-tag.")
+              sys.exit(1)
+          print("All hosted-binary checksums match their published sidecars.")
+          PY
+
   # Build the Tauri app for macOS aarch64 (native ARM, signed via tauri-action)
   build-tauri-aarch64:
-    needs: prepare
+    needs: [prepare, verify-checksums]
     runs-on: macos-latest
 
     steps:
@@ -72,7 +112,7 @@ jobs:
   # knows about (main + externalBin) but not burd-helper. We build
   # unsigned, then sign all binaries ourselves.
   build-tauri-x64:
-    needs: prepare
+    needs: [prepare, verify-checksums]
     runs-on: macos-15-intel
 
     steps:
@@ -190,7 +230,7 @@ jobs:
 
   # Build CLI binary separately (native builds on matching hardware)
   build-cli:
-    needs: prepare
+    needs: [prepare, verify-checksums]
     strategy:
       fail-fast: false
       matrix:
