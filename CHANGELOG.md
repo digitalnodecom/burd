@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.12.0] - 2026-08-19
+
+### Added
+
+- **Auto-start instances when Burd launches.** Each instance's settings now has
+  a "Start automatically when Burd launches" toggle. Enabled instances are
+  started on app launch (skipping any already running), so your usual services
+  come up without clicking Start on each one.
+
+---
+
 ## [1.11.8] - 2026-07-30
 
 ### Added
