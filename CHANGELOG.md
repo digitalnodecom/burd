@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.2] - 2026-07-30
+
+### Added
+
+- **List database users/roles over the API and MCP.** A new
+  `list_database_users` MCP tool (and `GET /database-users`) returns the
+  users/roles across every running MariaDB/PostgreSQL instance, each with its
+  host, superuser and login flags, and the owning instance — read-only
+  introspection without opening a shell.
+
+### Changed
+
+- **`list_databases` advertises database sizes.** The listing already reports
+  each database's on-disk size and owning instance; its MCP description now
+  makes that discoverable so agents inspect databases and their sizes directly.
+
+---
+
 ## [1.11.1] - 2026-07-30
 
 ### Added
