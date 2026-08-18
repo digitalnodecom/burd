@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.3] - 2026-07-30
+
+### Fixed
+
+- **More robust database-user listing.** `list_database_users` now parses role
+  and user names safely even when a name contains the field delimiter, and
+  MariaDB anonymous accounts are no longer hidden from the list (they matter for
+  auditing). Internal cleanup shares one running-database-instance lookup across
+  the database endpoints.
+
+---
+
 ## [1.11.2] - 2026-07-30
 
 ### Added
