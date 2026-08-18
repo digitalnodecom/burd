@@ -3,7 +3,7 @@
 //! Provides database operations using the mysql/mariadb CLI tools.
 
 use super::{DatabaseInfo, DatabaseManager, DbUser};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// MariaDB database manager
@@ -13,6 +13,10 @@ pub struct MariaDbManager {
     user: String,
     password: Option<String>,
     socket: Option<String>,
+    /// Directory holding Burd's bundled mariadb/mariadb-dump clients (the
+    /// instance's `bin/`). The GUI process has no shell PATH, so we must invoke
+    /// the bundled client by absolute path; falls back to PATH when unset.
+    bin_dir: Option<PathBuf>,
 }
 
 impl MariaDbManager {
@@ -30,7 +34,36 @@ impl MariaDbManager {
             user,
             password,
             socket,
+            bin_dir: None,
         }
+    }
+
+    /// Point the manager at Burd's bundled client `bin/` directory.
+    pub fn with_bin_dir(mut self, bin_dir: Option<PathBuf>) -> Self {
+        self.bin_dir = bin_dir;
+        self
+    }
+
+    /// Resolve the mysql/mariadb client: prefer a bundled binary, else PATH.
+    fn client_binary(&self) -> String {
+        self.resolve_bundled(&["mariadb", "mysql"])
+            .unwrap_or_else(Self::find_mysql_binary)
+    }
+
+    /// Resolve the dump tool: prefer a bundled binary, else PATH.
+    fn dump_binary(&self) -> String {
+        self.resolve_bundled(&["mariadb-dump", "mysqldump"])
+            .unwrap_or_else(Self::find_mysqldump_binary)
+    }
+
+    /// First of `names` that exists in the bundled `bin/` dir, as an abs path.
+    fn resolve_bundled(&self, names: &[&str]) -> Option<String> {
+        let dir = self.bin_dir.as_ref()?;
+        names
+            .iter()
+            .map(|n| dir.join(n))
+            .find(|p| p.exists())
+            .map(|p| p.to_string_lossy().into_owned())
     }
 
     /// Build base mysql command arguments
@@ -84,7 +117,7 @@ impl MariaDbManager {
 
     /// Execute a SQL query and return the output
     fn execute_query(&self, query: &str) -> Result<String, String> {
-        let mysql = Self::find_mysql_binary();
+        let mysql = self.client_binary();
         let mut args = self.build_args();
         args.push("-N".to_string()); // Skip column names
         args.push("-B".to_string()); // Batch mode (tab-separated)
@@ -205,7 +238,7 @@ impl DatabaseManager for MariaDbManager {
             return Err(format!("SQL file not found: {}", sql_path.display()));
         }
 
-        let mysql = Self::find_mysql_binary();
+        let mysql = self.client_binary();
         let mut args = self.build_args();
         args.push(sanitized);
 
@@ -242,7 +275,7 @@ impl DatabaseManager for MariaDbManager {
     fn export_sql(&self, database: &str, output_path: &Path) -> Result<(), String> {
         let sanitized = super::sanitize_db_name(database)?;
 
-        let mysqldump = Self::find_mysqldump_binary();
+        let mysqldump = self.dump_binary();
         let mut args = self.build_args();
         args.push("--single-transaction".to_string());
         args.push("--routines".to_string());
@@ -266,7 +299,7 @@ impl DatabaseManager for MariaDbManager {
     }
 
     fn get_shell_command(&self, database: Option<&str>) -> Vec<String> {
-        let mysql = Self::find_mysql_binary();
+        let mysql = self.client_binary();
         let mut cmd = vec![mysql];
         cmd.extend(self.build_args());
 

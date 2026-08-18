@@ -1,6 +1,6 @@
 [package]
 name = "burd"
-version = "1.11.3"
+version = "1.11.4"
 description = "Local Development Environment Manager"
 authors = ["you"]
 edition = "2021"

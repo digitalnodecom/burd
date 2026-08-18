@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.4] - 2026-07-30
+
+### Fixed
+
+- **Database operations work from the GUI again.** The database managers ran the
+  `mysql`/`mariadb` and `psql` clients from `PATH`, but the app (launched from
+  Finder) has no shell `PATH`, so every database action failed with
+  "Failed to execute mysql: No such file or directory" — including the
+  Databases size view, the extensions manager, and create/drop/import/export.
+  Burd now invokes its own bundled client binaries by absolute path (falling
+  back to `PATH` when run from a shell).
+
+---
+
 ## [1.11.3] - 2026-07-30
 
 ### Fixed

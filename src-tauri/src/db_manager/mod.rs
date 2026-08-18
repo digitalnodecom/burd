@@ -144,13 +144,23 @@ pub fn create_manager_for_instance(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
 
-            Ok(Box::new(MariaDbManager::new(
-                "127.0.0.1".to_string(),
-                instance.port,
-                user,
-                password,
-                socket,
-            )))
+            // Burd's bundled mariadb client lives in the version's `bin/` dir
+            // (the same dir as mariadbd). The GUI has no shell PATH, so resolve
+            // it here; None falls the manager back to PATH.
+            let bin_dir = crate::services::mariadb::MariaDBService::get_basedir()
+                .ok()
+                .map(|p| p.join("bin"));
+
+            Ok(Box::new(
+                MariaDbManager::new(
+                    "127.0.0.1".to_string(),
+                    instance.port,
+                    user,
+                    password,
+                    socket,
+                )
+                .with_bin_dir(bin_dir),
+            ))
         }
         ServiceType::PostgreSQL => {
             let user = instance
@@ -166,12 +176,18 @@ pub fn create_manager_for_instance(
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
 
-            Ok(Box::new(PostgresManager::new(
-                "127.0.0.1".to_string(),
-                instance.port,
-                user,
-                password,
-            )))
+            // Bundled psql/pg_dump live in the instance version's `bin/` dir.
+            let bin_dir = crate::services::postgresql::PostgreSQLService::get_basedir_for_version(
+                &instance.version,
+            )
+            .or_else(|_| crate::services::postgresql::PostgreSQLService::get_basedir())
+            .ok()
+            .map(|p| p.join("bin"));
+
+            Ok(Box::new(
+                PostgresManager::new("127.0.0.1".to_string(), instance.port, user, password)
+                    .with_bin_dir(bin_dir),
+            ))
         }
         _ => Err(format!(
             "Instance '{}' is not a database service",

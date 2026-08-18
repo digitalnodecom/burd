@@ -3,7 +3,7 @@
 //! Provides database operations using the psql CLI tools.
 
 use super::{DatabaseInfo, DatabaseManager, DbUser, ExtensionInfo};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// PostgreSQL database manager
@@ -12,6 +12,10 @@ pub struct PostgresManager {
     port: u16,
     user: String,
     password: Option<String>,
+    /// Directory holding Burd's bundled psql/pg_dump/… (the instance's
+    /// `bin/`). The GUI process has no shell PATH, so we must invoke the
+    /// bundled client by absolute path; falls back to PATH when unset.
+    bin_dir: Option<PathBuf>,
 }
 
 impl PostgresManager {
@@ -22,12 +26,31 @@ impl PostgresManager {
             port,
             user,
             password,
+            bin_dir: None,
         }
+    }
+
+    /// Point the manager at Burd's bundled client `bin/` directory.
+    pub fn with_bin_dir(mut self, bin_dir: Option<PathBuf>) -> Self {
+        self.bin_dir = bin_dir;
+        self
+    }
+
+    /// Resolve a client tool to the bundled binary if present, else bare name
+    /// (found via PATH — works when opened from a shell).
+    fn resolve_bin(&self, name: &str) -> PathBuf {
+        if let Some(dir) = &self.bin_dir {
+            let p = dir.join(name);
+            if p.exists() {
+                return p;
+            }
+        }
+        PathBuf::from(name)
     }
 
     /// Build base psql command with environment variables for password
     fn build_command(&self, cmd: &str) -> Command {
-        let mut command = Command::new(cmd);
+        let mut command = Command::new(self.resolve_bin(cmd));
 
         command.arg("-h").arg(&self.host);
         command.arg("-p").arg(self.port.to_string());
