@@ -141,28 +141,30 @@ impl DatabaseManager for MariaDbManager {
     }
 
     fn list_users(&self) -> Result<Vec<DbUser>, String> {
-        // execute_query runs mysql -N -B, so rows are tab-separated:
-        // "User\tHost\tSuper_priv".
+        // execute_query runs mysql -N -B (tab-separated). The User column goes
+        // last (and we splitn(3)) so a tab in a user name can't shift columns,
+        // and so anonymous accounts (empty User) are still surfaced rather than
+        // parsed away — they're security-relevant for an audit.
         let output = self
-            .execute_query("SELECT User, Host, Super_priv FROM mysql.user ORDER BY User, Host")?;
+            .execute_query("SELECT Super_priv, Host, User FROM mysql.user ORDER BY User, Host")?;
 
         let users = output
             .lines()
             .filter(|line| !line.is_empty())
-            .filter_map(|line| {
-                let mut parts = line.split('\t');
-                let name = parts.next()?.trim().to_string();
-                if name.is_empty() {
-                    return None;
-                }
-                let host = parts.next().map(|s| s.trim().to_string());
+            .map(|line| {
+                let mut parts = line.splitn(3, '\t');
                 let is_superuser = parts.next().map(|s| s.trim() == "Y").unwrap_or(false);
-                Some(DbUser {
+                let host = parts.next().map(|s| s.trim().to_string());
+                let name = parts
+                    .next()
+                    .map(|s| s.trim().to_string())
+                    .unwrap_or_default();
+                DbUser {
                     name,
                     host,
                     is_superuser,
                     can_login: true,
-                })
+                }
             })
             .collect();
 

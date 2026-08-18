@@ -261,30 +261,9 @@ pub async fn drop(
     };
 
     // Find running database instances and try to drop from each
-    let instances = {
-        let config_store = match state.inner.config_store.lock() {
-            Ok(cs) => cs,
-            Err(_) => return Json(ApiResponse::err("Failed to acquire config lock")),
-        };
-        let process_manager = match state.inner.process_manager.lock() {
-            Ok(pm) => pm,
-            Err(_) => return Json(ApiResponse::err("Failed to acquire process manager lock")),
-        };
-
-        let config = match config_store.load() {
-            Ok(c) => c,
-            Err(e) => return Json(ApiResponse::err(format!("Failed to load config: {}", e))),
-        };
-
-        config
-            .instances
-            .into_iter()
-            .filter(|i| {
-                (i.service_type == ServiceType::MariaDB
-                    || i.service_type == ServiceType::PostgreSQL)
-                    && process_manager.get_status(i).running
-            })
-            .collect::<Vec<_>>()
+    let instances = match running_db_instances(&state) {
+        Ok(i) => i,
+        Err(e) => return Json(ApiResponse::err(e)),
     };
 
     // Try to find and drop the database

@@ -133,8 +133,10 @@ impl DatabaseManager for PostgresManager {
 
     fn list_users(&self) -> Result<Vec<DbUser>, String> {
         // Exclude the built-in pg_* roles; keep real users (incl. the postgres
-        // superuser). execute_query runs psql -t -A, so rows are "name|t|f".
-        let query = "SELECT rolname, rolsuper, rolcanlogin FROM pg_roles \
+        // superuser). execute_query runs psql -t -A (field separator '|'). The
+        // role name goes last and we splitn(3) so a '|' inside a role name can't
+        // shift the boolean columns.
+        let query = "SELECT rolsuper, rolcanlogin, rolname FROM pg_roles \
              WHERE rolname NOT LIKE 'pg\\_%' ORDER BY rolname";
         let output = self.execute_query(query)?;
 
@@ -142,13 +144,13 @@ impl DatabaseManager for PostgresManager {
             .lines()
             .filter(|line| !line.is_empty())
             .filter_map(|line| {
-                let mut parts = line.split('|');
+                let mut parts = line.splitn(3, '|');
+                let is_superuser = parts.next().map(|s| s.trim() == "t").unwrap_or(false);
+                let can_login = parts.next().map(|s| s.trim() == "t").unwrap_or(false);
                 let name = parts.next()?.trim().to_string();
                 if name.is_empty() {
                     return None;
                 }
-                let is_superuser = parts.next().map(|s| s.trim() == "t").unwrap_or(false);
-                let can_login = parts.next().map(|s| s.trim() == "t").unwrap_or(false);
                 Some(DbUser {
                     name,
                     host: None,
