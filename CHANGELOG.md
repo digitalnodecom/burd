@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.0] - 2026-07-30
+
+### Added
+
+- **Disk usage per instance.** Each instance on the dashboard now shows how much
+  space its data directory occupies on disk, so you can see at a glance what's
+  consuming storage. Sizes load lazily in the background and never block the
+  instance list.
+- **Per-database size view for database instances.** Running PostgreSQL and
+  MariaDB instances gain a "Databases" button that opens a breakdown of every
+  database inside, each with its on-disk size (largest first, with a relative
+  bar and a total) — PostgreSQL via `pg_database_size`, MariaDB via
+  `information_schema`. The view is shown only for database instances.
+
+---
+
 ## [1.10.2] - 2026-07-30
 
 ### Fixed
