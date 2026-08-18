@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.7] - 2026-07-30
+
+### Fixed
+
+- **Service downloads no longer fail checksum verification.** Every binary
+  Burd hosts (mailpit, redis, valkey, mariadb, mysql, postgresql, frankenphp,
+  beanstalkd, frpc, …) had been republished with new checksums, but the pinned
+  checksums in Burd's catalog were stale, so downloads aborted with
+  "Checksum verification failed!". All catalog checksums have been re-synced to
+  the current published binaries (verified against their signed checksum
+  sidecars; the rebuilt binaries were spot-checked, including confirming the
+  FrankenPHP builds are still crash-free on macOS 26).
+
+---
+
 ## [1.11.6] - 2026-07-30
 
 ### Fixed

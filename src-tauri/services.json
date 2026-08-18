@@ -366,9 +366,9 @@
           },
           "is_archive": false,
           "checksums": {
-            "8.4-1.12.4": "8837c95ec2c48aaf046698926aef008daf2bcd159a3eebce6edbdbd57587ddce",
-            "8.3-1.12.4": "c2ba7b2d9263594d6536d6eb773e07ab28455693992613677c74328bf8567d58",
-            "8.5-1.12.4": "0c00736aa5e18b8e9ae3417c0f8e3b53cc369df51be1c7e114e73ffb786266ee"
+            "8.4-1.12.4": "987f269313f980cbc8c171de7fb482133e99a7d3c3510434b4ea69299ba61548",
+            "8.3-1.12.4": "10582e9f828b20c0165d0abc8da613084db621e9911925155bdde003161808f8",
+            "8.5-1.12.4": "54b5567e4f0499d8cc460796816eb65a2874434678019f06d960439c40887d98"
           }
         },
         "darwin-x64": {
@@ -378,9 +378,9 @@
           },
           "is_archive": false,
           "checksums": {
-            "8.4-1.12.4": "4e5150b99d934ee2bc8e443a52e8fe269beb68412002d770f01fa05a9f334a0d",
-            "8.3-1.12.4": "3ed67c2536a4de2a68916d3e220d163a9e9ee2b999639f8a5c25dd8c599be0ae",
-            "8.5-1.12.4": "5e2a36690698c513a9bd6329f06f97c6fc9f689841bbdb06c9a87c70397e8b78"
+            "8.4-1.12.4": "bbb35196099399a9acd6d9f7a60ecbfa2c8cd1c74e3b6bbc590bb242b04a100a",
+            "8.3-1.12.4": "7b95941381f218240b30d9ff1e6e724538d5a052d731b1d8dd65217a94a9bade",
+            "8.5-1.12.4": "3e39a44dd9fe02a1580bfce8361149cd68e11ec2a091df8c79a488367a975f4e"
           }
         },
         "linux-x64": {
@@ -497,9 +497,9 @@
           },
           "is_archive": false,
           "checksums": {
-            "8.4-1.12.4": "8837c95ec2c48aaf046698926aef008daf2bcd159a3eebce6edbdbd57587ddce",
-            "8.3-1.12.4": "c2ba7b2d9263594d6536d6eb773e07ab28455693992613677c74328bf8567d58",
-            "8.5-1.12.4": "0c00736aa5e18b8e9ae3417c0f8e3b53cc369df51be1c7e114e73ffb786266ee"
+            "8.4-1.12.4": "987f269313f980cbc8c171de7fb482133e99a7d3c3510434b4ea69299ba61548",
+            "8.3-1.12.4": "10582e9f828b20c0165d0abc8da613084db621e9911925155bdde003161808f8",
+            "8.5-1.12.4": "54b5567e4f0499d8cc460796816eb65a2874434678019f06d960439c40887d98"
           }
         },
         "darwin-x64": {
@@ -509,9 +509,9 @@
           },
           "is_archive": false,
           "checksums": {
-            "8.4-1.12.4": "4e5150b99d934ee2bc8e443a52e8fe269beb68412002d770f01fa05a9f334a0d",
-            "8.3-1.12.4": "3ed67c2536a4de2a68916d3e220d163a9e9ee2b999639f8a5c25dd8c599be0ae",
-            "8.5-1.12.4": "5e2a36690698c513a9bd6329f06f97c6fc9f689841bbdb06c9a87c70397e8b78"
+            "8.4-1.12.4": "bbb35196099399a9acd6d9f7a60ecbfa2c8cd1c74e3b6bbc590bb242b04a100a",
+            "8.3-1.12.4": "7b95941381f218240b30d9ff1e6e724538d5a052d731b1d8dd65217a94a9bade",
+            "8.5-1.12.4": "3e39a44dd9fe02a1580bfce8361149cd68e11ec2a091df8c79a488367a975f4e"
           }
         },
         "linux-x64": {
@@ -548,7 +548,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mariadbd",
           "checksums": {
-            "12.3.2": "de1fc0a977a5b48d4c531c631eaeacd121804f9fbe6a8358759dbbe3811c4ac3"
+            "12.3.2": "44c1db7c07cde061bee185897cdf3ece2db7e10ca4f9363ca6faabfa9489cf87"
           }
         },
         "darwin-x64": {
@@ -559,7 +559,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mariadbd",
           "checksums": {
-            "12.3.2": "a6d1494560226370860958658bf371ffb231f740df9fb3bb9450b153d101ade7"
+            "12.3.2": "54187da74db22a05d2ba5cecfe45acb7fd22143e98f34e254a833c33eff61e1d"
           }
         }
       }
@@ -589,7 +589,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mysqld",
           "checksums": {
-            "9.7.1": "2b6eca44bd5ab0963d35bd11baf3f1226b92a5065ebc509c7cec3cf743a13e2e"
+            "9.7.1": "597ec29272416d048ddb351f2552a403108fe85ab0098a42d00b085b5e51f3f8"
           }
         },
         "darwin-x64": {
@@ -600,7 +600,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mysqld",
           "checksums": {
-            "9.7.1": "2e648defed8ad16cfafde4924d721d45efbee2449b6294a741fe91437c8c106c"
+            "9.7.1": "5faa8b0c9f74e96468c2c9733030a42ad442d4e5633e780c39f7a60438b6595c"
           }
         }
       }
@@ -630,7 +630,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/postgres",
           "checksums": {
-            "17.10": "897d558511e6dc188359fc514cb9421bac913efea98e85fbbc651c760a6b76ac"
+            "17.10": "256afacc09a053d27b25d6e7e2f1a1ddcdbcae37037feb5d14ef25db7e63025a"
           }
         },
         "darwin-x64": {
@@ -641,7 +641,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/postgres",
           "checksums": {
-            "17.10": "c019bd286985a4a683556ec3711c5ad1eba146ebdda756ff8f51102c97c15d7a"
+            "17.10": "003022ec1bfbeeecb5e5a5193f321a0f97263074ca3e088c3fd5307ef6479eec"
           }
         }
       }
@@ -694,7 +694,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/redis-server",
           "checksums": {
-            "8.8.0": "b54808ced67ad929c0d82873502083d44b27fb1386afcddf737e5a237150a3d4"
+            "8.8.0": "0f2a164aee3a8e96f1851267847fedf196fbdf49d34bae7237e7d5e0f97503e9"
           }
         },
         "darwin-x64": {
@@ -705,7 +705,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/redis-server",
           "checksums": {
-            "8.8.0": "6f1c89d3ff805f3f5c43484dd4296540cf7d79342e6862e0875cb01bf05a9c33"
+            "8.8.0": "0d46d31c5c8a28dc7095d0426d21f7b5aca3f51cfd22e314c188530c3382c32d"
           }
         },
         "linux-x64": {
@@ -769,7 +769,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/valkey-server",
           "checksums": {
-            "9.1.0": "4df8133c70dd90ea8a50a35f2fc5eb8b3e6ff735f3fa873bc15e4079d15e3de7"
+            "9.1.0": "c8a43948ddf5bdcd602b04107438af71d52a09a6898a476eb1ff85bd43bba68b"
           }
         },
         "darwin-x64": {
@@ -780,7 +780,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/valkey-server",
           "checksums": {
-            "9.1.0": "a57d98ea8757bda72bdc8219d59c5bd16709de504c322bf880e84f9d9f4402c5"
+            "9.1.0": "26f439726ef06bf8e7d85238de099834da46b05564c4bb0d11043295abdf45b3"
           }
         },
         "linux-x64": {
@@ -836,7 +836,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mailpit",
           "checksums": {
-            "1.30.4": "4671b84883a71c3ffea7f6d3063eaf7a660a8fc767cb50e08ac0fb8e08a2f640"
+            "1.30.4": "857632eea69dac92b85fcdadb377d33e3dcc1f8ed5034cae59ada2fec8e75eb2"
           }
         },
         "darwin-x64": {
@@ -847,7 +847,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mailpit",
           "checksums": {
-            "1.30.4": "819f3ed5e16381715c45315c86c3719c0f2e06c35671ce1f9fae87a337f8d395"
+            "1.30.4": "653a93a5e68a73a5e1fc3a04641f6889203e68e4a3dcea7565270854398405b4"
           }
         }
       }
@@ -882,7 +882,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/beanstalkd",
           "checksums": {
-            "1.13": "28505923977790d8abb8a0a0760d52a854c2a56f226a11a5848bf71f3ca0b277"
+            "1.13": "a274da18a5915e3c80d5eaa2d70859ef3b9581a7de051aa731c3ae78ba4f0b6f"
           }
         },
         "darwin-x64": {
@@ -893,7 +893,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/beanstalkd",
           "checksums": {
-            "1.13": "f0a2edca7127b642428f7e4f7730deb66421c55ef7f7c37159b5b75faab5d3b4"
+            "1.13": "91c881fb243dc93ce4d940830df95073065abda16dcb838ba582845503104aad"
           }
         }
       }
@@ -995,7 +995,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/frpc",
           "checksums": {
-            "0.70.0": "29125e17821c5e31fa01dfca6d5ee8574c8a72080501b2958fefeb600a55e707"
+            "0.70.0": "dcaed81f88ec86c4ead903a2b55dc4805f0c49759e79919abcda778552f9f213"
           }
         },
         "darwin-x64": {
@@ -1006,7 +1006,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/frpc",
           "checksums": {
-            "0.70.0": "c5493d780f98cb07ff73073c64b64e279235edaa2b960818aa6c65fc3f479f65"
+            "0.70.0": "5f0f915dfa72c35ea590c76bac9590f7b9decc133ed03880e75eeb8605ff6e51"
           }
         },
         "linux-x64": {
