@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.8] - 2026-07-30
+
+### Added
+
+- **`get_mailpit_config` (MCP) returns ready-to-paste app config.** Beyond the
+  host and SMTP/HTTP ports, it now includes the Mailpit web-UI URL,
+  auth/encryption (`none`), an `smtp_url` (Symfony `MAILER_DSN` and most
+  libraries), a Laravel `.env` block, and a nodemailer snippet — so an AI agent
+  can wire a project's outgoing mail to the local Mailpit sink and then read it
+  back with `list_emails`/`get_email`. (Mailpit control was already available
+  over MCP via `start`/`stop`/`restart_instance` and the inbox tools.)
+
+---
+
 ## [1.11.7] - 2026-07-30
 
 ### Fixed
