@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.11.1] - 2026-07-30
+
+### Added
+
+- **"Check for Updates…" in the macOS app menu.** Burd now has a native
+  application menu bar; the app menu includes a standard Check for Updates item
+  that runs an update check and reports the result — offering to install and
+  restart when a new version is available, or confirming you're up to date.
+
+### Fixed
+
+- **Clearer proxy status when the daemon is starting up.** The network panel no
+  longer claims "another service is bound to port 80 or 443" whenever the proxy
+  is momentarily unhealthy. After a restart, Caddy can take up to a minute to
+  provision HTTPS certificates and bind port 443; during that window the panel
+  now explains the daemon is still coming up instead of blaming a non-existent
+  port conflict. A real conflict still lists the offending process.
+
+---
+
 ## [1.11.0] - 2026-07-30
 
 ### Added
