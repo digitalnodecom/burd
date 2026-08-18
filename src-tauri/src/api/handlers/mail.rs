@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::api::{state::ApiState, types::ApiResponse};
-use crate::commands::mail::{MailMessageDetail, MailMessageList, SmtpConfig};
+use crate::commands::mail::{MailMessageDetail, MailMessageList};
 use crate::commands::AppState;
 use crate::config::ServiceType;
 
@@ -111,17 +111,58 @@ pub struct UnreadCount {
     pub unread: u32,
 }
 
-/// GET /mail/config - SMTP + HTTP ports for Mailpit
+/// Mailpit connection details plus ready-to-paste snippets for wiring an app's
+/// outgoing mail to Mailpit. Returned by GET /mail/config so an AI agent can
+/// configure a project to send mail into the local sink without guessing.
+#[derive(Serialize)]
+struct MailpitConfig {
+    host: String,
+    smtp_port: u16,
+    http_port: u16,
+    /// Mailpit web UI where captured mail is viewable.
+    web_ui: String,
+    /// Mailpit accepts mail with no auth and no TLS.
+    auth: &'static str,
+    encryption: &'static str,
+    /// `smtp://host:port` connection URL (Symfony MAILER_DSN, many libraries).
+    smtp_url: String,
+    /// Laravel `.env` block.
+    laravel_env: String,
+    /// Node.js nodemailer transport options.
+    nodemailer: String,
+}
+
+/// GET /mail/config - Mailpit connection details + app-config snippets
 pub async fn config(State(state): State<ApiState>) -> Response {
-    match get_mailpit_ports(&state.inner) {
-        Ok(p) => Json(ApiResponse::ok(SmtpConfig {
-            host: "127.0.0.1".to_string(),
-            port: p.smtp_port,
-            http_port: p.http_port,
-        }))
-        .into_response(),
-        Err(e) => unavailable(e),
-    }
+    let p = match get_mailpit_ports(&state.inner) {
+        Ok(p) => p,
+        Err(e) => return unavailable(e),
+    };
+    let host = "127.0.0.1";
+    let smtp = p.smtp_port;
+    let cfg = MailpitConfig {
+        host: host.to_string(),
+        smtp_port: smtp,
+        http_port: p.http_port,
+        web_ui: format!("http://{host}:{}", p.http_port),
+        auth: "none",
+        encryption: "none",
+        smtp_url: format!("smtp://{host}:{smtp}"),
+        laravel_env: format!(
+            "MAIL_MAILER=smtp\n\
+             MAIL_HOST={host}\n\
+             MAIL_PORT={smtp}\n\
+             MAIL_USERNAME=null\n\
+             MAIL_PASSWORD=null\n\
+             MAIL_ENCRYPTION=null\n\
+             MAIL_FROM_ADDRESS=\"hello@example.com\"\n\
+             MAIL_FROM_NAME=\"${{APP_NAME}}\""
+        ),
+        nodemailer: format!(
+            "nodemailer.createTransport({{ host: \"{host}\", port: {smtp}, secure: false }})"
+        ),
+    };
+    Json(ApiResponse::ok(cfg)).into_response()
 }
 
 /// GET /mail - list captured messages (with optional search/pagination)

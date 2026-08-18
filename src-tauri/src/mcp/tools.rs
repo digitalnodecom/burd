@@ -533,7 +533,7 @@ pub fn get_tools() -> Vec<Tool> {
         // ====================================================================
         Tool {
             name: "get_mailpit_config".to_string(),
-            description: "Get Mailpit SMTP/HTTP connection details for the running Mailpit instance. Use these in your app's .env (MAIL_HOST, MAIL_PORT).".to_string(),
+            description: "Get everything needed to point an app's outgoing mail at the local Mailpit sink: host, smtp_port, http_port, the web-UI URL, and ready-to-paste snippets (laravel_env, smtp_url / Symfony MAILER_DSN, nodemailer). Mailpit needs no auth and no TLS. Use this to configure a project to send mail into Mailpit, then read it back with list_emails/get_email.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {},
