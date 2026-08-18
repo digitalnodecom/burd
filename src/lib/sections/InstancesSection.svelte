@@ -19,6 +19,7 @@
     process_manager: string;
     stack_id: string | null;
     mapped_domains: string[];
+    auto_start: boolean;
   }
 
   interface Stack {

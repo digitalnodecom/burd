@@ -256,6 +256,19 @@ impl ConfigStore {
         Ok(updated)
     }
 
+    /// Set whether an instance auto-starts when Burd launches.
+    pub fn set_instance_auto_start(&self, id: Uuid, auto_start: bool) -> Result<(), String> {
+        let mut config = self.load()?;
+        let instance = config
+            .instances
+            .iter_mut()
+            .find(|i| i.id == id)
+            .ok_or_else(|| format!("Instance {} not found", id))?;
+        instance.auto_start = auto_start;
+        self.save(&config)?;
+        Ok(())
+    }
+
     /// Update instance domain settings
     pub fn update_instance_domain(
         &self,

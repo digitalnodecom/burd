@@ -37,6 +37,7 @@ pub struct InstanceWithHealth {
     pub process_manager: String,
     pub stack_id: Option<String>,
     pub mapped_domains: Vec<String>,
+    pub auto_start: bool,
 }
 
 /// Instance configuration response
@@ -185,6 +186,7 @@ pub async fn list_instances(state: State<'_, AppState>) -> Result<Vec<InstanceWi
                     process_manager: "binary".to_string(),
                     stack_id: instance.stack_id.map(|id| id.to_string()),
                     mapped_domains,
+                    auto_start: instance.auto_start,
                 }
             }
         })
@@ -317,7 +319,21 @@ pub fn create_instance(
         process_manager: "binary".to_string(),
         stack_id: instance.stack_id.map(|id| id.to_string()),
         mapped_domains,
+        auto_start: instance.auto_start,
     })
+}
+
+/// Toggle whether an instance starts automatically when Burd launches.
+#[tauri::command]
+pub fn set_instance_auto_start(
+    id: String,
+    auto_start: bool,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid instance ID")?;
+    let config_store = lock!(state.config_store)?;
+    config_store.set_instance_auto_start(uuid, auto_start)?;
+    Ok(())
 }
 
 #[tauri::command]

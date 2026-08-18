@@ -40,6 +40,7 @@
     process_manager: string;
     stack_id: string | null;
     mapped_domains: string[];
+    auto_start: boolean;
   }
 
   interface Stack {
@@ -281,6 +282,20 @@
   let instanceSettingsConfig = $state<Record<string, string>>({});
   let instanceSettingsLoading = $state(false);
   let instanceSettingsSaving = $state(false);
+  let instanceSettingsAutoStart = $state(false);
+
+  // Persist the auto-start toggle immediately (independent of Save Settings).
+  async function toggleInstanceAutoStart(enabled: boolean) {
+    instanceSettingsAutoStart = enabled;
+    try {
+      await invoke("set_instance_auto_start", { id: instanceSettingsId, autoStart: enabled });
+      const inst = instances.find((i) => i.id === instanceSettingsId);
+      if (inst) inst.auto_start = enabled;
+    } catch (e) {
+      instanceSettingsAutoStart = !enabled; // revert on failure
+      console.error("Failed to set auto-start:", e);
+    }
+  }
 
   // Instance Settings - Domain Management
   let instanceSettingsDomains = $state<string[]>([]);
@@ -685,6 +700,7 @@
       instanceSettingsOriginalPort = instance.port;
       instanceSettingsVersion = instance.version;
       instanceSettingsOriginalVersion = instance.version;
+      instanceSettingsAutoStart = instance.auto_start;
       showInstanceSettings = true;
       const result = await invoke<InstanceConfigResponse>("get_instance_config", { id: instance.id });
       instanceSettingsServiceType = result.service_type;
@@ -1146,7 +1162,16 @@
   }
 
   onMount(() => {
-    loadData();
+    // Start any instances flagged to auto-start, once, after the first load.
+    loadData().then(() => {
+      for (const inst of instances) {
+        if (inst.auto_start && !inst.running) {
+          invoke("start_instance", { id: inst.id }).catch((e) =>
+            console.error(`auto-start ${inst.name} failed:`, e)
+          );
+        }
+      }
+    });
     // Check for an app update now, then every 30 minutes.
     updater.checkForUpdate();
     updater.startAutoCheck();
@@ -1523,6 +1548,20 @@
                 ⚠️ Port change requires the instance to be stopped. Burd will stop it automatically before applying.
               </p>
             {/if}
+          </div>
+
+          <div class="settings-group">
+            <label class="auto-start-toggle" style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;">
+              <input
+                type="checkbox"
+                checked={instanceSettingsAutoStart}
+                onchange={(e) => toggleInstanceAutoStart(e.currentTarget.checked)}
+              />
+              <span class="settings-label" style="margin: 0;">Start automatically when Burd launches</span>
+            </label>
+            <p style="margin-top: 0.35rem; font-size: 0.8rem; color: #86868b;">
+              Saved immediately. Burd will start this instance on the next launch.
+            </p>
           </div>
 
           <!-- Version Selector -->
