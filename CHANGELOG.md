@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.0] - 2026-08-19
+
+### Changed
+
+- **Minimal UI restyle across the whole app.** Every screen and modal now uses
+  [Lucide](https://lucide.dev) icons in place of the old emoji/glyph controls
+  (copy, SSL lock, delete, warnings, accordion arrows, connection status), on a
+  shared design-token system for consistent light/dark theming. Service/vendor
+  brand icons are unchanged.
+- **Shared modal shell.** All modals adopt one minimal shell (overlay, header,
+  scrollable body, footer) with a single softened elevation, so they read the
+  same everywhere.
+- **Instance Settings modal reworked.** Name and Port sit on one row, spacing is
+  tightened, and the Domains section is compact with inline add. The
+  "Start automatically when Burd launches" toggle no longer saves instantly — it
+  is applied when you click **Save Settings**, alongside the other changes.
+
+---
+
 ## [1.12.0] - 2026-08-19
 
 ### Added
