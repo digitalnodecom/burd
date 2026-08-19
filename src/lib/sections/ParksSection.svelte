@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { ChevronRight, ExternalLink, Folder, Lock, RefreshCw, Trash2, TriangleAlert } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { open, confirm, message } from "@tauri-apps/plugin-dialog";
@@ -251,9 +252,7 @@
   {:else if parkedDirectories.length === 0}
     <div class="empty-state">
       <div class="empty-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-        </svg>
+        <Folder size={48} strokeWidth={2} />
       </div>
       <h3>No Parked Directories</h3>
       <p>Park a directory to automatically create domains for all projects inside it.</p>
@@ -266,13 +265,9 @@
           <div class="parked-header" onclick={() => toggleExpand(dir.id)} role="button" tabindex="0" onkeypress={(e) => e.key === 'Enter' && toggleExpand(dir.id)}>
             <div class="parked-main">
               <span class="expand-icon" class:expanded={expandedDirs[dir.id]}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
+                <ChevronRight size={16} strokeWidth={2} />
               </span>
-              <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-              </svg>
+              <Folder size={20} strokeWidth={2} />
               <div class="parked-info">
                 <span class="parked-path">{dir.path}</span>
                 <span class="parked-meta">
@@ -288,22 +283,13 @@
             </div>
             <div class="parked-actions" role="group" aria-label="Directory actions" onclick={(e) => e.stopPropagation()}>
               <button class="icon-btn" onclick={() => refreshDirectory(dir)} disabled={refreshing[dir.id]} title="Refresh">
-                <svg class:spinning={refreshing[dir.id]} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 12a9 9 0 11-9-9"></path>
-                  <polyline points="21 3 21 9 15 9"></polyline>
-                </svg>
+                <RefreshCw size={16} strokeWidth={2} />
               </button>
               <button class="icon-btn" onclick={() => toggleSsl(dir)} title={dir.ssl_enabled ? "Disable SSL" : "Enable SSL"}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill={dir.ssl_enabled ? "currentColor" : "none"} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0110 0v4"></path>
-                </svg>
+                <Lock size={16} strokeWidth={2} />
               </button>
               <button class="icon-btn danger" onclick={() => unparkDirectory(dir)} title="Unpark">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-                </svg>
+                <Trash2 size={16} strokeWidth={2} />
               </button>
             </div>
           </div>
@@ -327,11 +313,7 @@
                     <div class="project-domain">
                       {#if project.status === "conflict"}
                         <span class="conflict-warning" title="Domain conflicts with another entry">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
-                            <line x1="12" y1="9" x2="12" y2="13"></line>
-                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                          </svg>
+                          <TriangleAlert size={14} strokeWidth={2} />
                           Conflict
                         </span>
                       {:else if project.status === "pending"}
@@ -339,11 +321,7 @@
                       {:else}
                         <button class="domain-link" onclick={() => openInBrowser(project.domain)}>
                           {project.domain}
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"></path>
-                            <polyline points="15 3 21 3 21 9"></polyline>
-                            <line x1="10" y1="14" x2="21" y2="3"></line>
-                          </svg>
+                          <ExternalLink size={12} strokeWidth={2} />
                         </button>
                       {/if}
                     </div>

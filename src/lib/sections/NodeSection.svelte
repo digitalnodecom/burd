@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Info, Star, Trash2 } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { confirm } from "@tauri-apps/plugin-dialog";
   import { onMount } from "svelte";
@@ -155,11 +156,7 @@
     <section class="card">
       <div class="not-installed">
         <div class="not-installed-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 16v-4"></path>
-            <path d="M12 8h.01"></path>
-          </svg>
+          <Info size={48} strokeWidth={2} />
         </div>
         <h3>NVM Not Installed</h3>
         <p>
@@ -252,9 +249,7 @@
                         disabled={settingDefault === version.version}
                         title="Set as Default"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                        </svg>
+                        <Star size={14} strokeWidth={2} />
                       </button>
                     {/if}
                     <button
@@ -263,10 +258,7 @@
                       disabled={uninstallingVersion === version.version || version.is_current}
                       title={version.is_current ? "Cannot uninstall current version" : "Uninstall"}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      </svg>
+                      <Trash2 size={14} strokeWidth={2} />
                     </button>
                   </div>
                 </td>

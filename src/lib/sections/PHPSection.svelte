@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Info, RefreshCw, Star, Trash2 } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { confirm } from "@tauri-apps/plugin-dialog";
   import { listen } from "@tauri-apps/api/event";
@@ -288,12 +289,7 @@
     <div class="title-row">
       <h2>PHP</h2>
       <button class="refresh-btn" onclick={refresh} title="Refresh">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 2v6h-6"></path>
-          <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-          <path d="M3 22v-6h6"></path>
-          <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-        </svg>
+        <RefreshCw size={16} strokeWidth={2} />
       </button>
     </div>
     <button class="btn primary small" onclick={openInstallDialog}>
@@ -477,9 +473,7 @@
                       disabled={settingDefault === version.version}
                       title="Set as Default"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                      </svg>
+                      <Star size={14} strokeWidth={2} />
                     </button>
                   {/if}
                   <button
@@ -488,10 +482,7 @@
                     disabled={deletingVersion === version.version || version.is_current}
                     title={version.is_current ? "Cannot delete current version" : "Delete"}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
+                    <Trash2 size={14} strokeWidth={2} />
                   </button>
                 </div>
               </td>
@@ -571,11 +562,7 @@
         {#if pvmStatus?.current_php}
           <div class="warning-content">
             <div class="warning-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 16v-4"></path>
-                <path d="M12 8h.01"></path>
-              </svg>
+              <Info size={48} strokeWidth={2} />
             </div>
             <p>Your terminal currently uses <strong>PHP {pvmStatus.current_php.version}</strong> from <strong style="color: {getSourceColor(pvmStatus.current_php.source)}">{pvmStatus.current_php.source}</strong></p>
             <p class="path-info">{pvmStatus.current_php.path}</p>

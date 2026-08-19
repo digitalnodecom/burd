@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Info, Play, SquareTerminal, X } from '@lucide/svelte';
   import { onMount } from "svelte";
   import { createTinkerState, type TinkerProject, type TinkerExecution } from "$lib/composables/useTinker.svelte";
   import MonacoEditor from "$lib/components/MonacoEditor.svelte";
@@ -148,19 +149,13 @@ echo "PHP " . phpversion();`,
     </div>
   {:else if tinker.loadError}
     <div class="error-state">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-      </svg>
+      <Info size={24} strokeWidth={2} />
       <span>{tinker.loadError}</span>
       <button class="btn-secondary" onclick={() => tinker.loadProjects()}>Retry</button>
     </div>
   {:else if !tinker.hasProjects}
     <div class="empty-state">
-      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-      </svg>
+      <SquareTerminal size={48} strokeWidth={2} />
       <span>No PHP projects found</span>
       <p class="empty-hint">Create a PHP instance with a document root to start using Tinker</p>
     </div>
@@ -188,9 +183,7 @@ echo "PHP " . phpversion();`,
           {#if tinker.executing}
             <div class="btn-spinner"></div>
           {:else}
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
+            <Play size={12} fill="currentColor" strokeWidth={0} />
             Run
           {/if}
         </button>
@@ -279,10 +272,7 @@ echo "PHP " . phpversion();`,
                 onclick={(e) => { e.stopPropagation(); tinker.deleteHistoryItem(execution.id); }}
                 title="Delete"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                <X size={14} strokeWidth={2} />
               </button>
             </div>
           {/each}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Info, Upload } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
 
   // Types
@@ -328,11 +329,7 @@
                   id="file-input"
                 />
                 <label for="file-input" class="file-label">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
+                  <Upload size={24} strokeWidth={2} />
                   <span>Choose a .json or .burd.json file</span>
                 </label>
                 {#if jsonInput}
@@ -550,11 +547,7 @@
             <!-- Existing Stack Notice -->
             {#if preview.existing_stack}
               <div class="existing-stack-notice">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="8" x2="12" y2="12"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
+                <Info size={16} strokeWidth={2} />
                 <span>This will update the existing stack "{preview.existing_stack.name}"</span>
               </div>
             {/if}
