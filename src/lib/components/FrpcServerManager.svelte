@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { confirm } from "@tauri-apps/plugin-dialog";
+  import { ChevronUp, ChevronDown, Circle, LoaderCircle, TriangleAlert, Clock } from "@lucide/svelte";
   import type { FrpcPolling } from "$lib/composables/useFrpcPolling.svelte";
 
   interface FrpServer {
@@ -159,7 +160,15 @@
     onclick={() => (expanded = !expanded)}
   >
     <div class="status-summary">
-      <span class="status-dot {statusSummary.class}">{statusSummary.icon}</span>
+      <span class="status-dot {statusSummary.class}">
+        {#if statusSummary.class === "checking" || statusSummary.class === "connecting"}
+          <LoaderCircle size={12} strokeWidth={2.5} class="spin" />
+        {:else if statusSummary.class === "connected"}
+          <Circle size={12} strokeWidth={0} fill="currentColor" />
+        {:else}
+          <Circle size={12} strokeWidth={2} />
+        {/if}
+      </span>
       <div class="status-text">
         <span class="status-label">
           {#if server}
@@ -178,7 +187,7 @@
       </div>
     </div>
     <div class="accordion-actions">
-      <span class="accordion-arrow">{expanded ? "▲" : "▼"}</span>
+      <span class="accordion-arrow">{#if expanded}<ChevronUp size={16} strokeWidth={2} />{:else}<ChevronDown size={16} strokeWidth={2} />{/if}</span>
     </div>
   </button>
 
@@ -298,7 +307,7 @@
       {#if frpcInstance && !polling.connectionStatus?.connected && statusSummary.class !== "connected"}
         <div class="connection-warning {statusSummary.class}">
           <span class="warning-icon">
-            {#if statusSummary.class === "offline" || statusSummary.class === "stopped" || statusSummary.class === "error"}⚠{:else}⏳{/if}
+            {#if statusSummary.class === "offline" || statusSummary.class === "stopped" || statusSummary.class === "error"}<TriangleAlert size={15} strokeWidth={2} />{:else}<Clock size={15} strokeWidth={2} />{/if}
           </span>
           <span class="warning-text">{statusSummary.detail}</span>
           {#if statusSummary.class === "stopped" && onStartFrpc}
@@ -356,8 +365,15 @@
   }
 
   .status-dot {
-    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
     line-height: 1;
+  }
+  .status-dot :global(.spin) {
+    animation: frpc-spin 0.9s linear infinite;
+  }
+  @keyframes frpc-spin {
+    to { transform: rotate(360deg); }
   }
 
   .status-dot.connected { color: #34c759; }
@@ -390,8 +406,9 @@
   }
 
   .accordion-arrow {
+    display: inline-flex;
+    align-items: center;
     color: var(--text-muted);
-    font-size: 0.75rem;
   }
 
   .accordion-content {
@@ -485,7 +502,8 @@
   }
 
   .warning-icon {
-    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
   }
 
   .warning-text {

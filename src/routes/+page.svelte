@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { X, Copy } from '@lucide/svelte';
+  import { X, Copy, Lock, LockOpen, Trash2, TriangleAlert } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { open, confirm, message } from "@tauri-apps/plugin-dialog";
@@ -1542,7 +1542,7 @@
             </div>
           </div>
           {#if instanceSettingsPort !== instanceSettingsOriginalPort}
-            <p class="version-warning">⚠️ Port change requires the instance to be stopped — Burd stops it automatically before applying.</p>
+            <p class="version-warning"><TriangleAlert size={13} strokeWidth={2} /> Port change requires the instance to be stopped — Burd stops it automatically before applying.</p>
           {/if}
 
           <label class="setting-toggle">
@@ -1570,7 +1570,7 @@
               </select>
             </label>
             {#if instanceSettingsVersion !== instanceSettingsOriginalVersion}
-              <p class="version-warning">⚠️ Changing version requires restart. Data compatibility not guaranteed.</p>
+              <p class="version-warning"><TriangleAlert size={13} strokeWidth={2} /> Changing version requires restart. Data compatibility not guaranteed.</p>
             {/if}
           </div>
 
@@ -1645,14 +1645,19 @@
                       <span class="domain-spacer"></span>
                       <button
                         class="domain-action"
+                        class:ssl-on={domain?.ssl_enabled}
                         onclick={() => toggleDomainSsl(domainName)}
                         title={domain?.ssl_enabled ? "Disable SSL" : "Enable SSL"}
-                      >{domain?.ssl_enabled ? "🔒" : "🔓"}</button>
+                      >
+                        {#if domain?.ssl_enabled}<Lock size={14} strokeWidth={2} />{:else}<LockOpen size={14} strokeWidth={2} />{/if}
+                      </button>
                       <button
-                        class="domain-action"
+                        class="domain-action danger"
                         onclick={() => deleteDomainFromInstance(domainName)}
                         title="Delete domain"
-                      >🗑️</button>
+                      >
+                        <Trash2 size={14} strokeWidth={2} />
+                      </button>
                     </div>
                   {/each}
                 </div>
@@ -2086,9 +2091,15 @@
   }
 
   .version-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     margin: -0.35rem 0 0.85rem;
     font-size: 0.8rem;
     color: var(--warning, #d97706);
+  }
+  .version-warning :global(svg) {
+    flex: none;
   }
 
   .settings-group label {
@@ -2195,16 +2206,27 @@
     font-weight: 600;
   }
   .domain-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     background: transparent;
     cursor: pointer;
-    font-size: 0.85rem;
-    padding: 0.15rem 0.3rem;
+    color: var(--text-muted);
+    padding: 0.25rem;
     border-radius: var(--radius-sm);
     line-height: 1;
   }
   .domain-action:hover {
     background: var(--border);
+    color: var(--text);
+  }
+  .domain-action.ssl-on {
+    color: var(--success);
+  }
+  .domain-action.danger:hover {
+    background: var(--danger-bg);
+    color: var(--danger);
   }
   .domain-form {
     display: flex;

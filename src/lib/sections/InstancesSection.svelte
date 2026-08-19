@@ -6,6 +6,7 @@
   import {
     Play, Square, Settings, Database, Puzzle, FileText, CodeXml, Info, Trash2,
     RefreshCw, Layers, Import, ChevronRight, GripVertical, CircleAlert, Upload, X,
+    Check, Copy,
   } from '@lucide/svelte';
 
   interface Instance {
@@ -1069,7 +1070,7 @@
                           onclick={() => copyToClipboard(domain, `${instance.id}-${domain}`)}
                           title="Copy domain"
                         >
-                          {copiedId === `${instance.id}-${domain}` ? "✓" : "⧉"}
+                          {#if copiedId === `${instance.id}-${domain}`}<Check size={13} strokeWidth={2.5} />{:else}<Copy size={13} strokeWidth={2} />{/if}
                         </button>
                         <button
                           class="delete-domain-btn icon-btn danger"

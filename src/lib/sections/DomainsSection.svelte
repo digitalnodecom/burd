@@ -3,7 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { confirm } from "@tauri-apps/plugin-dialog";
   import { onMount } from "svelte";
-  import { RefreshCw, Lock, LockOpen, SquarePen, Trash2 } from "@lucide/svelte";
+  import { RefreshCw, Lock, LockOpen, SquarePen, Trash2, Check, Copy } from "@lucide/svelte";
 
   interface DomainInfo {
     id: string;
@@ -557,7 +557,7 @@
                     onclick={() => copyToClipboard(domain.full_domain, domain.id)}
                     title="Copy domain"
                   >
-                    {copiedId === domain.id ? "✓" : "⧉"}
+                    {#if copiedId === domain.id}<Check size={13} strokeWidth={2.5} />{:else}<Copy size={13} strokeWidth={2} />{/if}
                   </button>
                 </div>
               </td>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { SquarePen, Trash2 } from '@lucide/svelte';
+  import { SquarePen, Trash2, Check, Copy } from '@lucide/svelte';
   import type { FrpcPolling } from "$lib/composables/useFrpcPolling.svelte";
 
   interface Tunnel {
@@ -189,7 +189,7 @@
                       onclick={() => copyToClipboard(url, t.tunnel.id)}
                       title="Copy URL"
                     >
-                      {copiedId === t.tunnel.id ? "✓" : "⧉"}
+                      {#if copiedId === t.tunnel.id}<Check size={13} strokeWidth={2.5} />{:else}<Copy size={13} strokeWidth={2} />{/if}
                     </button>
                   </div>
                 {:else if expectedUrl}
@@ -208,7 +208,7 @@
                       onclick={() => copyToClipboard(expectedUrl, t.tunnel.id)}
                       title="Copy URL"
                     >
-                      {copiedId === t.tunnel.id ? "✓" : "⧉"}
+                      {#if copiedId === t.tunnel.id}<Check size={13} strokeWidth={2.5} />{:else}<Copy size={13} strokeWidth={2} />{/if}
                     </button>
                   </div>
                 {:else}
