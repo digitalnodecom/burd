@@ -284,19 +284,7 @@
   let instanceSettingsLoading = $state(false);
   let instanceSettingsSaving = $state(false);
   let instanceSettingsAutoStart = $state(false);
-
-  // Persist the auto-start toggle immediately (independent of Save Settings).
-  async function toggleInstanceAutoStart(enabled: boolean) {
-    instanceSettingsAutoStart = enabled;
-    try {
-      await invoke("set_instance_auto_start", { id: instanceSettingsId, autoStart: enabled });
-      const inst = instances.find((i) => i.id === instanceSettingsId);
-      if (inst) inst.auto_start = enabled;
-    } catch (e) {
-      instanceSettingsAutoStart = !enabled; // revert on failure
-      console.error("Failed to set auto-start:", e);
-    }
-  }
+  let instanceSettingsOriginalAutoStart = $state(false);
 
   // Instance Settings - Domain Management
   let instanceSettingsDomains = $state<string[]>([]);
@@ -702,6 +690,7 @@
       instanceSettingsVersion = instance.version;
       instanceSettingsOriginalVersion = instance.version;
       instanceSettingsAutoStart = instance.auto_start;
+      instanceSettingsOriginalAutoStart = instance.auto_start;
       showInstanceSettings = true;
       const result = await invoke<InstanceConfigResponse>("get_instance_config", { id: instance.id });
       instanceSettingsServiceType = result.service_type;
@@ -777,6 +766,15 @@
       }
 
       await invoke("update_instance_config", { id: instanceSettingsId, config: instanceSettingsConfig });
+
+      // Persist the auto-start toggle if it changed
+      if (instanceSettingsAutoStart !== instanceSettingsOriginalAutoStart) {
+        await invoke("set_instance_auto_start", {
+          id: instanceSettingsId,
+          autoStart: instanceSettingsAutoStart,
+        });
+        if (instance) instance.auto_start = instanceSettingsAutoStart;
+      }
 
       // Clear domain form state
       clearDomainForm();
@@ -1519,44 +1517,43 @@
         {#if instanceSettingsLoading}
           <p class="loading">Loading configuration...</p>
         {:else}
-          <div class="settings-group">
-            <label>
-              <span class="settings-label">Name</span>
-              <input
-                type="text"
-                bind:value={instanceSettingsName}
-                placeholder="Instance name..."
-              />
-            </label>
+          <div class="settings-row">
+            <div class="settings-group">
+              <label>
+                <span class="settings-label">Name</span>
+                <input
+                  type="text"
+                  bind:value={instanceSettingsName}
+                  placeholder="Instance name..."
+                />
+              </label>
+            </div>
+            <div class="settings-group port-group">
+              <label>
+                <span class="settings-label">Port</span>
+                <input
+                  type="number"
+                  min="1024"
+                  max="65535"
+                  bind:value={instanceSettingsPort}
+                  placeholder="Port..."
+                />
+              </label>
+            </div>
           </div>
-
-          <div class="settings-group">
-            <label>
-              <span class="settings-label">Port</span>
-              <input
-                type="number"
-                min="1024"
-                max="65535"
-                bind:value={instanceSettingsPort}
-                placeholder="Port..."
-              />
-            </label>
-            {#if instanceSettingsPort !== instanceSettingsOriginalPort}
-              <p class="version-warning" style="margin-top: 0.5rem; font-size: 0.85rem; color: #ff9800;">
-                ⚠️ Port change requires the instance to be stopped. Burd will stop it automatically before applying.
-              </p>
-            {/if}
-          </div>
+          {#if instanceSettingsPort !== instanceSettingsOriginalPort}
+            <p class="version-warning">⚠️ Port change requires the instance to be stopped — Burd stops it automatically before applying.</p>
+          {/if}
 
           <label class="setting-toggle">
             <input
               type="checkbox"
               checked={instanceSettingsAutoStart}
-              onchange={(e) => toggleInstanceAutoStart(e.currentTarget.checked)}
+              onchange={(e) => (instanceSettingsAutoStart = e.currentTarget.checked)}
             />
             <span class="setting-toggle-text">
               <span class="setting-toggle-title">Start automatically when Burd launches</span>
-              <span class="setting-toggle-desc">Saved instantly · starts this instance on the next launch</span>
+              <span class="setting-toggle-desc">Applied when you click Save Settings</span>
             </span>
           </label>
 
@@ -1573,9 +1570,7 @@
               </select>
             </label>
             {#if instanceSettingsVersion !== instanceSettingsOriginalVersion}
-              <p class="version-warning" style="margin-top: 0.5rem; font-size: 0.85rem; color: #ff9800;">
-                ⚠️ Changing version requires restart. Data compatibility not guaranteed.
-              </p>
+              <p class="version-warning">⚠️ Changing version requires restart. Data compatibility not guaranteed.</p>
             {/if}
           </div>
 
@@ -1632,89 +1627,56 @@
 
           <!-- Domains Section -->
           {#if !instanceSettingsLoading}
-            <div class="settings-section" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
-              <h4 style="margin-bottom: 1rem; font-size: 1rem; font-weight: 600;">Domains</h4>
+            <div class="domains-section">
+              <div class="domains-head">
+                <h4 class="domains-title">Domains</h4>
+                {#if !showDomainForm}
+                  <button class="btn secondary small" onclick={() => showDomainForm = true}>+ Add</button>
+                {/if}
+              </div>
 
               {#if instanceSettingsDomains.length > 0}
-                <div class="domains-list" style="margin-bottom: 1rem;">
+                <div class="domains-list">
                   {#each instanceSettingsDomains as domainName}
                     {@const domain = instanceSettingsAllDomains.find(d => d.full_domain === domainName)}
-                    <div class="domain-row" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: var(--bg-secondary); border-radius: 6px; margin-bottom: 0.5rem;">
-                      <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-family: monospace; font-size: 0.9rem;">{domainName}</span>
-                        {#if domain?.ssl_enabled}
-                          <span class="ssl-badge" style="padding: 0.25rem 0.5rem; background: #4caf50; color: white; font-size: 0.75rem; border-radius: 4px; font-weight: 500;">SSL</span>
-                        {/if}
-                      </div>
-                      <div style="display: flex; gap: 0.5rem;">
-                        <button
-                          class="btn secondary small"
-                          onclick={() => toggleDomainSsl(domainName)}
-                          title={domain?.ssl_enabled ? "Disable SSL" : "Enable SSL"}
-                          style="padding: 0.25rem 0.5rem; font-size: 0.8rem;"
-                        >
-                          {domain?.ssl_enabled ? "🔒" : "🔓"}
-                        </button>
-                        <button
-                          class="btn danger small"
-                          onclick={() => deleteDomainFromInstance(domainName)}
-                          title="Delete domain"
-                          style="padding: 0.25rem 0.5rem; font-size: 0.8rem;"
-                        >
-                          🗑️
-                        </button>
-                      </div>
+                    <div class="domain-row">
+                      <span class="domain-name">{domainName}</span>
+                      {#if domain?.ssl_enabled}<span class="ssl-badge">SSL</span>{/if}
+                      <span class="domain-spacer"></span>
+                      <button
+                        class="domain-action"
+                        onclick={() => toggleDomainSsl(domainName)}
+                        title={domain?.ssl_enabled ? "Disable SSL" : "Enable SSL"}
+                      >{domain?.ssl_enabled ? "🔒" : "🔓"}</button>
+                      <button
+                        class="domain-action"
+                        onclick={() => deleteDomainFromInstance(domainName)}
+                        title="Delete domain"
+                      >🗑️</button>
                     </div>
                   {/each}
                 </div>
-              {:else}
-                <p class="empty" style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-secondary);">No domains attached</p>
+              {:else if !showDomainForm}
+                <p class="settings-empty">No domains attached.</p>
               {/if}
 
-              {#if !showDomainForm}
-                <button
-                  class="btn secondary small"
-                  onclick={() => showDomainForm = true}
-                  style="width: 100%;"
-                >
-                  + Add Domain
-                </button>
-              {:else}
-                <div class="domain-form" style="padding: 1rem; background: var(--bg-secondary); border-radius: 6px;">
-                  <div style="margin-bottom: 0.75rem;">
-                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.9rem; font-weight: 500;">Subdomain</label>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                      <input
-                        type="text"
-                        bind:value={newDomainSubdomain}
-                        placeholder="subdomain"
-                        style="flex: 1; font-family: monospace;"
-                      />
-                      <span style="color: var(--text-secondary);">.{networkStatus?.tld || 'burd'}</span>
-                    </div>
+              {#if showDomainForm}
+                <div class="domain-form">
+                  <div class="domain-form-field">
+                    <input
+                      type="text"
+                      bind:value={newDomainSubdomain}
+                      placeholder="subdomain"
+                      class="domain-sub-input"
+                    />
+                    <span class="domain-tld">.{networkStatus?.tld || 'burd'}</span>
                   </div>
-                  <div style="margin-bottom: 1rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                      <input type="checkbox" bind:checked={newDomainSsl} />
-                      <span style="font-size: 0.9rem;">SSL Enabled</span>
-                    </label>
-                  </div>
-                  <div style="display: flex; gap: 0.5rem;">
-                    <button
-                      class="btn primary small"
-                      onclick={createDomainForInstance}
-                      style="flex: 1;"
-                    >
-                      Create
-                    </button>
-                    <button
-                      class="btn secondary small"
-                      onclick={clearDomainForm}
-                      style="flex: 1;"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                  <label class="domain-ssl-check">
+                    <input type="checkbox" bind:checked={newDomainSsl} />
+                    <span>SSL</span>
+                  </label>
+                  <button class="btn primary small" onclick={createDomainForInstance}>Create</button>
+                  <button class="btn secondary small" onclick={clearDomainForm}>Cancel</button>
                 </div>
               {/if}
             </div>
@@ -2106,7 +2068,27 @@
 
   /* Settings form styles */
   .settings-group {
-    margin-bottom: 1.1rem;
+    margin-bottom: 0.85rem;
+  }
+
+  /* Name + Port side by side */
+  .settings-row {
+    display: grid;
+    grid-template-columns: 1fr 0.5fr;
+    gap: 0.75rem;
+  }
+  .settings-row .settings-group {
+    margin-bottom: 0.85rem;
+  }
+  .port-group input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .version-warning {
+    margin: -0.35rem 0 0.85rem;
+    font-size: 0.8rem;
+    color: var(--warning, #d97706);
   }
 
   .settings-group label {
@@ -2132,8 +2114,8 @@
     align-items: flex-start;
     gap: 0.6rem;
     cursor: pointer;
-    padding: 0.75rem 0.85rem;
-    margin-bottom: 1.1rem;
+    padding: 0.65rem 0.75rem;
+    margin-bottom: 0.85rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface-2);
@@ -2165,6 +2147,98 @@
     color: var(--text-muted);
     padding: 0.5rem 0;
     margin: 0;
+  }
+
+  /* Domains — compact */
+  .domains-section {
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--border);
+  }
+  .domains-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+  }
+  .domains-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .domains-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .domain-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+  }
+  .domain-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+  }
+  .domain-spacer {
+    flex: 1;
+  }
+  .ssl-badge {
+    padding: 0.1rem 0.4rem;
+    background: var(--success);
+    color: #fff;
+    font-size: 0.68rem;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .domain-action {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.15rem 0.3rem;
+    border-radius: var(--radius-sm);
+    line-height: 1;
+  }
+  .domain-action:hover {
+    background: var(--border);
+  }
+  .domain-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+    padding: 0.6rem;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+  }
+  .domain-form-field {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 140px;
+  }
+  .domain-sub-input {
+    flex: 1;
+    min-width: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .domain-tld {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .domain-ssl-check {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
   }
 
   .settings-hint {
