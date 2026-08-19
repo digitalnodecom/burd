@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { X } from "@lucide/svelte";
 
   interface DatabaseInfo {
     name: string;
@@ -66,9 +67,9 @@
 >
   <div class="modal" onclick={(e) => e.stopPropagation()} role="document">
     <div class="modal-header">
-      <h2>Databases</h2>
-      <span class="subtitle">{instanceName}</span>
-      <button class="close-btn" onclick={onClose} aria-label="Close">✕</button>
+      <h2 class="modal-title">Databases</h2>
+      <span class="modal-subtitle">{instanceName}</span>
+      <button class="modal-close" onclick={onClose} aria-label="Close"><X size={16} strokeWidth={2} /></button>
     </div>
 
     <div class="modal-body">
@@ -105,82 +106,34 @@
 </div>
 
 <style>
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-  .modal {
-    background: var(--bg, #fff);
-    color: inherit;
-    border-radius: 12px;
-    width: min(520px, 92vw);
-    max-height: 82vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  }
-  .modal-header {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  }
-  .modal-header h2 {
-    font-size: 1.1rem;
-    margin: 0;
-  }
-  .subtitle {
-    color: #86868b;
-    font-size: 0.85rem;
-  }
-  .close-btn {
-    margin-left: auto;
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-size: 1rem;
-    opacity: 0.6;
-  }
-  .close-btn:hover {
-    opacity: 1;
-  }
-  .modal-body {
-    padding: 16px 20px;
-    overflow-y: auto;
-  }
+  /* Modal shell (overlay / card / header / body / close) comes from app.css. */
   .summary {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 12px;
+    margin-bottom: var(--sp-4);
     font-size: 0.85rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
   .summary .total {
     font-weight: 600;
-    color: inherit;
+    color: var(--text);
   }
   .db-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--sp-3);
   }
   .db-row {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: var(--sp-1);
   }
   .db-info {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--sp-3);
   }
   .db-name {
     font-weight: 600;
@@ -192,38 +145,38 @@
   .db-size {
     flex: none;
     font-size: 0.82rem;
-    color: #86868b;
+    color: var(--text-muted);
     font-variant-numeric: tabular-nums;
   }
   .bar {
     height: 6px;
     border-radius: 3px;
-    background: color-mix(in srgb, currentColor 8%, transparent);
+    background: var(--surface-2);
     overflow: hidden;
   }
   .bar-fill {
     height: 100%;
     border-radius: 3px;
-    background: var(--accent, #4f8cff);
+    background: var(--accent);
     min-width: 2px;
     transition: width 0.2s ease;
   }
   .note {
-    margin: 14px 0 0;
+    margin: var(--sp-4) 0 0;
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
   .error-banner {
-    background: #ffebe9;
-    color: #b00;
-    padding: 8px 10px;
-    border-radius: 6px;
+    background: var(--danger-bg);
+    color: var(--danger);
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: var(--radius-sm);
     font-size: 0.82rem;
-    margin-bottom: 10px;
+    margin-bottom: var(--sp-3);
   }
   .loading,
   .empty {
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.85rem;
   }
 </style>

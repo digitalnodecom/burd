@@ -1226,18 +1226,18 @@
   }
 
   .card {
-    background: white;
-    border-radius: 12px;
-    padding: 1rem;
-    border: 1px solid #e5e5e5;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: var(--sp-2);
+    border: 1px solid var(--border);
     overflow-x: auto;
   }
 
   .create-form {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    border: 1px solid #e5e5e5;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: var(--sp-6);
+    border: 1px solid var(--border);
   }
 
   .form-row {
@@ -1260,11 +1260,11 @@
 
   input, select {
     padding: 0.5rem;
-    border: 1px solid #d1d1d6;
-    border-radius: 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
     font-size: 0.875rem;
-    background: white;
-    color: inherit;
+    background: var(--surface);
+    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {

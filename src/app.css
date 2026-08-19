@@ -1,0 +1,156 @@
+/* Burd global design system — minimal, token-driven.
+   Keeps the existing palette (blue accent, macOS grays) but systematizes
+   spacing, radius, borders and elevation so the whole app reads as one clean,
+   flat surface. Light-first; dark values swap under [data-theme="dark"]. */
+
+:root {
+  /* Surfaces */
+  --bg: #f5f5f7; /* app background */
+  --surface: #ffffff; /* cards, modals */
+  --surface-2: #f5f5f7; /* nested/subtle rows */
+  --surface-hover: #ececee;
+
+  /* Text */
+  --text: #1d1d1f;
+  --text-muted: #86868b;
+  --text-faint: #a1a1a6;
+
+  /* Lines */
+  --border: #e5e5e7;
+  --border-strong: #d2d2d7;
+
+  /* Accent + status */
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-contrast: #ffffff;
+  --success: #1a7f37;
+  --success-bg: #e7f6ec;
+  --danger: #d70015;
+  --danger-bg: #fdecee;
+  --warning: #a15c00;
+  --warning-bg: #fdf1dd;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  /* Elevation — deliberately soft; minimal design leans on borders, not shadow */
+  --shadow-modal: 0 12px 40px rgba(0, 0, 0, 0.16);
+
+  /* Spacing scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+}
+
+:root[data-theme="dark"] {
+  --bg: #1c1c1e;
+  --surface: #2c2c2e;
+  --surface-2: #242426;
+  --surface-hover: #3a3a3c;
+
+  --text: #f5f5f7;
+  --text-muted: #98989d;
+  --text-faint: #7c7c81;
+
+  --border: #38383a;
+  --border-strong: #48484a;
+
+  --accent: #0a84ff;
+  --accent-hover: #3b9bff;
+  --success: #30d158;
+  --success-bg: #17321f;
+  --danger: #ff453a;
+  --danger-bg: #3a1d1d;
+  --warning: #ffb340;
+  --warning-bg: #3a2e17;
+
+  --shadow-modal: 0 12px 44px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Shared modal system ─────────────────────────────────────────────
+   Any modal using these class names gets a consistent, readable shell:
+   a dimmed overlay, a flat card with a clear header / scrollable body /
+   footer, and comfortable spacing. */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: saturate(120%) blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--sp-5);
+}
+
+.modal {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  width: min(560px, 100%);
+  max-height: min(84vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-5) var(--sp-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.modal-subtitle {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.modal-close {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.modal-close:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.modal-body {
+  padding: var(--sp-5) var(--sp-6);
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-4) var(--sp-6);
+  border-top: 1px solid var(--border);
+}
