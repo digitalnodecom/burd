@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { createMailState, type MailMessageSummary } from "$lib/composables/useMail.svelte";
+  import { RefreshCw, X, Search, Settings, Mail, CircleAlert, Paperclip, ArrowLeft, Trash2, Copy } from "@lucide/svelte";
 
   interface Props {
     onRefresh?: () => void;
@@ -161,12 +162,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     <div class="title-row">
       <h2>Mail</h2>
       <button class="refresh-btn" onclick={() => mail.refreshEmails()} disabled={mail.loading} title="Refresh">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class:spinning={mail.loading}>
-          <path d="M21 2v6h-6"></path>
-          <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-          <path d="M3 22v-6h6"></path>
-          <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-        </svg>
+        <RefreshCw size={16} strokeWidth={2} class={mail.loading ? "spinning" : ""} />
       </button>
       {#if mail.unreadCount > 0}
         <span class="unread-badge">{mail.unreadCount}</span>
@@ -182,24 +178,15 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
         />
         {#if searchInput}
           <button type="button" class="clear-search-btn" onclick={clearSearch} aria-label="Clear search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            <X size={14} strokeWidth={2} />
           </button>
         {/if}
         <button type="submit" class="search-btn" aria-label="Search">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
+          <Search size={16} strokeWidth={2} />
         </button>
       </form>
       <button class="btn secondary small" onclick={() => showSmtpConfig = true} title="SMTP Configuration">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-        </svg>
+        <Settings size={14} strokeWidth={2} />
         SMTP Config
       </button>
     </div>
@@ -229,9 +216,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
       </div>
     {:else if !mail.mailpitRunning}
       <div class="empty-state">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-        </svg>
+        <Mail size={48} strokeWidth={1.5} />
         {#if mail.mailpitExists}
           <span>Mailpit is not running</span>
           <p class="empty-hint">Start it to capture and view outgoing mail.</p>
@@ -258,19 +243,13 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
       </div>
     {:else if mail.error}
       <div class="error-state">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
+        <CircleAlert size={24} strokeWidth={2} />
         <span>{mail.error}</span>
         <button class="btn-secondary" onclick={() => mail.loadEmails()}>Retry</button>
       </div>
     {:else if mail.emails.length === 0}
       <div class="empty-state">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-        </svg>
+        <Mail size={48} strokeWidth={1.5} />
         <span>No emails yet</span>
         <p class="empty-hint">Emails sent to port {mail.smtpConfig?.port || 1025} will appear here</p>
       </div>
@@ -309,9 +288,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
             </div>
             {#if email.attachments > 0}
               <div class="attachment-indicator" title="{email.attachments} attachment{email.attachments !== 1 ? 's' : ''}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                </svg>
+                <Paperclip size={14} strokeWidth={2} />
               </div>
             {/if}
           </button>
@@ -349,16 +326,11 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
       <div class="modal email-modal" onclick={(e) => e.stopPropagation()} role="document">
         <div class="modal-header">
           <button class="back-btn" onclick={() => mail.closeEmail()} title="Back to inbox">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
+            <ArrowLeft size={20} strokeWidth={2} />
           </button>
           <h3>{mail.selectedEmail.subject || "(No subject)"}</h3>
           <button class="close-btn" onclick={() => mail.closeEmail()} title="Close">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            <X size={20} strokeWidth={2} />
           </button>
         </div>
         <div class="email-meta">
@@ -395,9 +367,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
             <span class="attachments-label">Attachments:</span>
             {#each mail.selectedEmail.attachments as att}
               <span class="attachment-tag">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                </svg>
+                <Paperclip size={12} strokeWidth={2} />
                 {att.file_name} ({formatSize(att.size)})
               </span>
             {/each}
@@ -418,10 +388,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
 
         <div class="modal-actions">
           <button class="btn-danger" onclick={() => { mail.deleteEmail(mail.selectedEmail!.id); }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
+            <Trash2 size={14} strokeWidth={2} />
             Delete
           </button>
           <button class="btn-secondary" onclick={() => mail.closeEmail()}>Close</button>
@@ -453,10 +420,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
         <div class="modal-header">
           <h3>SMTP Configuration</h3>
           <button class="close-btn" onclick={() => showSmtpConfig = false} title="Close">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            <X size={20} strokeWidth={2} />
           </button>
         </div>
         <div class="config-body">
@@ -477,17 +441,11 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
           </div>
           <div class="config-actions">
             <button class="btn-secondary" onclick={() => copyToClipboard(`${mail.smtpConfig?.host}:${mail.smtpConfig?.port}`)}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
+              <Copy size={14} strokeWidth={2} />
               Copy Host:Port
             </button>
             <button class="btn-secondary" onclick={() => copyToClipboard(getLaravelConfig())}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
+              <Copy size={14} strokeWidth={2} />
               Copy Laravel .env
             </button>
           </div>

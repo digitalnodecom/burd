@@ -3,6 +3,10 @@
   import { confirm } from '@tauri-apps/plugin-dialog';
   import ExtensionsModal from '$lib/components/ExtensionsModal.svelte';
   import DatabasesModal from '$lib/components/DatabasesModal.svelte';
+  import {
+    Play, Square, Settings, Database, Puzzle, FileText, CodeXml, Info, Trash2,
+    RefreshCw, Layers, Import, ChevronRight, GripVertical, CircleAlert, Upload, X,
+  } from '@lucide/svelte';
 
   interface Instance {
     id: string;
@@ -659,12 +663,7 @@
     <div class="title-row">
       <h2>Instances</h2>
       <button class="refresh-btn" onclick={onRefresh} title="Refresh">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 2v6h-6"></path>
-          <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-          <path d="M3 22v-6h6"></path>
-          <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-        </svg>
+        <RefreshCw size={16} strokeWidth={2} />
       </button>
     </div>
     <div class="header-actions">
@@ -674,12 +673,7 @@
           onclick={() => selectionMode = true}
           title="Select instances to group into a stack"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
+          <Layers size={14} strokeWidth={2} />
           Create Stack
         </button>
       {/if}
@@ -689,11 +683,7 @@
           onclick={onImportStack}
           title="Import a stack configuration"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
+          <Import size={14} strokeWidth={2} />
           Import Stack
         </button>
       {/if}
@@ -876,9 +866,7 @@
         }}
       >
         <div class="drop-zone-hint">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3h18v18H3z"></path>
-          </svg>
+          <Square size={20} strokeWidth={2} />
           Drop here to remove from stack
         </div>
       </div>
@@ -945,9 +933,7 @@
         }}
       >
         <div class="stack-toggle">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class:rotated={!isCollapsed}>
-            <path d="M8 5v14l11-7z"/>
-          </svg>
+          <ChevronRight size={14} strokeWidth={2} class={isCollapsed ? '' : 'rotated'} />
         </div>
         <div class="stack-info">
           <span class="stack-name">{stack.name}</span>
@@ -959,33 +945,22 @@
         <div class="stack-actions" role="group" aria-label="Stack actions" onclick={(e) => e.stopPropagation()}>
           {#if onStartStack && !isStackFullyRunning(stack.id)}
             <button class="icon-btn success" onclick={() => onStartStack?.(stack.id)} title="Start All">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="6,4 20,12 6,20"/>
-              </svg>
+              <Play size={14} fill="currentColor" strokeWidth={0} />
             </button>
           {/if}
           {#if onStopStack && runningCount > 0}
             <button class="icon-btn danger" onclick={() => onStopStack?.(stack.id)} title="Stop All">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="6" width="12" height="12" rx="1"/>
-              </svg>
+              <Square size={14} fill="currentColor" strokeWidth={0} />
             </button>
           {/if}
           {#if onExportStack}
             <button class="icon-btn" onclick={() => onExportStack?.(stack.id)} title="Export Stack">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
+              <Upload size={14} strokeWidth={2} />
             </button>
           {/if}
           {#if onDeleteStack}
             <button class="icon-btn danger" onclick={() => onDeleteStack?.(stack.id)} title="Delete Stack">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              </svg>
+              <Trash2 size={14} strokeWidth={2} />
             </button>
           {/if}
         </div>
@@ -1046,14 +1021,7 @@
                     title="Drag to reorder instance"
                     aria-label="Drag to reorder instance"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="9" cy="5" r="1.5"/>
-                      <circle cx="9" cy="12" r="1.5"/>
-                      <circle cx="9" cy="19" r="1.5"/>
-                      <circle cx="15" cy="5" r="1.5"/>
-                      <circle cx="15" cy="12" r="1.5"/>
-                      <circle cx="15" cy="19" r="1.5"/>
-                    </svg>
+                    <GripVertical size={14} strokeWidth={2} />
                   </div>
                 </div>
               {/if}
@@ -1108,10 +1076,7 @@
                           onclick={() => handleDeleteDomain(domain, instance.id)}
                           title="Remove this domain"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                          </svg>
+                          <X size={12} strokeWidth={2} />
                         </button>
                       </div>
                     {/each}
@@ -1131,9 +1096,7 @@
                     disabled={actionLoading[instance.id]}
                     title="Stop"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                      <rect x="6" y="6" width="12" height="12" rx="1"></rect>
-                    </svg>
+                    <Square size={14} fill="currentColor" strokeWidth={2} />
                   </button>
                 {:else}
                   {@const disabledReason = getStartDisabledReason(instance)}
@@ -1144,15 +1107,9 @@
                     title={disabledReason || "Start"}
                   >
                     {#if disabledReason && !actionLoading[instance.id]}
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                      </svg>
+                      <CircleAlert size={14} strokeWidth={2} />
                     {:else}
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                        <polygon points="6,4 20,12 6,20"></polygon>
-                      </svg>
+                      <Play size={14} fill="currentColor" strokeWidth={0} />
                     {/if}
                   </button>
                 {/if}
@@ -1161,10 +1118,7 @@
                   onclick={() => onOpenSettings(instance)}
                   title="Settings"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                  </svg>
+                  <Settings size={14} strokeWidth={2} />
                 </button>
                 {#if isDbInstance(instance.service_type) && instance.running}
                   <button
@@ -1172,11 +1126,7 @@
                     onclick={() => (databasesInstance = instance)}
                     title="Databases and their sizes"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                      <path d="M3 5v14a9 3 0 0 0 18 0V5"></path>
-                      <path d="M3 12a9 3 0 0 0 18 0"></path>
-                    </svg>
+                    <Database size={14} strokeWidth={2} />
                   </button>
                 {/if}
                 {#if instance.service_type === "postgresql" && instance.running}
@@ -1185,9 +1135,7 @@
                     onclick={() => (extensionsInstance = instance)}
                     title="Extensions (pgvector, pg_partman, …)"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M20 5h-2.5a2.5 2.5 0 1 0-5 0H10a2 2 0 0 0-2 2v2.5a2.5 2.5 0 1 1 0 5V17a2 2 0 0 0 2 2h2.5a2.5 2.5 0 1 1 5 0H20a2 2 0 0 0 2-2v-2.5a2.5 2.5 0 1 0 0-5V7a2 2 0 0 0-2-2z"></path>
-                    </svg>
+                    <Puzzle size={14} strokeWidth={2} />
                   </button>
                 {/if}
                 <button
@@ -1195,33 +1143,21 @@
                   onclick={() => onViewLogs(instance.id, instance.name)}
                   title="View Logs"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                  </svg>
+                  <FileText size={14} strokeWidth={2} />
                 </button>
                 <button
                   class="icon-btn"
                   onclick={() => onViewEnv(instance.id, instance.name, instance.service_type)}
                   title="View ENV Variables"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="16 18 22 12 16 6"></polyline>
-                    <polyline points="8 6 2 12 8 18"></polyline>
-                  </svg>
+                  <CodeXml size={14} strokeWidth={2} />
                 </button>
                 <button
                   class="icon-btn"
                   onclick={() => onViewInfo(instance.id, instance.name, instance.service_type)}
                   title="View Information"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                  </svg>
+                  <Info size={14} strokeWidth={2} />
                 </button>
                 <button
                   class="icon-btn danger"
@@ -1229,10 +1165,7 @@
                   disabled={actionLoading[instance.id]}
                   title="Delete"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
+                  <Trash2 size={14} strokeWidth={2} />
                 </button>
               </div>
             </div>
