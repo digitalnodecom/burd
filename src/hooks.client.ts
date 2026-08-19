@@ -151,4 +151,22 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !("__TAURI_INTERNALS
   };
   // eslint-disable-next-line no-console
   console.info("[tauri-mock] installed — browser UI running against sample data");
+
+  // Dev helper: `#_shot=<selector>` clicks a matching element after the UI
+  // settles, so modals/sections can be captured headlessly for review.
+  const shot = new URLSearchParams(location.hash.replace(/^#/, "")).get("_shot");
+  if (shot) {
+    const steps = decodeURIComponent(shot).split("|");
+    const run = (i: number, attempt = 0) => {
+      if (i >= steps.length) return;
+      const el = document.querySelector<HTMLElement>(steps[i]);
+      if (el) {
+        el.click();
+        setTimeout(() => run(i + 1), 500);
+      } else if (attempt < 30) {
+        setTimeout(() => run(i, attempt + 1), 200);
+      }
+    };
+    setTimeout(() => run(0), 500);
+  }
 }

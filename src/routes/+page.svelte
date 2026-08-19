@@ -1548,19 +1548,17 @@
             {/if}
           </div>
 
-          <div class="settings-group">
-            <label class="auto-start-toggle" style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;">
-              <input
-                type="checkbox"
-                checked={instanceSettingsAutoStart}
-                onchange={(e) => toggleInstanceAutoStart(e.currentTarget.checked)}
-              />
-              <span class="settings-label" style="margin: 0;">Start automatically when Burd launches</span>
-            </label>
-            <p style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted);">
-              Saved immediately. Burd will start this instance on the next launch.
-            </p>
-          </div>
+          <label class="setting-toggle">
+            <input
+              type="checkbox"
+              checked={instanceSettingsAutoStart}
+              onchange={(e) => toggleInstanceAutoStart(e.currentTarget.checked)}
+            />
+            <span class="setting-toggle-text">
+              <span class="setting-toggle-title">Start automatically when Burd launches</span>
+              <span class="setting-toggle-desc">Saved instantly · starts this instance on the next launch</span>
+            </span>
+          </label>
 
           <!-- Version Selector -->
           <div class="settings-group">
@@ -1629,7 +1627,7 @@
               {/each}
             </form>
           {:else}
-            <p class="empty">No configurable settings for this service type.</p>
+            <p class="settings-empty">No configurable settings for this service type.</p>
           {/if}
 
           <!-- Domains Section -->
@@ -2108,22 +2106,65 @@
 
   /* Settings form styles */
   .settings-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.1rem;
   }
 
   .settings-group label {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.35rem;
   }
 
   .settings-label {
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
   }
 
   .settings-label .required {
-    color: #ff3b30;
+    color: var(--danger);
+  }
+
+  /* Auto-start toggle — a clean left-aligned row, not a stacked label */
+  .setting-toggle {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.6rem;
+    cursor: pointer;
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 1.1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-2);
+  }
+  .setting-toggle input {
+    margin: 0.15rem 0 0;
+    width: 16px;
+    height: 16px;
+    flex: none;
+    accent-color: var(--accent);
+  }
+  .setting-toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .setting-toggle-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .setting-toggle-desc {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .settings-empty {
+    font-size: 0.83rem;
+    color: var(--text-muted);
+    padding: 0.5rem 0;
+    margin: 0;
   }
 
   .settings-hint {
