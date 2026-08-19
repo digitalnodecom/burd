@@ -188,7 +188,7 @@
   }
 
   .modal {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     width: 90%;
     max-width: 480px;
@@ -203,7 +203,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   .modal-header h3 {
@@ -216,14 +216,14 @@
     background: none;
     border: none;
     font-size: 1.5rem;
-    color: #86868b;
+    color: var(--text-muted);
     cursor: pointer;
     padding: 0;
     line-height: 1;
   }
 
   .close-btn:hover {
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .modal-body {
@@ -237,7 +237,7 @@
     justify-content: flex-end;
     gap: 0.5rem;
     padding: 1rem 1.25rem;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
   }
 
   .delete-prompt {
@@ -252,14 +252,14 @@
   .instances-info p {
     margin: 0 0 0.5rem 0;
     font-size: 0.875rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .instance-list {
     margin: 0;
     padding: 0;
     list-style: none;
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
     padding: 0.5rem;
     max-height: 150px;
@@ -279,7 +279,7 @@
   }
 
   .instance-type {
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.8125rem;
   }
 
@@ -352,7 +352,7 @@
 
   .option-desc {
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .danger-zone {
@@ -388,7 +388,7 @@
 
   .confirm-input input {
     padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 0.875rem;
   }
@@ -399,7 +399,7 @@
   }
 
   .empty-stack-notice {
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
     margin: 0;
   }
@@ -425,7 +425,7 @@
 
   .btn.secondary {
     background: #e5e5e5;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .btn.secondary:hover:not(:disabled) {

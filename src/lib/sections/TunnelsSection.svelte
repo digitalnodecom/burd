@@ -596,7 +596,7 @@
     padding: 0.375rem;
     border-radius: 6px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -605,7 +605,7 @@
 
   .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .refresh-btn:active {
@@ -629,10 +629,10 @@
   }
 
   .card {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     padding: 1.25rem;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
   }
 
   .card.warning {
@@ -691,7 +691,7 @@
   .form-row label span {
     font-size: 0.6875rem;
     font-weight: 500;
-    color: #86868b;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.025em;
   }
@@ -699,10 +699,10 @@
   .form-row input,
   .form-row select {
     padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 0.875rem;
-    background: white;
+    background: var(--surface);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -720,7 +720,7 @@
     gap: 0.5rem;
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -756,10 +756,10 @@
 
   .install-controls select {
     padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 0.875rem;
-    background: white;
+    background: var(--surface);
     min-width: 150px;
   }
 
@@ -800,18 +800,18 @@
 
   .loading-text {
     font-size: 0.875rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   /* Buttons */
   .btn {
     padding: 0.5rem 1rem;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
-    background: white;
+    background: var(--surface);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -859,7 +859,7 @@
   }
 
   .modal {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     max-width: 500px;
     width: 90%;
@@ -885,7 +885,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -905,7 +905,7 @@
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     line-height: 1;
   }
 
@@ -958,7 +958,7 @@
 
   /* Theme overrides */
   :global(:root[data-theme="light"]) .card {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"]) .card.warning {
@@ -973,15 +973,15 @@
 
   :global(:root[data-theme="light"]) .form-row input,
   :global(:root[data-theme="light"]) .form-row select {
-    background: white !important;
+    background: var(--surface) !important;
     border-color: #d1d1d6 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .btn {
-    background: white !important;
+    background: var(--surface) !important;
     border-color: #d1d1d6 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .btn.primary {
@@ -995,16 +995,16 @@
   }
 
   :global(:root[data-theme="light"]) .modal {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"]) .refresh-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
 
   :global(:root[data-theme="light"]) .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .binary-install p {
@@ -1012,9 +1012,9 @@
   }
 
   :global(:root[data-theme="light"]) .install-controls select {
-    background: white !important;
+    background: var(--surface) !important;
     border-color: #d1d1d6 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="dark"]) .card {

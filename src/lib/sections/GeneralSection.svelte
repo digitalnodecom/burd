@@ -726,7 +726,7 @@
     padding: 0.375rem;
     border-radius: 6px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -735,7 +735,7 @@
 
   .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -750,10 +750,10 @@
   }
 
   .card {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     padding: 1.5rem;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
   }
 
   .card h3 {
@@ -773,7 +773,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem;
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
   }
 
@@ -785,7 +785,7 @@
 
   .network-label {
     font-weight: 500;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
   }
 
@@ -885,7 +885,7 @@
     font-weight: 500;
     cursor: pointer;
     background: #e5e5e5;
-    color: #1d1d1f;
+    color: var(--text);
     transition: background 0.15s ease;
   }
 
@@ -947,7 +947,7 @@
 
   .btn.secondary {
     background: #e5e5e5;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .btn.secondary:hover:not(:disabled) {
@@ -984,8 +984,8 @@
   .network-hint {
     margin: 1rem 0 0;
     font-size: 0.875rem;
-    color: #86868b;
-    background: #f5f5f7;
+    color: var(--text-muted);
+    background: var(--surface-2);
     padding: 0.75rem;
     border-radius: 6px;
   }
@@ -1043,7 +1043,7 @@
 
   .cli-path {
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
     font-family: monospace;
     max-width: 200px;
     overflow: hidden;
@@ -1053,32 +1053,32 @@
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-muted);
     padding: 2rem;
   }
 
   /* Light mode explicit overrides */
   :global(:root[data-theme="light"]) .card {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"]) .network-item {
-    background: #f5f5f7 !important;
+    background: var(--surface-2) !important;
   }
 
   :global(:root[data-theme="light"]) .small-button {
     background: #e5e5e5 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .btn.secondary {
     background: #e5e5e5 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .network-hint {
-    background: #f5f5f7 !important;
-    color: #86868b !important;
+    background: var(--surface-2) !important;
+    color: var(--text-muted) !important;
   }
 
   :global(:root[data-theme="light"]) .network-hint code {
@@ -1086,11 +1086,11 @@
   }
 
   :global(:root[data-theme="light"]) .refresh-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
   :global(:root[data-theme="light"]) .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   /* Dark mode explicit overrides */
@@ -1252,7 +1252,7 @@
   }
 
   .modal-content {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     width: 90%;
     max-width: 700px;
@@ -1274,7 +1274,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1293,14 +1293,14 @@
     background: none;
     border: none;
     font-size: 1.5rem;
-    color: #86868b;
+    color: var(--text-muted);
     cursor: pointer;
     padding: 0;
     line-height: 1;
   }
 
   .close-btn:hover {
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1326,7 +1326,7 @@
     margin: 0 0 0.75rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: #86868b;
+    color: var(--text-muted);
     text-transform: uppercase;
   }
 
@@ -1339,12 +1339,12 @@
 
   .config-grid .label {
     font-weight: 500;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
   }
 
   .config-grid .path {
-    background: #f5f5f7;
+    background: var(--surface-2);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.75rem;
@@ -1368,7 +1368,7 @@
   }
 
   .json-content {
-    background: #f5f5f7;
+    background: var(--surface-2);
     padding: 1rem;
     border-radius: 8px;
     font-size: 0.75rem;
@@ -1389,7 +1389,7 @@
 
   /* Theme overrides for modal */
   :global(:root[data-theme="light"]) .modal-content {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="dark"]) .modal-content {
@@ -1402,7 +1402,7 @@
 
   :global(:root[data-theme="light"]) .config-grid .path,
   :global(:root[data-theme="light"]) .json-content {
-    background: #f5f5f7 !important;
+    background: var(--surface-2) !important;
   }
 
   :global(:root[data-theme="dark"]) .config-grid .path,
@@ -1422,13 +1422,13 @@
 
   .mcp-info > p {
     font-size: 0.875rem;
-    color: #86868b;
+    color: var(--text-muted);
     margin: 0 0 1rem 0;
   }
 
   .mcp-details {
     margin-bottom: 0.75rem;
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
     overflow: hidden;
   }
@@ -1446,13 +1446,13 @@
   }
 
   .mcp-details[open] summary {
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   .config-label {
     padding: 0.75rem 1rem 0.5rem;
     font-size: 0.8125rem;
-    color: #86868b;
+    color: var(--text-muted);
     margin: 0;
   }
 
@@ -1492,12 +1492,12 @@
 
   .category-name {
     font-weight: 500;
-    color: #1d1d1f;
+    color: var(--text);
     flex-shrink: 0;
   }
 
   .category-tools {
-    color: #86868b;
+    color: var(--text-muted);
     text-align: right;
   }
 
@@ -1529,7 +1529,7 @@
 
   /* Light mode MCP overrides */
   :global(:root[data-theme="light"]) .mcp-details {
-    background: #f5f5f7 !important;
+    background: var(--surface-2) !important;
   }
 
   :global(:root[data-theme="light"]) .mcp-details summary:hover {
@@ -1550,7 +1550,7 @@
   }
 
   :global(:root[data-theme="light"]) .category-name {
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   /* Dark mode MCP overrides */

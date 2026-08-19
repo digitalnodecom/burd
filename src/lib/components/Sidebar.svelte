@@ -193,7 +193,7 @@
   .sidebar {
     width: 220px;
     min-width: 220px;
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-right: 1px solid #e0e0e0;
     display: flex;
     flex-direction: column;
@@ -219,7 +219,7 @@
     padding: 6px;
     border-radius: 6px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -228,7 +228,7 @@
 
   .theme-toggle:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .sidebar-header h1 {
@@ -243,7 +243,7 @@
 
   .sidebar-header .subtitle {
     font-size: 12px;
-    color: #86868b;
+    color: var(--text-muted);
     margin-top: 2px;
     display: block;
   }
@@ -266,7 +266,7 @@
 
   .version {
     font-size: 11px;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .update-badge {
@@ -316,7 +316,7 @@
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    color: #1d1d1f;
+    color: var(--text);
     text-align: left;
     transition: all 0.15s ease;
   }
@@ -469,7 +469,7 @@
 
   /* Explicit light mode via data-theme attribute (overrides system dark) */
   :global(:root[data-theme="light"]) .sidebar {
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-right-color: #e0e0e0;
   }
 
@@ -482,16 +482,16 @@
   }
 
   :global(:root[data-theme="light"]) .theme-toggle {
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   :global(:root[data-theme="light"]) .theme-toggle:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   :global(:root[data-theme="light"]) .nav-item {
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   :global(:root[data-theme="light"]) .nav-item:hover {

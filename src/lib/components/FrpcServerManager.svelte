@@ -314,7 +314,7 @@
 
 <style>
   .server-accordion {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     overflow: hidden;
@@ -363,8 +363,8 @@
   .status-dot.connected { color: #34c759; }
   .status-dot.connecting { color: #f59e0b; }
   .status-dot.checking { color: #3b82f6; }
-  .status-dot.offline { color: #86868b; }
-  .status-dot.stopped { color: #86868b; }
+  .status-dot.offline { color: var(--text-muted); }
+  .status-dot.stopped { color: var(--text-muted); }
   .status-dot.error { color: #dc2626; }
 
   .status-text {
@@ -380,7 +380,7 @@
 
   .status-detail {
     font-size: 0.8125rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .accordion-actions {
@@ -390,13 +390,13 @@
   }
 
   .accordion-arrow {
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.75rem;
   }
 
   .accordion-content {
     padding: 0 1.25rem 1.25rem;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -429,7 +429,7 @@
   .info-label {
     font-size: 0.6875rem;
     text-transform: uppercase;
-    color: #86868b;
+    color: var(--text-muted);
     font-weight: 500;
     letter-spacing: 0.025em;
   }
@@ -513,17 +513,17 @@
   .form-row label span {
     font-size: 0.6875rem;
     font-weight: 500;
-    color: #86868b;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.025em;
   }
 
   .form-row input {
     padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 0.875rem;
-    background: white;
+    background: var(--surface);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -545,7 +545,7 @@
   }
 
   .port-separator {
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .port-input {
@@ -567,7 +567,7 @@
     align-items: center;
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -612,12 +612,12 @@
   /* Buttons */
   .btn {
     padding: 0.5rem 1rem;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
-    background: white;
+    background: var(--surface);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -657,7 +657,7 @@
 
   /* Theme overrides */
   :global(:root[data-theme="light"]) .server-accordion {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="dark"]) .server-accordion {
@@ -673,9 +673,9 @@
   }
 
   :global(:root[data-theme="light"]) .form-row input {
-    background: white !important;
+    background: var(--surface) !important;
     border-color: #d1d1d6 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="dark"]) .form-row input {
@@ -685,9 +685,9 @@
   }
 
   :global(:root[data-theme="light"]) .btn {
-    background: white !important;
+    background: var(--surface) !important;
     border-color: #d1d1d6 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="dark"]) .btn {

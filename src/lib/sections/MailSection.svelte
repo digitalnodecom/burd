@@ -500,7 +500,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
   .search-form {
     display: flex;
     align-items: center;
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
     padding: 0 8px;
   }
@@ -519,13 +519,13 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     border: none;
     padding: 4px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
   }
 
   .search-btn:hover, .clear-search-btn:hover {
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .refresh-btn {
@@ -534,14 +534,14 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     padding: 0.375rem;
     border-radius: 6px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
   }
 
   .refresh-btn:hover {
-    background: #f5f5f7;
-    color: #1d1d1f;
+    background: var(--surface-2);
+    color: var(--text);
   }
 
   .refresh-btn:disabled {
@@ -574,7 +574,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
 
   .btn.secondary {
     background: #e5e5e5;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .btn.secondary:hover {
@@ -599,7 +599,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
   .config-hint {
     margin: 0 0 16px 0;
     font-size: 13px;
-    color: #636366;
+    color: var(--text-muted);
   }
 
   .config-grid {
@@ -613,19 +613,19 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     justify-content: space-between;
     align-items: center;
     padding: 10px 12px;
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
   }
 
   .config-label {
     font-size: 13px;
-    color: #636366;
+    color: var(--text-muted);
   }
 
   .config-value {
     font-size: 13px;
     font-family: monospace;
-    background: #fff;
+    background: var(--surface);
     padding: 4px 8px;
     border-radius: 4px;
   }
@@ -638,8 +638,8 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
 
   /* Email List */
   .email-list-container {
-    background: #fff;
-    border: 1px solid #e5e5e5;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
   }
@@ -649,7 +649,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     justify-content: space-between;
     align-items: center;
     padding: 16px;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   .list-header-left {
@@ -660,7 +660,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
 
   .count {
     font-size: 13px;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .unread-badge {
@@ -679,8 +679,8 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
 
   .select-all-row {
     padding: 8px 16px;
-    border-bottom: 1px solid #e5e5e5;
-    background: #fafafa;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
   }
 
   .checkbox-label {
@@ -688,7 +688,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     align-items: center;
     gap: 8px;
     font-size: 13px;
-    color: #636366;
+    color: var(--text-muted);
     cursor: pointer;
   }
 
@@ -703,8 +703,8 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     gap: 12px;
     padding: 12px 16px;
     border: none;
-    border-bottom: 1px solid #e5e5e5;
-    background: #fff;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
     cursor: pointer;
     width: 100%;
     text-align: left;
@@ -712,7 +712,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
   }
 
   .email-row:hover {
-    background: #f5f5f7;
+    background: var(--surface-2);
   }
 
   .email-row:last-child {
@@ -749,17 +749,17 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
 
   .from {
     font-size: 14px;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .date {
     font-size: 12px;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .subject {
     font-size: 14px;
-    color: #1d1d1f;
+    color: var(--text);
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
@@ -768,14 +768,14 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
 
   .snippet {
     font-size: 13px;
-    color: #86868b;
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .attachment-indicator {
-    color: #86868b;
+    color: var(--text-muted);
     padding-top: 4px;
   }
 
@@ -786,7 +786,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     align-items: center;
     justify-content: center;
     padding: 48px;
-    color: #86868b;
+    color: var(--text-muted);
     gap: 12px;
   }
 
@@ -858,12 +858,12 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     align-items: center;
     gap: 16px;
     padding: 16px;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
   }
 
   .page-info {
     font-size: 13px;
-    color: #636366;
+    color: var(--text-muted);
   }
 
   /* Buttons */
@@ -877,7 +877,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #1d1d1f;
+    color: var(--text);
     transition: all 0.15s ease;
   }
 
@@ -945,7 +945,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
   }
 
   .modal {
-    background: #fff;
+    background: var(--surface);
     border-radius: 12px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     max-height: 90vh;
@@ -969,7 +969,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
 
   .confirm-modal p {
     margin: 0 0 24px 0;
-    color: #636366;
+    color: var(--text-muted);
   }
 
   .modal-header {
@@ -977,7 +977,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   .modal-header h3 {
@@ -991,13 +991,13 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     border: none;
     padding: 4px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
   }
 
   .close-btn:hover, .back-btn:hover {
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .back-btn {
@@ -1006,8 +1006,8 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
 
   .email-meta {
     padding: 16px 20px;
-    background: #f5f5f7;
-    border-bottom: 1px solid #e5e5e5;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
   }
 
   .meta-row {
@@ -1022,18 +1022,18 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
   }
 
   .meta-label {
-    color: #86868b;
+    color: var(--text-muted);
     min-width: 50px;
   }
 
   .meta-value {
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .attachments {
     padding: 12px 20px;
-    background: #fafafa;
-    border-bottom: 1px solid #e5e5e5;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1042,15 +1042,15 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
 
   .attachments-label {
     font-size: 13px;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .attachment-tag {
     display: flex;
     align-items: center;
     gap: 4px;
-    background: #fff;
-    border: 1px solid #e5e5e5;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 4px;
     padding: 4px 8px;
     font-size: 12px;
@@ -1083,7 +1083,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     justify-content: flex-end;
     gap: 8px;
     padding: 16px 20px;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
   }
 
   /* Dark mode */

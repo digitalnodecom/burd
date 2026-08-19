@@ -281,7 +281,7 @@
     width: 100%;
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border);
   }
 
   :global(:root[data-theme="dark"]) .monaco-container {

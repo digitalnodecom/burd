@@ -341,17 +341,17 @@ echo "PHP " . phpversion();`,
   .selector-label {
     font-size: 13px;
     font-weight: 500;
-    color: #636366;
+    color: var(--text-muted);
   }
 
   .selector-select {
     padding: 4px 8px;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
     border-radius: 8px;
-    background: #fff;
+    background: var(--surface);
     font-size: 13px;
     cursor: pointer;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .selector-select:hover {
@@ -381,18 +381,18 @@ echo "PHP " . phpversion();`,
 
   .refresh-btn {
     background: transparent;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 8px;
     cursor: pointer;
-    color: #636366;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
   }
 
   .refresh-btn:hover {
-    background: #f5f5f7;
-    color: #1d1d1f;
+    background: var(--surface-2);
+    color: var(--text);
   }
 
   .refresh-btn:disabled {
@@ -412,7 +412,7 @@ echo "PHP " . phpversion();`,
 
   .project-path {
     font-size: 12px;
-    color: #86868b;
+    color: var(--text-muted);
     font-family: monospace;
     white-space: nowrap;
     overflow: hidden;
@@ -422,7 +422,7 @@ echo "PHP " . phpversion();`,
 
   /* Code Editor */
   .code-editor {
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 12px;
     margin-bottom: 16px;
   }
@@ -437,21 +437,21 @@ echo "PHP " . phpversion();`,
   .editor-label {
     font-size: 14px;
     font-weight: 600;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .editor-hint {
     font-size: 12px;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .code-textarea {
     width: 100%;
     min-height: 150px;
     padding: 12px;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
     border-radius: 8px;
-    background: #fff;
+    background: var(--surface);
     font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
     font-size: 13px;
     line-height: 1.5;
@@ -535,7 +535,7 @@ echo "PHP " . phpversion();`,
     border: none;
     padding: 4px 10px;
     font-size: 12px;
-    color: #86868b;
+    color: var(--text-muted);
     cursor: pointer;
     border-radius: 4px;
     transition: all 0.15s ease;
@@ -556,7 +556,7 @@ echo "PHP " . phpversion();`,
     padding: 4px 8px;
     font-size: 12px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .btn-text-small:hover {
@@ -586,7 +586,7 @@ echo "PHP " . phpversion();`,
     min-height: 200px;
     border: none;
     border-radius: 6px;
-    background: #ffffff;
+    background: var(--surface);
   }
 
   .output-error {
@@ -597,7 +597,7 @@ echo "PHP " . phpversion();`,
   }
 
   .output-placeholder {
-    color: #636366;
+    color: var(--text-muted);
     font-style: italic;
   }
 
@@ -610,8 +610,8 @@ echo "PHP " . phpversion();`,
 
   /* History */
   .history-section {
-    background: #fff;
-    border: 1px solid #e5e5e5;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
   }
@@ -621,7 +621,7 @@ echo "PHP " . phpversion();`,
     justify-content: space-between;
     align-items: center;
     padding: 16px;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   .history-header h3 {
@@ -633,7 +633,7 @@ echo "PHP " . phpversion();`,
   .history-empty {
     padding: 32px;
     text-align: center;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 14px;
   }
 
@@ -648,8 +648,8 @@ echo "PHP " . phpversion();`,
     gap: 12px;
     padding: 12px 16px;
     border: none;
-    border-bottom: 1px solid #e5e5e5;
-    background: #fff;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
     cursor: pointer;
     width: 100%;
     text-align: left;
@@ -657,7 +657,7 @@ echo "PHP " . phpversion();`,
   }
 
   .history-item:hover {
-    background: #f5f5f7;
+    background: var(--surface-2);
   }
 
   .history-item:last-child {
@@ -687,7 +687,7 @@ echo "PHP " . phpversion();`,
   .history-code {
     font-size: 13px;
     font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
-    color: #1d1d1f;
+    color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -697,7 +697,7 @@ echo "PHP " . phpversion();`,
     display: flex;
     gap: 12px;
     font-size: 12px;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .history-error-badge {
@@ -710,7 +710,7 @@ echo "PHP " . phpversion();`,
     border: none;
     padding: 4px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     opacity: 0;
     transition: opacity 0.15s ease;
   }
@@ -734,8 +734,8 @@ echo "PHP " . phpversion();`,
   }
 
   .btn-secondary {
-    background: #f5f5f7;
-    border: 1px solid #e5e5e5;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px 20px;
     font-size: 14px;
@@ -743,7 +743,7 @@ echo "PHP " . phpversion();`,
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #1d1d1f;
+    color: var(--text);
     transition: all 0.15s ease;
   }
 
@@ -785,7 +785,7 @@ echo "PHP " . phpversion();`,
     align-items: center;
     justify-content: center;
     padding: 48px;
-    color: #86868b;
+    color: var(--text-muted);
     gap: 12px;
   }
 
@@ -837,7 +837,7 @@ echo "PHP " . phpversion();`,
   }
 
   .modal {
-    background: #fff;
+    background: var(--surface);
     border-radius: 12px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   }
@@ -853,7 +853,7 @@ echo "PHP " . phpversion();`,
 
   .confirm-modal p {
     margin: 0 0 24px 0;
-    color: #636366;
+    color: var(--text-muted);
   }
 
   .modal-actions {

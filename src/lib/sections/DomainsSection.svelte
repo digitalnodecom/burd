@@ -713,7 +713,7 @@
     padding: 0.375rem;
     border-radius: 6px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -722,7 +722,7 @@
 
   .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .refresh-btn:active {
@@ -746,10 +746,10 @@
   }
 
   .card {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     padding: 1rem;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
   }
 
   .error-banner {
@@ -779,7 +779,7 @@
   }
 
   .new-domain-form {
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
     padding: 1.5rem;
     margin-bottom: 1rem;
@@ -810,7 +810,7 @@
   .form-row label span {
     font-size: 0.875rem;
     font-weight: 500;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .subdomain-input {
@@ -821,7 +821,7 @@
   .subdomain-input input {
     flex: 1;
     padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-radius: 6px 0 0 6px;
     font-size: 0.875rem;
   }
@@ -829,11 +829,11 @@
   .subdomain-input .tld-suffix {
     padding: 0.5rem 0.75rem;
     background: #e5e5e5;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-left: none;
     border-radius: 0 6px 6px 0;
     font-size: 0.875rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -847,14 +847,14 @@
   .form-row select,
   .form-row input[type="number"] {
     padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 0.875rem;
-    background: white;
+    background: var(--surface);
   }
 
   .subdomain-input input {
-    background: white;
+    background: var(--surface);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -889,9 +889,9 @@
   .domains-table th {
     text-align: left;
     padding: 0.75rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
     font-weight: 600;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.75rem;
     text-transform: uppercase;
   }
@@ -943,13 +943,13 @@
   .target-name {
     font-size: 0.875rem;
     font-weight: 500;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .target-meta {
     font-size: 0.6875rem;
     font-family: 'SF Mono', Menlo, Monaco, 'Courier New', monospace;
-    color: #86868b;
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1001,7 +1001,7 @@
     border: none;
     padding: 0.375rem;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -1011,7 +1011,7 @@
 
   .icon-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .icon-btn.danger:hover {
@@ -1053,7 +1053,7 @@
   .empty-state {
     text-align: center;
     padding: 2rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .empty-state p {
@@ -1102,51 +1102,51 @@
 
   /* Light mode explicit overrides */
   :global(:root[data-theme="light"]) .card {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"]) .refresh-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
   :global(:root[data-theme="light"]) .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .new-domain-form {
-    background: #f5f5f7 !important;
+    background: var(--surface-2) !important;
   }
 
   :global(:root[data-theme="light"]) .subdomain-input .tld-suffix {
     background: #e5e5e5 !important;
     border-color: #d1d1d6 !important;
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
 
   :global(:root[data-theme="light"]) .form-row select,
   :global(:root[data-theme="light"]) .form-row input[type="number"],
   :global(:root[data-theme="light"]) .subdomain-input input {
-    background: white !important;
+    background: var(--surface) !important;
     border-color: #d1d1d6 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .status-dot.running { background: #22c55e !important; }
 
   :global(:root[data-theme="light"]) .target-name {
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .target-meta {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
 
   :global(:root[data-theme="light"]) .icon-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
   :global(:root[data-theme="light"]) .icon-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
   :global(:root[data-theme="light"]) .icon-btn.danger:hover {
     background: rgba(220, 38, 38, 0.1) !important;
@@ -1255,7 +1255,7 @@
   /* Secondary button style */
   .btn.secondary {
     background: #e5e5e5;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .btn.secondary:hover {
@@ -1274,7 +1274,7 @@
 
   :global(:root[data-theme="light"]) .btn.secondary {
     background: #e5e5e5 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
   :global(:root[data-theme="light"]) .btn.secondary:hover {
     background: #d1d1d6 !important;
@@ -1318,7 +1318,7 @@
   }
 
   .modal-content {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     width: 90%;
     max-width: 700px;
@@ -1336,7 +1336,7 @@
   }
 
   :global(:root[data-theme="light"]) .modal-content {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="dark"]) .modal-content {
@@ -1348,7 +1348,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1371,14 +1371,14 @@
     background: none;
     border: none;
     font-size: 1.5rem;
-    color: #86868b;
+    color: var(--text-muted);
     cursor: pointer;
     padding: 0;
     line-height: 1;
   }
 
   .close-btn:hover {
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1404,7 +1404,7 @@
     margin: 0 0 0.75rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: #86868b;
+    color: var(--text-muted);
     text-transform: uppercase;
   }
 
@@ -1417,12 +1417,12 @@
 
   .config-grid .label {
     font-weight: 500;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
   }
 
   .config-grid .path {
-    background: #f5f5f7;
+    background: var(--surface-2);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.75rem;
@@ -1436,7 +1436,7 @@
   }
 
   :global(:root[data-theme="light"]) .config-grid .path {
-    background: #f5f5f7 !important;
+    background: var(--surface-2) !important;
   }
 
   :global(:root[data-theme="dark"]) .config-grid .path {
@@ -1454,7 +1454,7 @@
   }
 
   .json-content {
-    background: #f5f5f7;
+    background: var(--surface-2);
     padding: 1rem;
     border-radius: 8px;
     font-size: 0.75rem;
@@ -1474,8 +1474,8 @@
   }
 
   :global(:root[data-theme="light"]) .json-content {
-    background: #f5f5f7 !important;
-    color: #1d1d1f !important;
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="dark"]) .json-content {
@@ -1508,7 +1508,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.75rem;
     padding: 0.125rem 0.25rem;
     border-radius: 3px;
@@ -1517,7 +1517,7 @@
   }
   .copy-btn:hover {
     background: rgba(0, 0, 0, 0.06);
-    color: #1d1d1f;
+    color: var(--text);
   }
   @media (prefers-color-scheme: dark) {
     .copy-btn:hover {

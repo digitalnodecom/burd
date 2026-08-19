@@ -404,20 +404,20 @@
 
   .loading {
     text-align: center;
-    color: #86868b;
+    color: var(--text-muted);
     padding: 2rem;
   }
 
   .empty-state {
     text-align: center;
     padding: 3rem 2rem;
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
   }
 
   .empty-icon {
-    color: #86868b;
+    color: var(--text-muted);
     margin-bottom: 1rem;
   }
 
@@ -428,7 +428,7 @@
 
   .empty-state p {
     margin: 0;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
   }
 
@@ -437,7 +437,7 @@
   }
 
   .empty-state code {
-    background: #f5f5f7;
+    background: var(--surface-2);
     padding: 0.125rem 0.375rem;
     border-radius: 4px;
     font-size: 0.8125rem;
@@ -450,9 +450,9 @@
   }
 
   .parked-item {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
     overflow: hidden;
   }
 
@@ -478,7 +478,7 @@
   }
 
   .expand-icon {
-    color: #86868b;
+    color: var(--text-muted);
     transition: transform 0.2s ease;
     display: flex;
   }
@@ -488,7 +488,7 @@
   }
 
   .folder-icon {
-    color: #86868b;
+    color: var(--text-muted);
     flex-shrink: 0;
   }
 
@@ -509,7 +509,7 @@
 
   .parked-meta {
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -539,12 +539,12 @@
   }
 
   .icon-btn {
-    background: #f5f5f7;
+    background: var(--surface-2);
     border: none;
     border-radius: 6px;
     padding: 0.5rem;
     cursor: pointer;
-    color: #636366;
+    color: var(--text-muted);
     transition: all 0.15s ease;
     display: flex;
     align-items: center;
@@ -553,7 +553,7 @@
 
   .icon-btn:hover {
     background: #e5e5e5;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .icon-btn.danger:hover {
@@ -576,14 +576,14 @@
   }
 
   .projects-list {
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
     padding: 0.75rem 1rem;
-    background: #fafafa;
+    background: var(--surface-2);
   }
 
   .loading-projects, .no-projects {
     text-align: center;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
     padding: 1rem;
     margin: 0;
@@ -594,10 +594,10 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.625rem 0.75rem;
-    background: white;
+    background: var(--surface);
     border-radius: 8px;
     margin-bottom: 0.5rem;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
   }
 
   .project-item:last-child {
@@ -807,27 +807,27 @@
   }
 
   :global(:root[data-theme="light"]) .empty-state {
-    background: white !important;
-    border-color: #e5e5e5 !important;
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
   }
 
   :global(:root[data-theme="light"]) .empty-state code {
-    background: #f5f5f7 !important;
+    background: var(--surface-2) !important;
   }
 
   :global(:root[data-theme="light"]) .parked-item {
-    background: white !important;
-    border-color: #e5e5e5 !important;
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
   }
 
   :global(:root[data-theme="light"]) .projects-list {
-    background: #fafafa !important;
+    background: var(--surface-2) !important;
     border-top-color: #e5e5e5 !important;
   }
 
   :global(:root[data-theme="light"]) .project-item {
-    background: white !important;
-    border-color: #e5e5e5 !important;
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
   }
 
   :global(:root[data-theme="light"]) .project-item.status-conflict {

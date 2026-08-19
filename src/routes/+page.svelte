@@ -1557,7 +1557,7 @@
               />
               <span class="settings-label" style="margin: 0;">Start automatically when Burd launches</span>
             </label>
-            <p style="margin-top: 0.35rem; font-size: 0.8rem; color: #86868b;">
+            <p style="margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted);">
               Saved immediately. Burd will start this instance on the next launch.
             </p>
           </div>
@@ -1769,8 +1769,8 @@
   :global(body) {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-    background: #f5f5f7;
-    color: #1d1d1f;
+    background: var(--surface-2);
+    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1790,8 +1790,8 @@
   }
 
   :global(:root[data-theme="light"] body) {
-    background: #f5f5f7 !important;
-    color: #1d1d1f !important;
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="dark"] body) {
@@ -1865,7 +1865,7 @@
 
   .btn.secondary {
     background: #e5e5e5;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .btn.secondary:hover:not(:disabled) {
@@ -1903,7 +1903,7 @@
   }
 
   .modal {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     width: 90%;
     max-width: 600px;
@@ -1924,7 +1924,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1944,13 +1944,13 @@
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     padding: 0;
     line-height: 1;
   }
 
   .modal-header .close:hover {
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1970,7 +1970,7 @@
     justify-content: flex-end;
     gap: 0.5rem;
     padding: 1rem 1.5rem;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -2057,7 +2057,7 @@
     font-size: 0.75rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -2072,7 +2072,7 @@
     grid-template-columns: 140px 1fr;
     gap: 1rem;
     padding: 0.625rem 0.75rem;
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 6px;
     align-items: center;
   }
@@ -2085,7 +2085,7 @@
 
   .info-label {
     font-weight: 500;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
   }
 
@@ -2160,11 +2160,11 @@
 
   .settings-hint {
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .settings-hint code {
-    background: #f5f5f7;
+    background: var(--surface-2);
     padding: 0.125rem 0.25rem;
     border-radius: 3px;
     font-size: 0.6875rem;
@@ -2184,11 +2184,11 @@
   .tld-prefix {
     padding: 0.5rem;
     background: #e5e5e5;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-right: none;
     border-radius: 6px 0 0 6px;
     font-size: 0.875rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -2214,10 +2214,10 @@
 
   input {
     padding: 0.5rem;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 0.875rem;
-    background: white;
+    background: var(--surface);
     color: inherit;
   }
 
@@ -2235,7 +2235,7 @@
 
   .loading, .empty {
     text-align: center;
-    color: #86868b;
+    color: var(--text-muted);
     padding: 2rem;
   }
 
@@ -2299,7 +2299,7 @@
 
   /* Explicit light theme overrides via data-theme attribute */
   :global(:root[data-theme="light"] .card) {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"] .card.warning) {
@@ -2312,7 +2312,7 @@
 
   :global(:root[data-theme="light"] .btn.secondary) {
     background: #e5e5e5 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"] .btn.secondary:hover:not(:disabled)) {
@@ -2320,7 +2320,7 @@
   }
 
   :global(:root[data-theme="light"] .modal) {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"] .modal-header) {
@@ -2332,20 +2332,20 @@
   }
 
   :global(:root[data-theme="light"] .settings-hint code) {
-    background: #f5f5f7 !important;
+    background: var(--surface-2) !important;
   }
 
   :global(:root[data-theme="light"] .tld-prefix) {
-    background: #f5f5f7 !important;
+    background: var(--surface-2) !important;
     border-color: #d1d1d6 !important;
   }
 
   :global(:root[data-theme="light"] input),
   :global(:root[data-theme="light"] select),
   :global(:root[data-theme="light"] textarea) {
-    background: white !important;
+    background: var(--surface) !important;
     border-color: #d1d1d6 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   /* Common section elements - light mode */
@@ -2356,23 +2356,23 @@
   :global(:root[data-theme="light"] .tunnel-item),
   :global(:root[data-theme="light"] .server-item),
   :global(:root[data-theme="light"] .version-item) {
-    background: #f5f5f7 !important;
+    background: var(--surface-2) !important;
   }
 
   :global(:root[data-theme="light"] .form-container),
   :global(:root[data-theme="light"] .network-hint),
   :global(:root[data-theme="light"] .hint-box),
   :global(:root[data-theme="light"] .info-box) {
-    background: #f5f5f7 !important;
+    background: var(--surface-2) !important;
   }
 
   :global(:root[data-theme="light"] .small-button) {
     background: #e5e5e5 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"] .status-card) {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"] .status-card.warning) {
@@ -2397,18 +2397,18 @@
 
   :global(:root[data-theme="light"] pre),
   :global(:root[data-theme="light"] code) {
-    background: #f5f5f7 !important;
-    color: #1d1d1f !important;
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"] .label),
   :global(:root[data-theme="light"] .hint),
   :global(:root[data-theme="light"] .desc) {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
 
   :global(:root[data-theme="light"] section.card) {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   /* Error banner explicit overrides */

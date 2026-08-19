@@ -247,7 +247,7 @@
 
 <style>
   .card {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     padding: 1.25rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -288,9 +288,9 @@
     font-weight: 500;
     font-size: 0.75rem;
     text-transform: uppercase;
-    color: #86868b;
+    color: var(--text-muted);
     letter-spacing: 0.025em;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -337,7 +337,7 @@
 
   .local-target {
     font-family: monospace;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .url-cell {
@@ -358,7 +358,7 @@
   }
 
   .url-link.expected {
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .url-link:hover {
@@ -370,7 +370,7 @@
     border: none;
     cursor: pointer;
     padding: 0.25rem;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
     line-height: 1;
     border-radius: 3px;
@@ -450,7 +450,7 @@
     border: none;
     padding: 0.375rem;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -460,7 +460,7 @@
 
   .icon-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .icon-btn.danger:hover {
@@ -497,7 +497,7 @@
   .empty-state {
     text-align: center;
     padding: 2rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .empty-state p {
@@ -528,7 +528,7 @@
 
   /* Theme overrides */
   :global(:root[data-theme="light"]) .card {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="dark"]) .card {
@@ -560,12 +560,12 @@
   }
 
   :global(:root[data-theme="light"]) .icon-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
 
   :global(:root[data-theme="light"]) .icon-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="dark"]) .icon-btn {

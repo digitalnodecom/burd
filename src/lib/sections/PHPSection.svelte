@@ -618,7 +618,7 @@
     padding: 0.375rem;
     border-radius: 6px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -627,7 +627,7 @@
 
   .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -642,10 +642,10 @@
   }
 
   .card {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     padding: 1.5rem;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
   }
 
   .card h3 {
@@ -657,7 +657,7 @@
   .card-subtitle {
     margin: 0 0 1rem;
     font-size: 0.8rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .error-banner {
@@ -714,27 +714,27 @@
 
   .php-path {
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
     font-family: monospace;
   }
 
   .php-extensions {
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
   }
 
   .extensions-label {
     font-size: 0.75rem;
     font-weight: 600;
-    color: #636366;
+    color: var(--text-muted);
     display: block;
     margin-bottom: 4px;
   }
 
   .extensions-list {
     font-size: 0.7rem;
-    color: #86868b;
+    color: var(--text-muted);
     font-family: monospace;
     line-height: 1.6;
     display: block;
@@ -750,13 +750,13 @@
   }
 
   :global(:root[data-theme="dark"]) .extensions-list {
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .no-php {
     text-align: center;
     padding: 1rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   /* Shell Integration */
@@ -774,7 +774,7 @@
   .shell-description {
     margin: 0;
     font-size: 0.875rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .shell-actions {
@@ -850,13 +850,13 @@
 
   .conflict-info code {
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .conflict-hint {
     margin: 0.5rem 0 0;
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   /* Versions Table */
@@ -869,9 +869,9 @@
   .versions-table th {
     text-align: left;
     padding: 0.75rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
     font-weight: 600;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.75rem;
     text-transform: uppercase;
   }
@@ -891,7 +891,7 @@
   }
 
   .version-name {
-    background: #f5f5f7;
+    background: var(--surface-2);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.8125rem;
@@ -929,7 +929,7 @@
 
   .badge.none {
     background: transparent;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .actions {
@@ -943,7 +943,7 @@
     border: none;
     padding: 0.375rem;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -953,7 +953,7 @@
 
   .icon-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .icon-btn.default:hover {
@@ -992,7 +992,7 @@
   .loading, .empty-state {
     text-align: center;
     padding: 2rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .empty-state p {
@@ -1019,8 +1019,8 @@
   }
 
   .btn.secondary {
-    background: #f5f5f7;
-    color: #1d1d1f;
+    background: var(--surface-2);
+    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1050,7 +1050,7 @@
   }
 
   .dialog {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     width: 100%;
     max-width: 500px;
@@ -1071,7 +1071,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1091,7 +1091,7 @@
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     line-height: 1;
   }
 
@@ -1102,7 +1102,7 @@
 
   .dialog-hint {
     margin: 0 0 1rem;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
   }
 
@@ -1115,7 +1115,7 @@
   .version-group-header {
     font-weight: 600;
     font-size: 0.875rem;
-    color: #86868b;
+    color: var(--text-muted);
     margin-bottom: 0.5rem;
   }
 
@@ -1130,7 +1130,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem;
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
   }
 
@@ -1158,7 +1158,7 @@
 
   .size-info {
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   /* Warning dialog */
@@ -1184,14 +1184,14 @@
 
   .path-info {
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
     font-family: monospace;
     margin-bottom: 1rem !important;
   }
 
   .warning-details {
     text-align: left;
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
     padding: 1rem;
     margin-top: 1rem;
@@ -1212,7 +1212,7 @@
     margin: 0;
     padding-left: 1.25rem;
     font-size: 0.875rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .warning-details li {
@@ -1238,7 +1238,7 @@
     gap: 0.75rem;
     margin-top: 1.5rem;
     padding-top: 1rem;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1260,28 +1260,28 @@
 
   /* Light mode explicit overrides */
   :global(:root[data-theme="light"]) .card {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"]) .btn.secondary {
-    background: #f5f5f7 !important;
-    color: #1d1d1f !important;
+    background: var(--surface-2) !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .refresh-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
   :global(:root[data-theme="light"]) .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .icon-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
   :global(:root[data-theme="light"]) .icon-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
   :global(:root[data-theme="light"]) .icon-btn.default:hover {
     background: rgba(234, 179, 8, 0.1) !important;

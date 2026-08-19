@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { X } from "@lucide/svelte";
 
   interface ExtensionInfo {
     name: string;
@@ -100,9 +101,9 @@
 <div class="modal-overlay" onclick={onClose} onkeydown={(e) => e.key === "Escape" && onClose()} role="dialog" aria-modal="true" tabindex="-1">
   <div class="modal" onclick={(e) => e.stopPropagation()} role="document">
     <div class="modal-header">
-      <h2>PostgreSQL Extensions</h2>
-      <span class="subtitle">{instanceName}</span>
-      <button class="close-btn" onclick={onClose} aria-label="Close">✕</button>
+      <h2 class="modal-title">PostgreSQL Extensions</h2>
+      <span class="modal-subtitle">{instanceName}</span>
+      <button class="modal-close" onclick={onClose} aria-label="Close"><X size={16} strokeWidth={2} /></button>
     </div>
 
     <div class="modal-body">
@@ -163,56 +164,26 @@
 </div>
 
 <style>
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-  .modal {
-    background: var(--bg, #fff);
-    color: inherit;
-    border-radius: 12px;
-    width: min(560px, 92vw);
-    max-height: 82vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  }
-  .modal-header {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  }
-  .modal-header h2 { font-size: 1.1rem; margin: 0; }
-  .subtitle { color: #86868b; font-size: 0.85rem; }
-  .close-btn { margin-left: auto; border: none; background: none; cursor: pointer; font-size: 1rem; opacity: 0.6; }
-  .close-btn:hover { opacity: 1; }
-  .modal-body { padding: 16px 20px; overflow-y: auto; }
-  .db-picker { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; margin-bottom: 12px; }
-  .db-picker select { padding: 6px 8px; border-radius: 6px; }
-  .db-single { font-size: 0.85rem; margin-bottom: 12px; color: #86868b; }
-  .filter { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); margin-bottom: 12px; box-sizing: border-box; }
-  .ext-list { display: flex; flex-direction: column; gap: 6px; }
+  /* Modal shell comes from app.css. */
+  .db-picker { display: flex; flex-direction: column; gap: var(--sp-1); font-size: 0.85rem; margin-bottom: var(--sp-3); }
+  .db-picker select { padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); }
+  .db-single { font-size: 0.85rem; margin-bottom: var(--sp-3); color: var(--text-muted); }
+  .filter { width: 100%; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); margin-bottom: var(--sp-3); box-sizing: border-box; }
+  .ext-list { display: flex; flex-direction: column; gap: var(--sp-1); }
   .ext-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 12px; border-radius: 8px;
-    background: color-mix(in srgb, currentColor 4%, transparent);
+    display: flex; align-items: center; gap: var(--sp-3);
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    background: var(--surface-2);
   }
-  .ext-row.on { background: color-mix(in srgb, #34c759 12%, transparent); }
+  .ext-row.on { background: var(--success-bg); }
   .ext-info { flex: 1; min-width: 0; }
   .ext-name { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.9rem; }
-  .ext-ver { font-weight: 400; color: #86868b; font-size: 0.78rem; }
-  .tag { font-size: 0.68rem; background: var(--accent, #4f8cff); color: #fff; border-radius: 4px; padding: 1px 5px; }
-  .ext-comment { font-size: 0.78rem; color: #86868b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .toggle { flex: none; padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); background: transparent; cursor: pointer; font-size: 0.82rem; }
-  .toggle.enabled { background: #34c759; color: #fff; border-color: #34c759; }
+  .ext-ver { font-weight: 400; color: var(--text-muted); font-size: 0.78rem; }
+  .tag { font-size: 0.68rem; background: var(--accent); color: var(--accent-contrast); border-radius: 4px; padding: 1px 5px; }
+  .ext-comment { font-size: 0.78rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .toggle { flex: none; padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: transparent; color: var(--text); cursor: pointer; font-size: 0.82rem; }
+  .toggle.enabled { background: var(--success); color: #fff; border-color: var(--success); }
   .toggle:disabled { opacity: 0.5; cursor: default; }
-  .error-banner { background: #ffebe9; color: #b00; padding: 8px 10px; border-radius: 6px; font-size: 0.82rem; margin-bottom: 10px; }
-  .loading, .empty { color: #86868b; font-size: 0.85rem; }
+  .error-banner { background: var(--danger-bg); color: var(--danger); padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-sm); font-size: 0.82rem; margin-bottom: var(--sp-3); }
+  .loading, .empty { color: var(--text-muted); font-size: 0.85rem; }
 </style>

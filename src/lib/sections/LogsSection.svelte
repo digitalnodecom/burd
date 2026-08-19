@@ -420,7 +420,7 @@
   }
 
   .filters {
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
@@ -469,7 +469,7 @@
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 0.85rem;
-    background: white;
+    background: var(--surface);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -517,7 +517,7 @@
   .log-count {
     margin-left: auto;
     font-size: 0.85rem;
-    color: #8e8e93;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -549,7 +549,7 @@
   .loading, .empty {
     padding: 2rem;
     text-align: center;
-    color: #8e8e93;
+    color: var(--text-muted);
   }
 
   .log-entry {
@@ -575,7 +575,7 @@
   }
 
   .log-entry.level-debug {
-    border-left-color: #8e8e93;
+    border-left-color: var(--text-muted);
   }
 
   .log-header {
@@ -601,7 +601,7 @@
   }
 
   .timestamp {
-    color: #8e8e93;
+    color: var(--text-muted);
     font-size: 0.75rem;
   }
 
@@ -640,7 +640,7 @@
   }
 
   .duration {
-    color: #8e8e93;
+    color: var(--text-muted);
     font-size: 0.75rem;
   }
 
@@ -669,11 +669,11 @@
     }
 
     .log-entry {
-      background: white;
+      background: var(--surface);
     }
 
     .level, .log-message, .http-path {
-      color: #1d1d1f;
+      color: var(--text);
     }
   }
 
@@ -699,14 +699,14 @@
 
   /* Explicit light theme via data-theme attribute */
   :global(:root[data-theme="light"]) .filters {
-    background: #f5f5f7;
+    background: var(--surface-2);
   }
 
   :global(:root[data-theme="light"]) select,
   :global(:root[data-theme="light"]) input[type="text"] {
-    background: white;
+    background: var(--surface);
     border-color: #ddd;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   :global(:root[data-theme="light"]) .logs-container {
@@ -714,13 +714,13 @@
   }
 
   :global(:root[data-theme="light"]) .log-entry {
-    background: white;
+    background: var(--surface);
   }
 
   :global(:root[data-theme="light"]) .level,
   :global(:root[data-theme="light"]) .log-message,
   :global(:root[data-theme="light"]) .http-path {
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   :global(:root[data-theme="light"]) .refresh-btn:hover {

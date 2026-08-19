@@ -288,7 +288,7 @@
 
   .section-description {
     margin: 0;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
   }
 
@@ -311,13 +311,13 @@
   }
 
   .service-card {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     padding: 1.25rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
     transition: all 0.2s ease;
   }
 
@@ -386,7 +386,7 @@
 
   .status-text {
     font-size: 0.8125rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .versions-list {
@@ -449,10 +449,10 @@
   .version-dropdown {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 0.875rem;
-    background: white;
+    background: var(--surface);
     color: inherit;
   }
 
@@ -465,7 +465,7 @@
 
   .progress-section {
     padding-top: 0.75rem;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -506,7 +506,7 @@
 
   .progress-text {
     font-size: 0.6875rem;
-    color: #86868b;
+    color: var(--text-muted);
     margin: 0.375rem 0 0;
   }
 
@@ -537,7 +537,7 @@
 
   .btn.secondary {
     background: #e5e5e5;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .btn.secondary:hover:not(:disabled) {
@@ -562,16 +562,16 @@
 
   /* Light mode explicit overrides */
   :global(:root[data-theme="light"]) .service-card {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"]) .btn.secondary {
     background: #e5e5e5 !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .version-dropdown {
-    background: white !important;
+    background: var(--surface) !important;
     border-color: #d1d1d6 !important;
   }
 

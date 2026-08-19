@@ -1202,7 +1202,7 @@
     padding: 0.375rem;
     border-radius: 6px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1211,7 +1211,7 @@
 
   .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1296,13 +1296,13 @@
   }
 
   .domain-suffix {
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
     font-family: monospace;
   }
 
   .optional-label {
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.75rem;
     font-weight: 400;
   }
@@ -1311,7 +1311,7 @@
     display: block;
     margin-top: 0.25rem;
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .instances-grid {
@@ -1415,14 +1415,14 @@
 
   .grid-cell.pid {
     font-family: monospace;
-    color: #86868b;
+    color: var(--text-muted);
     white-space: nowrap;
     justify-content: flex-start;
   }
 
   .grid-cell.disk {
     font-family: monospace;
-    color: #86868b;
+    color: var(--text-muted);
     white-space: nowrap;
     justify-content: flex-start;
     font-variant-numeric: tabular-nums;
@@ -1452,7 +1452,7 @@
     border: none;
     padding: 0.125rem 0.25rem;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.75rem;
     border-radius: 3px;
     transition: all 0.15s ease;
@@ -1460,7 +1460,7 @@
 
   .copy-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -1498,7 +1498,7 @@
   }
 
   .domain-inactive, .domain-disabled {
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.8125rem;
   }
 
@@ -1561,7 +1561,7 @@
 
   .btn.secondary {
     background: #e5e5e5;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .btn.secondary:hover:not(:disabled) {
@@ -1590,7 +1590,7 @@
     border: none;
     padding: 0.375rem;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -1600,7 +1600,7 @@
 
   .icon-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .icon-btn.danger:hover {
@@ -1670,17 +1670,17 @@
 
   .loading, .empty {
     text-align: center;
-    color: #86868b;
+    color: var(--text-muted);
     padding: 2rem;
   }
 
   /* Light mode explicit overrides */
   :global(:root[data-theme="light"]) .card {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"]) .create-form {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"]) .grid-cell {
@@ -1697,19 +1697,19 @@
   :global(:root[data-theme="light"]) .status-dot.unhealthy { background: #ef4444 !important; }
 
   :global(:root[data-theme="light"]) .refresh-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
   :global(:root[data-theme="light"]) .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .icon-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
   :global(:root[data-theme="light"]) .icon-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
   :global(:root[data-theme="light"]) .icon-btn.danger:hover {
     background: rgba(220, 38, 38, 0.1) !important;
@@ -1724,11 +1724,11 @@
   }
 
   :global(:root[data-theme="light"]) .copy-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
   :global(:root[data-theme="light"]) .copy-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   /* Dark mode explicit overrides */
@@ -1811,10 +1811,10 @@
   /* Stack group styles */
   .stack-group {
     margin-bottom: 1rem;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
     border-radius: 8px;
     overflow: hidden;
-    background: white;
+    background: var(--surface);
   }
 
   .stack-header {
@@ -1822,7 +1822,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
-    background: #f5f5f7;
+    background: var(--surface-2);
     cursor: pointer;
     user-select: none;
     position: relative;
@@ -1847,7 +1847,7 @@
   }
 
   .stack-toggle {
-    color: #86868b;
+    color: var(--text-muted);
     transition: transform 0.2s ease;
     display: flex;
     align-items: center;
@@ -1871,12 +1871,12 @@
 
   .stack-meta {
     font-size: 0.75rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .stack-description {
     font-size: 0.8125rem;
-    color: #86868b;
+    color: var(--text-muted);
     margin-top: 0.125rem;
   }
 
@@ -1954,7 +1954,7 @@
   }
 
   .modal {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     width: 90%;
     max-width: 480px;
@@ -1968,7 +1968,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   .modal-header h3 {
@@ -1981,14 +1981,14 @@
     background: none;
     border: none;
     font-size: 1.5rem;
-    color: #86868b;
+    color: var(--text-muted);
     cursor: pointer;
     padding: 0;
     line-height: 1;
   }
 
   .close-btn:hover {
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .modal-body {
@@ -2002,7 +2002,7 @@
     min-height: 80px;
     resize: vertical;
     padding: 0.5rem;
-    border: 1px solid #d1d1d6;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 0.875rem;
     font-family: inherit;
@@ -2013,18 +2013,18 @@
     justify-content: flex-end;
     gap: 0.5rem;
     padding: 1rem 1.25rem;
-    border-top: 1px solid #e5e5e5;
+    border-top: 1px solid var(--border);
   }
 
   .selected-instances-preview {
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
     padding: 0.75rem 1rem;
   }
 
   .selected-instances-preview span {
     font-size: 0.8125rem;
-    color: #86868b;
+    color: var(--text-muted);
     font-weight: 500;
   }
 
@@ -2035,7 +2035,7 @@
 
   .selected-instances-preview li {
     font-size: 0.875rem;
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   :global(:root[data-theme="dark"]) .stack-group {
@@ -2104,7 +2104,7 @@
   .drag-handle {
     padding: 0.25rem;
     cursor: grab;
-    color: #86868b;
+    color: var(--text-muted);
     opacity: 0.3;
     display: flex;
     align-items: center;

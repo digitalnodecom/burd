@@ -343,7 +343,7 @@
     padding: 0.375rem;
     border-radius: 6px;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -352,7 +352,7 @@
 
   .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -367,10 +367,10 @@
   }
 
   .card {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     padding: 1.5rem;
-    border: 1px solid #e5e5e5;
+    border: 1px solid var(--border);
   }
 
   .card h3 {
@@ -419,7 +419,7 @@
   .status-label {
     font-size: 0.75rem;
     font-weight: 500;
-    color: #86868b;
+    color: var(--text-muted);
     text-transform: uppercase;
   }
 
@@ -455,11 +455,11 @@
   .not-installed p,
   .empty-state p {
     margin: 0 0 1rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .install-instructions {
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
     padding: 1rem;
     max-width: 500px;
@@ -480,7 +480,7 @@
   .install-instructions .hint {
     margin-top: 0.75rem;
     font-size: 0.8125rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .install-command {
@@ -510,9 +510,9 @@
   .versions-table th {
     text-align: left;
     padding: 0.75rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
     font-weight: 600;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.75rem;
     text-transform: uppercase;
   }
@@ -532,7 +532,7 @@
   }
 
   .version-name {
-    background: #f5f5f7;
+    background: var(--surface-2);
     padding: 0.25rem 0.5rem;
     border-radius: 4px;
     font-size: 0.8125rem;
@@ -556,7 +556,7 @@
   }
 
   .no-lts {
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .status-badges {
@@ -585,7 +585,7 @@
 
   .badge.none {
     background: transparent;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .actions {
@@ -599,7 +599,7 @@
     border: none;
     padding: 0.375rem;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -609,7 +609,7 @@
 
   .icon-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1d1d1f;
+    color: var(--text);
   }
 
   .icon-btn.default:hover {
@@ -648,7 +648,7 @@
   .loading {
     text-align: center;
     padding: 2rem;
-    color: #86868b;
+    color: var(--text-muted);
   }
 
   .btn {
@@ -690,7 +690,7 @@
   }
 
   .dialog {
-    background: white;
+    background: var(--surface);
     border-radius: 12px;
     width: 100%;
     max-width: 500px;
@@ -711,7 +711,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -731,7 +731,7 @@
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
-    color: #86868b;
+    color: var(--text-muted);
     line-height: 1;
   }
 
@@ -742,7 +742,7 @@
 
   .dialog-hint {
     margin: 0 0 1rem;
-    color: #86868b;
+    color: var(--text-muted);
     font-size: 0.875rem;
   }
 
@@ -757,7 +757,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem;
-    background: #f5f5f7;
+    background: var(--surface-2);
     border-radius: 8px;
   }
 
@@ -786,23 +786,23 @@
 
   /* Light mode explicit overrides */
   :global(:root[data-theme="light"]) .card {
-    background: white !important;
+    background: var(--surface) !important;
   }
 
   :global(:root[data-theme="light"]) .refresh-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
   :global(:root[data-theme="light"]) .refresh-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
 
   :global(:root[data-theme="light"]) .icon-btn {
-    color: #86868b !important;
+    color: var(--text-muted) !important;
   }
   :global(:root[data-theme="light"]) .icon-btn:hover {
     background: rgba(0, 0, 0, 0.05) !important;
-    color: #1d1d1f !important;
+    color: var(--text) !important;
   }
   :global(:root[data-theme="light"]) .icon-btn.default:hover {
     background: rgba(234, 179, 8, 0.1) !important;
@@ -826,7 +826,7 @@
   }
 
   :global(:root[data-theme="light"]) .install-instructions {
-    background: #f5f5f7 !important;
+    background: var(--surface-2) !important;
   }
 
   :global(:root[data-theme="light"]) .install-command {
