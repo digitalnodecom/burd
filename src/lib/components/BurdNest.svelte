@@ -259,7 +259,7 @@ Pro tip: The API runs on http://localhost:19840 when Burd is active.
       <div class="terminal" onclick={handleTerminalClick} role="presentation">
         <div class="terminal-header">
           <span class="terminal-title">~ THE BURD NEST ~</span>
-          <button class="close-btn" onclick={onClose} aria-label="Close terminal">[X]</button>
+          <button class="modal-close" onclick={onClose} aria-label="Close terminal">[X]</button>
         </div>
 
         <div class="terminal-body" bind:this={outputRef}>
@@ -403,21 +403,7 @@ Pro tip: The API runs on http://localhost:19840 when Burd is active.
     text-shadow: 0 0 10px rgba(255, 176, 0, 0.8);
   }
 
-  .close-btn {
-    background: transparent;
-    border: 1px solid #ffb000;
-    color: #ffb000;
-    padding: 4px 10px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 14px;
-    transition: all 0.2s;
-  }
 
-  .close-btn:hover {
-    background: #ffb000;
-    color: #1a1000;
-  }
 
   .terminal-body {
     flex: 1;

@@ -799,8 +799,8 @@
     <div class="modal-overlay" onclick={() => showCreateStackModal = false} onkeydown={(e) => e.key === 'Escape' && (showCreateStackModal = false)} role="dialog" aria-modal="true" tabindex="-1">
       <div class="modal" onclick={(e) => e.stopPropagation()} role="document">
         <div class="modal-header">
-          <h3>Create Stack</h3>
-          <button class="close-btn" onclick={() => showCreateStackModal = false}>&times;</button>
+          <h3 class="modal-title">Create Stack</h3>
+          <button class="modal-close" onclick={() => showCreateStackModal = false}><X size={16} strokeWidth={2} /></button>
         </div>
         <div class="modal-body">
           <label>
@@ -835,7 +835,7 @@
   {#if errorMessage}
     <div class="dnd-error">
       <span>{errorMessage}</span>
-      <button class="close-btn" onclick={() => errorMessage = null}>&times;</button>
+      <button class="modal-close" onclick={() => errorMessage = null}><X size={16} strokeWidth={2} /></button>
     </div>
   {/if}
 
@@ -1940,18 +1940,6 @@
   }
 
   /* Modal styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
 
   .modal {
     background: var(--surface);
@@ -1963,40 +1951,10 @@
     box-shadow: var(--shadow-modal);
   }
 
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-  }
 
-  .modal-header h3 {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-  }
 
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-  }
 
-  .close-btn:hover {
-    color: var(--text);
-  }
 
-  .modal-body {
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
 
   .modal-body textarea {
     min-height: 80px;

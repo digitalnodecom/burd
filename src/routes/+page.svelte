@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Copy } from '@lucide/svelte';
+  import { X, Copy } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { open, confirm, message } from "@tauri-apps/plugin-dialog";
@@ -1233,7 +1233,7 @@
     {#if error}
       <div class="error">
         <span>{error}</span>
-        <button class="close" onclick={() => (error = null)}>&times;</button>
+        <button class="modal-close" onclick={() => (error = null)}><X size={16} strokeWidth={2} /></button>
       </div>
     {/if}
 
@@ -1353,8 +1353,8 @@
   <div class="modal-overlay" onclick={() => (showLogs = false)} onkeydown={(e) => e.key === 'Escape' && (showLogs = false)} role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal" onclick={(e) => e.stopPropagation()} role="document">
       <div class="modal-header">
-        <h3>Logs: {logsInstanceName}</h3>
-        <button class="close" onclick={() => (showLogs = false)}>&times;</button>
+        <h3 class="modal-title">Logs: {logsInstanceName}</h3>
+        <button class="modal-close" onclick={() => (showLogs = false)}><X size={16} strokeWidth={2} /></button>
       </div>
       <div class="modal-body">
         {#if logsLoading}
@@ -1388,7 +1388,7 @@
           <h3>ENV Variables</h3>
           <span class="modal-badge">{envServiceType}</span>
         </div>
-        <button class="close" onclick={() => (showEnv = false)}>&times;</button>
+        <button class="modal-close" onclick={() => (showEnv = false)}><X size={16} strokeWidth={2} /></button>
       </div>
       <div class="modal-body">
         {#if envLoading}
@@ -1425,7 +1425,7 @@
             {infoContent?.running ? 'Running' : 'Stopped'}
           </span>
         </div>
-        <button class="close" onclick={() => (showInfo = false)}>&times;</button>
+        <button class="modal-close" onclick={() => (showInfo = false)}><X size={16} strokeWidth={2} /></button>
       </div>
 
       <div class="modal-body">
@@ -1477,8 +1477,8 @@
   <div class="modal-overlay" onclick={() => (showSettings = false)} onkeydown={(e) => e.key === 'Escape' && (showSettings = false)} role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal settings-modal" onclick={(e) => e.stopPropagation()} role="document">
       <div class="modal-header">
-        <h3>Settings</h3>
-        <button class="close" onclick={() => (showSettings = false)}>&times;</button>
+        <h3 class="modal-title">Settings</h3>
+        <button class="modal-close" onclick={() => (showSettings = false)}><X size={16} strokeWidth={2} /></button>
       </div>
       <div class="modal-body">
         <form onsubmit={(e) => { e.preventDefault(); saveSettings(); }}>
@@ -1512,8 +1512,8 @@
   <div class="modal-overlay" onclick={() => (showInstanceSettings = false)} onkeydown={(e) => e.key === 'Escape' && (showInstanceSettings = false)} role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal settings-modal" onclick={(e) => e.stopPropagation()} role="document">
       <div class="modal-header">
-        <h3>Settings: {instanceSettingsName}</h3>
-        <button class="close" onclick={() => (showInstanceSettings = false)}>&times;</button>
+        <h3 class="modal-title">Settings: {instanceSettingsName}</h3>
+        <button class="modal-close" onclick={() => (showInstanceSettings = false)}><X size={16} strokeWidth={2} /></button>
       </div>
       <div class="modal-body">
         {#if instanceSettingsLoading}
@@ -1889,18 +1889,6 @@
   }
 
   /* Modal styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
 
   .modal {
     background: var(--surface);
@@ -1919,25 +1907,10 @@
     }
   }
 
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-  }
 
   @media (prefers-color-scheme: dark) {
-    .modal-header {
-      border-bottom-color: #38383a;
-    }
   }
 
-  .modal-header h3 {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-  }
 
   .modal-header .close {
     background: none;
@@ -1959,11 +1932,6 @@
     }
   }
 
-  .modal-body {
-    padding: 1.5rem;
-    overflow-y: auto;
-    flex: 1;
-  }
 
   .modal-footer {
     display: flex;

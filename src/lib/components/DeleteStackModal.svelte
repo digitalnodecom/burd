@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { X } from '@lucide/svelte';
   import { TriangleAlert } from '@lucide/svelte';
   interface Stack {
     id: string;
@@ -71,8 +72,8 @@
   <div class="modal-overlay" onclick={handleClose} onkeydown={(e) => e.key === 'Escape' && handleClose()} role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal" onclick={(e) => e.stopPropagation()} role="document">
       <div class="modal-header">
-        <h3>Delete Stack</h3>
-        <button class="close-btn" onclick={handleClose}>&times;</button>
+        <h3 class="modal-title">Delete Stack</h3>
+        <button class="modal-close" onclick={handleClose} aria-label="Close"><X size={16} strokeWidth={2} /></button>
       </div>
 
       <div class="modal-body">
@@ -174,71 +175,7 @@
 {/if}
 
 <style>
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
 
-  .modal {
-    background: var(--surface);
-    border-radius: 12px;
-    width: 90%;
-    max-width: 480px;
-    max-height: 85vh;
-    display: flex;
-    flex-direction: column;
-    box-shadow: var(--shadow-modal);
-  }
-
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .modal-header h3 {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-  }
-
-  .close-btn:hover {
-    color: var(--text);
-  }
-
-  .modal-body {
-    padding: 1.25rem;
-    overflow-y: auto;
-    flex: 1;
-  }
-
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    padding: 1rem 1.25rem;
-    border-top: 1px solid var(--border);
-  }
 
   .delete-prompt {
     margin: 0 0 1rem 0;
@@ -448,21 +385,7 @@
 
   /* Dark mode */
   @media (prefers-color-scheme: dark) {
-    .modal {
-      background: #2c2c2e;
-    }
 
-    .modal-header {
-      border-bottom-color: #38383a;
-    }
-
-    .close-btn:hover {
-      color: #f5f5f7;
-    }
-
-    .modal-footer {
-      border-top-color: #38383a;
-    }
 
     .instance-list {
       background: #1c1c1e;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { RefreshCw } from '@lucide/svelte';
+  import { X, RefreshCw } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { confirm } from "@tauri-apps/plugin-dialog";
   import { onMount } from "svelte";
@@ -362,7 +362,7 @@
   {#if error}
     <div class="error-banner">
       {error}
-      <button class="dismiss" onclick={() => (error = null)}>&times;</button>
+      <button class="dismiss" onclick={() => (error = null)}><X size={16} strokeWidth={2} /></button>
     </div>
   {/if}
 
@@ -550,8 +550,8 @@
   <div class="modal-overlay" onclick={() => (showConfigModal = false)} onkeydown={(e) => e.key === 'Escape' && (showConfigModal = false)} role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal wide" onclick={(e) => e.stopPropagation()} role="document">
       <div class="modal-header">
-        <h3>frpc Configuration</h3>
-        <button class="modal-close" onclick={() => (showConfigModal = false)}>&times;</button>
+        <h3 class="modal-title">frpc Configuration</h3>
+        <button class="modal-close" onclick={() => (showConfigModal = false)}><X size={16} strokeWidth={2} /></button>
       </div>
       <div class="modal-content">
         <div class="code-block config-block">
@@ -845,18 +845,6 @@
   }
 
   /* Modal styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
 
   .modal {
     background: var(--surface);
@@ -880,25 +868,10 @@
     }
   }
 
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-  }
 
   @media (prefers-color-scheme: dark) {
-    .modal-header {
-      border-bottom-color: #48484a;
-    }
   }
 
-  .modal-header h3 {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-  }
 
   .modal-close {
     background: none;

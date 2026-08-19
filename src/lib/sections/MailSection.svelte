@@ -329,7 +329,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
             <ArrowLeft size={20} strokeWidth={2} />
           </button>
           <h3>{mail.selectedEmail.subject || "(No subject)"}</h3>
-          <button class="close-btn" onclick={() => mail.closeEmail()} title="Close">
+          <button class="modal-close" onclick={() => mail.closeEmail()} title="Close">
             <X size={20} strokeWidth={2} />
           </button>
         </div>
@@ -418,8 +418,8 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     <div class="modal-overlay" onclick={() => showSmtpConfig = false} onkeydown={(e) => e.key === 'Escape' && (showSmtpConfig = false)} role="dialog" aria-modal="true" tabindex="-1">
       <div class="modal config-modal" onclick={(e) => e.stopPropagation()} role="document">
         <div class="modal-header">
-          <h3>SMTP Configuration</h3>
-          <button class="close-btn" onclick={() => showSmtpConfig = false} title="Close">
+          <h3 class="modal-title">SMTP Configuration</h3>
+          <button class="modal-close" onclick={() => showSmtpConfig = false} title="Close">
             <X size={20} strokeWidth={2} />
           </button>
         </div>
@@ -934,15 +934,6 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
   }
 
   /* Modal */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
 
   .modal {
     background: var(--surface);
@@ -972,19 +963,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     color: var(--text-muted);
   }
 
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border);
-  }
 
-  .modal-header h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-  }
 
   .close-btn, .back-btn {
     background: transparent;

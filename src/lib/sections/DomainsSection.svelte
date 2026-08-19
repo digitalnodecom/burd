@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { X } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { confirm } from "@tauri-apps/plugin-dialog";
   import { onMount } from "svelte";
@@ -419,7 +420,7 @@
     {#if error}
       <div class="error-banner">
         {error}
-        <button class="dismiss" onclick={() => (error = null)}>&times;</button>
+        <button class="dismiss" onclick={() => (error = null)}><X size={16} strokeWidth={2} /></button>
       </div>
     {/if}
 
@@ -643,8 +644,8 @@
   <div class="modal-overlay" onclick={() => showConfigModal = false} onkeydown={(e) => e.key === 'Escape' && (showConfigModal = false)} role="dialog" aria-modal="true" tabindex="-1">
     <div class="modal-content" onclick={(e) => e.stopPropagation()} role="document">
       <div class="modal-header">
-        <h3>Proxy Configuration</h3>
-        <button class="close-btn" onclick={() => showConfigModal = false}>&times;</button>
+        <h3 class="modal-title">Proxy Configuration</h3>
+        <button class="modal-close" onclick={() => showConfigModal = false}><X size={16} strokeWidth={2} /></button>
       </div>
       <div class="modal-body">
         <div class="config-section">
@@ -1303,19 +1304,6 @@
   }
 
   /* Modal styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(4px);
-  }
 
   .modal-content {
     background: var(--surface);
@@ -1343,54 +1331,20 @@
     background: #2c2c2e !important;
   }
 
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-  }
 
   @media (prefers-color-scheme: dark) {
-    .modal-header {
-      border-bottom-color: #48484a;
-    }
   }
 
   :global(:root[data-theme="dark"]) .modal-header {
     border-bottom-color: #48484a !important;
   }
 
-  .modal-header h3 {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-  }
 
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-  }
 
-  .close-btn:hover {
-    color: var(--text);
-  }
 
   @media (prefers-color-scheme: dark) {
-    .close-btn:hover {
-      color: #f5f5f7;
-    }
   }
 
-  .modal-body {
-    padding: 1.5rem;
-    overflow-y: auto;
-  }
 
   .config-section {
     margin-bottom: 1.5rem;
