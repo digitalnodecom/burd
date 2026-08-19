@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.13.1] - 2026-08-19
+
+### Fixed
+
+- **Instance Settings modal balance.** The Version dropdown now matches the text
+  inputs (same size, font, and border) instead of rendering at the browser's
+  native select size; the redundant "Default: …" caption under config fields is
+  gone (the default still shows as the field placeholder when cleared); and the
+  "Start automatically when Burd launches" toggle is a plain inline row without
+  the boxed background or extra sub-line.
+
+---
+
 ## [1.13.0] - 2026-08-19
 
 ### Changed
