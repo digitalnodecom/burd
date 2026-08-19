@@ -1326,7 +1326,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow-modal);
   }
 
   @media (prefers-color-scheme: dark) {

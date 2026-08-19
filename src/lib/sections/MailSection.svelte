@@ -947,7 +947,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
   .modal {
     background: var(--surface);
     border-radius: 12px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-modal);
     max-height: 90vh;
     display: flex;
     flex-direction: column;

@@ -867,7 +867,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-modal);
   }
 
   .modal.wide {
