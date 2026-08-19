@@ -1551,10 +1551,7 @@
               checked={instanceSettingsAutoStart}
               onchange={(e) => (instanceSettingsAutoStart = e.currentTarget.checked)}
             />
-            <span class="setting-toggle-text">
-              <span class="setting-toggle-title">Start automatically when Burd launches</span>
-              <span class="setting-toggle-desc">Applied when you click Save Settings</span>
-            </span>
+            <span class="setting-toggle-title">Start automatically when Burd launches</span>
           </label>
 
           <!-- Version Selector -->
@@ -1613,9 +1610,6 @@
                         oninput={(e) => { instanceSettingsConfig = { ...instanceSettingsConfig, [field.key]: e.currentTarget.value }; }}
                         placeholder={field.default || "Enter value..."}
                       />
-                    {/if}
-                    {#if field.default}
-                      <span class="settings-hint">Default: {field.default}</span>
                     {/if}
                   </label>
                 </div>
@@ -2118,39 +2112,25 @@
     color: var(--danger);
   }
 
-  /* Auto-start toggle — a clean left-aligned row, not a stacked label */
+  /* Auto-start toggle — a plain inline row */
   .setting-toggle {
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
-    gap: 0.6rem;
+    align-items: center;
+    gap: 0.55rem;
     cursor: pointer;
-    padding: 0.65rem 0.75rem;
     margin-bottom: 0.85rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface-2);
   }
   .setting-toggle input {
-    margin: 0.15rem 0 0;
+    margin: 0;
     width: 16px;
     height: 16px;
     flex: none;
     accent-color: var(--accent);
   }
-  .setting-toggle-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
   .setting-toggle-title {
     font-size: 0.9rem;
-    font-weight: 500;
     color: var(--text);
-  }
-  .setting-toggle-desc {
-    font-size: 0.78rem;
-    color: var(--text-muted);
   }
 
   .settings-empty {
@@ -2317,23 +2297,27 @@
     flex: 1;
   }
 
-  input {
+  input,
+  select {
     padding: 0.5rem;
     border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 0.875rem;
+    line-height: 1.4;
     background: var(--surface);
     color: inherit;
   }
 
   @media (prefers-color-scheme: dark) {
-    input {
+    input,
+    select {
       background: #1c1c1e;
       border-color: #3a3a3c;
     }
   }
 
-  input:focus {
+  input:focus,
+  select:focus {
     outline: none;
     border-color: #007aff;
   }
@@ -2387,7 +2371,8 @@
     border-color: #48484a;
   }
 
-  :global(:root[data-theme="dark"] input) {
+  :global(:root[data-theme="dark"] input),
+  :global(:root[data-theme="dark"] select) {
     background: #1c1c1e;
     border-color: #3a3a3c;
   }

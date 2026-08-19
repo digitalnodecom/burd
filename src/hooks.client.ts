@@ -159,7 +159,11 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !("__TAURI_INTERNALS
     const steps = decodeURIComponent(shot).split("|");
     const run = (i: number, attempt = 0) => {
       if (i >= steps.length) return;
-      const el = document.querySelector<HTMLElement>(steps[i]);
+      // `selector@N` clicks the Nth match (0-based); plain selector clicks the first.
+      const [sel, idx] = steps[i].split("@");
+      const el = idx !== undefined
+        ? document.querySelectorAll<HTMLElement>(sel)[Number(idx)]
+        : document.querySelector<HTMLElement>(sel);
       if (el) {
         el.click();
         setTimeout(() => run(i + 1), 500);
