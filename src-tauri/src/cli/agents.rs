@@ -10,9 +10,7 @@
 use std::fs;
 use std::path::Path;
 
-use crate::agent_guidance::{
-    project_agents_block, ProjectFacts, BLOCK_BEGIN, BLOCK_END,
-};
+use crate::agent_guidance::{project_agents_block, ProjectFacts, BLOCK_BEGIN, BLOCK_END};
 use crate::cli::confirm;
 
 const AGENTS_FILE: &str = "AGENTS.md";
@@ -79,7 +77,11 @@ pub fn offer_agents_hint(project_dir: &Path, facts: &ProjectFacts) {
             ) {
                 return;
             }
-            let sep = if content.ends_with('\n') { "\n" } else { "\n\n" };
+            let sep = if content.ends_with('\n') {
+                "\n"
+            } else {
+                "\n\n"
+            };
             let updated = format!("{}{}{}", content, sep, block);
             if let Err(e) = fs::write(&path, &updated) {
                 eprintln!("Warning: failed to update {}: {}", AGENTS_FILE, e);
@@ -94,8 +96,7 @@ pub fn offer_agents_hint(project_dir: &Path, facts: &ProjectFacts) {
 /// Assumes both markers are present; falls back to returning `content`
 /// unchanged if they're malformed (end before begin).
 fn replace_block(content: &str, block: &str) -> String {
-    let (Some(start), Some(end_marker)) =
-        (content.find(BLOCK_BEGIN), content.find(BLOCK_END))
+    let (Some(start), Some(end_marker)) = (content.find(BLOCK_BEGIN), content.find(BLOCK_END))
     else {
         return content.to_string();
     };

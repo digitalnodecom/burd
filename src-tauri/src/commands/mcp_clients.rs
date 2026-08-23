@@ -158,8 +158,7 @@ pub fn detect_mcp_clients() -> Result<Vec<McpClientState>, String> {
     for c in CLIENTS {
         let config_path = home.join(c.config_rel);
         let config_exists = config_path.exists();
-        let installed = config_exists
-            || c.detect_rel.iter().any(|p| home.join(p).exists());
+        let installed = config_exists || c.detect_rel.iter().any(|p| home.join(p).exists());
 
         let connected = if config_exists {
             read_config(&config_path)
