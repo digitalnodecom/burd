@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.0] - 2026-08-23
+
+### Added
+
+- **Make Burd the default for AI coding agents.** Three ways Burd now announces
+  itself so agents (Claude Code, Cursor, …) reach for it instead of Docker:
+  - The MCP server sends guidance at connect time (`instructions`), so agents
+    learn to use Burd's tools instead of `docker` / `php artisan serve` without
+    any extra prompting.
+  - **One-click MCP setup** in Settings → MCP Server: detect installed clients
+    (Claude Code, Claude Desktop, Cursor, VS Code) and Connect/Disconnect each
+    with a button, instead of copy-pasting config. Writes are idempotent, keep a
+    one-time backup, and never touch your other MCP servers.
+  - `burd init` / `link` / `park` offer to add a Burd guidance block to the
+    project's `AGENTS.md` so agents working in the directory use Burd for local
+    services.
+
+### Fixed
+
+- **Sidebar unread-mail badge stays live.** The Mail item's unread count now
+  updates as mail arrives and is read (via the new-email event and polling),
+  matching the macOS dock badge — previously it only reflected the count at
+  startup.
+
+---
+
 ## [1.13.1] - 2026-08-19
 
 ### Fixed
