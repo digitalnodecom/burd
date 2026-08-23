@@ -73,6 +73,7 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !("__TAURI_INTERNALS
     uninstall_mcp_client: () => "Disconnected.",
     get_helper_status: () => ({ installed: true }),
     is_park_enabled: () => false,
+    get_unread_count: () => 3,
     get_available_services: () => [
       svc("frankenphp", "PHP", 8000),
       svc("postgresql", "PostgreSQL", 5432),

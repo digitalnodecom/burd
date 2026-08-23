@@ -1124,16 +1124,24 @@
   }
 
   // === Mail Unread Count ===
-  $effect(() => {
-    if (mailpitExists) {
-      invoke<number>("get_unread_count").then((count) => {
-        unreadMailCount = count;
-      }).catch(() => {
-        unreadMailCount = 0;
-      });
-    } else {
+  // Refresh the sidebar's unread badge. Called on load, on the `new-email`
+  // event, and on the periodic poll so reads/deletes are reflected too.
+  function refreshUnreadCount() {
+    if (!mailpitExists) {
       unreadMailCount = 0;
+      return;
     }
+    invoke<number>("get_unread_count")
+      .then((count) => { unreadMailCount = count; })
+      .catch(() => { unreadMailCount = 0; });
+  }
+
+  // Re-fetch on mount, when Mailpit's availability changes, and on navigation
+  // (so reading mail and leaving the section clears the badge promptly).
+  $effect(() => {
+    void mailpitExists;
+    void activeSection;
+    refreshUnreadCount();
   });
 
   // === Lifecycle ===
@@ -1203,7 +1211,15 @@
     const checkUpdatesUnlistenPromise = listen("menu:check-for-updates", () => {
       void checkForUpdatesManual();
     });
-    const interval = setInterval(loadData, 10000);
+    // A new email bumps the sidebar badge instantly (backend also updates the
+    // macOS dock badge on the same websocket event).
+    const newEmailUnlistenPromise = listen("new-email", () => {
+      refreshUnreadCount();
+    });
+    const interval = setInterval(() => {
+      loadData();
+      refreshUnreadCount();
+    }, 10000);
 
     // Easter egg: Konami Code reveals The Burd Nest
     const konamiListener = useKonamiCode(() => {
@@ -1219,6 +1235,7 @@
       openEmailUnlistenPromise.then((unlisten) => unlisten());
       instancesChangedUnlistenPromise.then((unlisten) => unlisten());
       checkUpdatesUnlistenPromise.then((unlisten) => unlisten());
+      newEmailUnlistenPromise.then((unlisten) => unlisten());
       konamiListener.destroy();
     };
   });
