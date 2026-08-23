@@ -71,6 +71,17 @@ pub fn run_park() -> Result<(), String> {
     println!("Note: Run 'burd parked' to see all parked directories.");
     println!("      Domains will be synced automatically when projects are added/removed.");
 
+    // Offer to drop Burd guidance into AGENTS.md so AI agents working in this
+    // parked tree reach for Burd instead of Docker / ad-hoc servers.
+    super::agents::offer_agents_hint(
+        &current_dir,
+        &crate::agent_guidance::ProjectFacts {
+            url: None,
+            tld: config.tld.clone(),
+            parked: true,
+        },
+    );
+
     Ok(())
 }
 

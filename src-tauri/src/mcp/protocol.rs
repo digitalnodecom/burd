@@ -91,6 +91,9 @@ pub struct InitializeResult {
     pub capabilities: ServerCapabilities,
     #[serde(rename = "serverInfo")]
     pub server_info: ServerInfo,
+    /// Guidance injected into the agent's context by clients that surface it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub instructions: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

@@ -97,6 +97,44 @@
     binary_exists: boolean;
   }
 
+  interface McpClientState {
+    id: string;
+    name: string;
+    installed: boolean;
+    connected: boolean;
+    config_path: string;
+  }
+
+  let mcpClients = $state<McpClientState[]>([]);
+  let mcpBusy = $state<Record<string, boolean>>({});
+  let mcpError = $state<string | null>(null);
+
+  async function loadMcpClients() {
+    try {
+      mcpClients = await invoke<McpClientState[]>("detect_mcp_clients");
+    } catch (e) {
+      console.error("Failed to detect MCP clients:", e);
+      mcpClients = [];
+    }
+  }
+
+  async function toggleMcpClient(c: McpClientState) {
+    mcpBusy = { ...mcpBusy, [c.id]: true };
+    mcpError = null;
+    try {
+      await invoke(c.connected ? "uninstall_mcp_client" : "install_mcp_client", { client: c.id });
+      await loadMcpClients();
+    } catch (e) {
+      mcpError = String(e);
+    } finally {
+      mcpBusy = { ...mcpBusy, [c.id]: false };
+    }
+  }
+
+  $effect(() => {
+    loadMcpClients();
+  });
+
   interface HelperStatus {
     installed: boolean;
     running: boolean;
@@ -502,7 +540,38 @@
         </div>
       </div>
       <div class="mcp-info">
-        <p>Allow AI assistants to manage your Burd services programmatically via the Model Context Protocol.</p>
+        <p>Let AI assistants (Claude Code, Cursor, and others) manage your Burd services — so they reach for Burd instead of Docker. Connect a client with one click:</p>
+
+        {#if mcpError}
+          <div class="mcp-error">{mcpError}</div>
+        {/if}
+
+        <div class="mcp-clients">
+          {#each mcpClients as c (c.id)}
+            <div class="mcp-client" class:muted={!c.installed}>
+              <span class="mcp-client-name">{c.name}</span>
+              {#if c.connected}
+                <span class="status-badge installed">Connected</span>
+              {:else if c.installed}
+                <span class="status-badge">Not connected</span>
+              {:else}
+                <span class="status-badge not-installed">Not found</span>
+              {/if}
+              <button
+                class="btn small {c.connected ? 'secondary' : 'primary'}"
+                onclick={() => toggleMcpClient(c)}
+                disabled={mcpBusy[c.id] || !cliStatus?.installed}
+                title={c.config_path}
+              >
+                {mcpBusy[c.id] ? "…" : c.connected ? "Disconnect" : "Connect"}
+              </button>
+            </div>
+          {/each}
+        </div>
+        <p class="network-hint">After connecting, restart the client so it loads Burd.</p>
+
+        <details class="mcp-details">
+          <summary>Manual configuration</summary>
 
         <details class="mcp-details">
           <summary>Claude Desktop</summary>
@@ -547,16 +616,19 @@
 
         <details class="mcp-details">
           <summary>VS Code + Copilot</summary>
-          <p class="config-label">Add to VS Code settings or <code>.copilot/mcp-config.json</code>:</p>
+          <p class="config-label">Add to <code>~/Library/Application Support/Code/User/mcp.json</code>:</p>
           <pre class="mcp-config">{`{
-  "mcpServers": {
+  "servers": {
     "burd": {
+      "type": "stdio",
       "command": "${cliStatus?.path || '/usr/local/bin/burd'}",
       "args": ["mcp"]
     }
   }
 }`}</pre>
         </details>
+
+        </details><!-- /Manual configuration -->
 
         <details class="mcp-details">
           <summary>Available Tools</summary>
@@ -1378,6 +1450,45 @@
     font-size: 0.875rem;
     color: var(--text-muted);
     margin: 0 0 1rem 0;
+  }
+
+  .mcp-clients {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .mcp-client {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+  }
+
+  .mcp-client.muted {
+    opacity: 0.55;
+  }
+
+  .mcp-client-name {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .mcp-client .btn {
+    flex: none;
+  }
+
+  .mcp-error {
+    background: var(--danger-bg);
+    color: var(--danger);
+    font-size: 0.82rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.75rem;
   }
 
   .mcp-details {

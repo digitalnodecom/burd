@@ -285,6 +285,17 @@ pub fn run_link_with(name: Option<String>, opts: LinkOptions) -> Result<(), Stri
     println!();
     println!("Use 'burd unlink' to remove this link.");
 
+    // Offer to drop Burd guidance into AGENTS.md so AI agents working in this
+    // project reach for Burd instead of Docker / `php artisan serve`.
+    super::agents::offer_agents_hint(
+        &current_dir,
+        &crate::agent_guidance::ProjectFacts {
+            url: Some(url.clone()),
+            tld: config.tld.clone(),
+            parked: false,
+        },
+    );
+
     Ok(())
 }
 

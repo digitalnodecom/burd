@@ -5,6 +5,7 @@ mod domains;
 mod instances;
 mod logs;
 pub mod mail;
+mod mcp_clients;
 mod node;
 mod park;
 mod php;
@@ -81,6 +82,9 @@ pub use system::{
     get_cli_status, get_helper_status, get_settings, install_cli, install_helper,
     open_keychain_access, uninstall_cli, uninstall_helper, update_tld,
 };
+
+// Re-export MCP client-registration commands
+pub use mcp_clients::{detect_mcp_clients, install_mcp_client, uninstall_mcp_client};
 
 // Re-export mail commands (Mailpit)
 pub use mail::{

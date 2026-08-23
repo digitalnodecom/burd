@@ -208,6 +208,7 @@ fn handle_initialize(id: Option<Value>) -> JsonRpcResponse {
             name: "burd-mcp".to_string(),
             version: env!("CARGO_PKG_VERSION").to_string(),
         },
+        instructions: Some(crate::agent_guidance::MCP_INSTRUCTIONS.to_string()),
     };
 
     JsonRpcResponse::success(id, serde_json::to_value(result).unwrap())

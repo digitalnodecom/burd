@@ -11,6 +11,7 @@
 //! This crate provides the core functionality for both the GUI application
 //! and the CLI tool.
 
+pub mod agent_guidance;
 pub mod analyzer;
 pub mod api;
 pub mod api_client;
@@ -91,6 +92,9 @@ use commands::{
     get_binary_status,
     get_ca_trust_status,
     get_cli_status,
+    detect_mcp_clients,
+    install_mcp_client,
+    uninstall_mcp_client,
     get_current_php,
     get_domain_config,
     get_email,
@@ -546,6 +550,10 @@ pub fn run() {
             get_cli_status,
             install_cli,
             uninstall_cli,
+            // MCP client registration
+            detect_mcp_clients,
+            install_mcp_client,
+            uninstall_mcp_client,
             // Helper commands
             get_helper_status,
             install_helper,

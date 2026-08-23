@@ -2,6 +2,7 @@
 //!
 //! Provides commands for managing Burd instances from the terminal.
 
+pub mod agents;
 pub mod analyze;
 pub mod db;
 pub mod doctor;
@@ -45,3 +46,24 @@ pub use setup::run_setup;
 pub use share::run_share;
 pub use update_instance::{run_update, UpdateOptions};
 pub use upgrade::run_upgrade;
+
+use std::io::{self, Write};
+
+/// Prompt the user for a yes/no answer on stdin. Returns `default_yes` on an
+/// empty answer or when stdin can't be read (non-interactive). Mirrors the
+/// inline `[Y/n]` prompts used elsewhere in the CLI.
+pub fn confirm(prompt: &str, default_yes: bool) -> bool {
+    let suffix = if default_yes { "[Y/n]" } else { "[y/N]" };
+    print!("{} {} ", prompt, suffix);
+    let _ = io::stdout().flush();
+
+    let mut input = String::new();
+    if io::stdin().read_line(&mut input).is_err() {
+        return default_yes;
+    }
+    match input.trim().to_ascii_lowercase().as_str() {
+        "" => default_yes,
+        "y" | "yes" => true,
+        _ => false,
+    }
+}

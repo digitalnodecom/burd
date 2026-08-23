@@ -63,6 +63,14 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !("__TAURI_INTERNALS
     }),
     get_ca_trust_status: () => ({ ca_exists: true, is_trusted: true, ca_path: "", cert_name: null, cert_expiry: null }),
     get_cli_status: () => ({ installed: true, path: "/usr/local/bin/burd" }),
+    detect_mcp_clients: () => [
+      { id: "claude-code", name: "Claude Code", installed: true, connected: true, config_path: "/Users/you/.claude.json" },
+      { id: "claude-desktop", name: "Claude Desktop", installed: true, connected: false, config_path: "/Users/you/Library/Application Support/Claude/claude_desktop_config.json" },
+      { id: "cursor", name: "Cursor", installed: true, connected: false, config_path: "/Users/you/.cursor/mcp.json" },
+      { id: "vscode", name: "VS Code", installed: false, connected: false, config_path: "/Users/you/Library/Application Support/Code/User/mcp.json" },
+    ],
+    install_mcp_client: () => "Connected.",
+    uninstall_mcp_client: () => "Disconnected.",
     get_helper_status: () => ({ installed: true }),
     is_park_enabled: () => false,
     get_available_services: () => [
