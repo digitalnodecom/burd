@@ -234,28 +234,28 @@
       "versions": {
         "source": "static",
         "versions": [
-          "RELEASE.2025-10-15T17-29-55Z"
+          "2025-10-15T17-29-55Z"
         ]
       },
       "platforms": {
         "darwin-arm64": {
           "download": {
             "type": "direct",
-            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/minio-{version}/minio-{version}-arm64"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/minio-{version}/minio-{version}-arm64.tar.gz"
           },
-          "is_archive": false,
+          "is_archive": true,
           "checksums": {
-            "RELEASE.2025-10-15T17-29-55Z": "b107901fd1afe7b36165c6aa66bb027f96e2ec2b690eebe8c9376746d9a9b0df"
+            "2025-10-15T17-29-55Z": "81d402f9ef877ab98e0c1560f8a221a8ada4bc6e9479c91e4ef0269376c60e2d"
           }
         },
         "darwin-x64": {
           "download": {
             "type": "direct",
-            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/minio-{version}/minio-{version}-x86_64"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/minio-{version}/minio-{version}-x86_64.tar.gz"
           },
-          "is_archive": false,
+          "is_archive": true,
           "checksums": {
-            "RELEASE.2025-10-15T17-29-55Z": "003d8da2a01849cd5b590270d9c0c35799d01ed7dec56df223639f867ac3e540"
+            "2025-10-15T17-29-55Z": "4614d5b5b4609d7374d1437d6c6eb00c71eb673b5ee67905fe85b4b47914cec0"
           }
         }
       }

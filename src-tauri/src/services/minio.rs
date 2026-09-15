@@ -26,21 +26,21 @@ impl ServiceDefinition for MinIOService {
         // fallback — services.json is the source of truth for MinIO downloads.
         // MinIO discontinued its dl.min.io binary CDN (now 410), so binaries are
         // mirrored to the burd-binaries GitHub releases.
-        VersionSource::Static(vec!["RELEASE.2025-10-15T17-29-55Z"])
+        VersionSource::Static(vec!["2025-10-15T17-29-55Z"])
     }
 
     fn download_method(&self, version: &str, arch: &str) -> DownloadMethod {
         let arch_suffix = if arch == "aarch64" { "arm64" } else { "x86_64" };
         let url = format!(
-            "https://github.com/digitalnodecom/burd-binaries/releases/download/minio-{version}/minio-{version}-{arch_suffix}"
+            "https://github.com/digitalnodecom/burd-binaries/releases/download/minio-{version}/minio-{version}-{arch_suffix}.tar.gz"
         );
         let checksum = match arch_suffix {
-            "arm64" => Some("b107901fd1afe7b36165c6aa66bb027f96e2ec2b690eebe8c9376746d9a9b0df"),
-            _ => Some("003d8da2a01849cd5b590270d9c0c35799d01ed7dec56df223639f867ac3e540"),
+            "arm64" => Some("81d402f9ef877ab98e0c1560f8a221a8ada4bc6e9479c91e4ef0269376c60e2d"),
+            _ => Some("4614d5b5b4609d7374d1437d6c6eb00c71eb673b5ee67905fe85b4b47914cec0"),
         };
         DownloadMethod::Direct {
             url,
-            is_archive: false,
+            is_archive: true,
             checksum,
         }
     }
