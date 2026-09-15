@@ -350,9 +350,9 @@
           },
           "is_archive": false,
           "checksums": {
-            "8.4-1.12.4": "987f269313f980cbc8c171de7fb482133e99a7d3c3510434b4ea69299ba61548",
-            "8.3-1.12.4": "10582e9f828b20c0165d0abc8da613084db621e9911925155bdde003161808f8",
-            "8.5-1.12.4": "54b5567e4f0499d8cc460796816eb65a2874434678019f06d960439c40887d98"
+            "8.4-1.12.4": "0eff66ee742969cea07eea6880be9fc4ffc092d2be03a665ff966180a5582aaa",
+            "8.3-1.12.4": "224babb7467facfe13d15d2621cfe90e722b15a2dd6cec623b53a674ccf02e98",
+            "8.5-1.12.4": "1a4e12f45ed5abe42549a336971852a0cd4ced583546282000ae48393eb54f9b"
           }
         },
         "darwin-x64": {
@@ -362,9 +362,9 @@
           },
           "is_archive": false,
           "checksums": {
-            "8.4-1.12.4": "bbb35196099399a9acd6d9f7a60ecbfa2c8cd1c74e3b6bbc590bb242b04a100a",
-            "8.3-1.12.4": "7b95941381f218240b30d9ff1e6e724538d5a052d731b1d8dd65217a94a9bade",
-            "8.5-1.12.4": "3e39a44dd9fe02a1580bfce8361149cd68e11ec2a091df8c79a488367a975f4e"
+            "8.4-1.12.4": "e40ffc2319e2d3196e464654657daa0f9d76ee0a34a17ef1d9da97041786ba4d",
+            "8.3-1.12.4": "9299874b06ed2077212dda2f3e98207bedc65b7c314881c5ceb35c64ed97829d",
+            "8.5-1.12.4": "e10339f5fdf4ca41d3a940b73d56822edacf694c4bdd69bb8c8492e97b540135"
           }
         },
         "linux-x64": {
@@ -481,9 +481,9 @@
           },
           "is_archive": false,
           "checksums": {
-            "8.4-1.12.4": "987f269313f980cbc8c171de7fb482133e99a7d3c3510434b4ea69299ba61548",
-            "8.3-1.12.4": "10582e9f828b20c0165d0abc8da613084db621e9911925155bdde003161808f8",
-            "8.5-1.12.4": "54b5567e4f0499d8cc460796816eb65a2874434678019f06d960439c40887d98"
+            "8.4-1.12.4": "0eff66ee742969cea07eea6880be9fc4ffc092d2be03a665ff966180a5582aaa",
+            "8.3-1.12.4": "224babb7467facfe13d15d2621cfe90e722b15a2dd6cec623b53a674ccf02e98",
+            "8.5-1.12.4": "1a4e12f45ed5abe42549a336971852a0cd4ced583546282000ae48393eb54f9b"
           }
         },
         "darwin-x64": {
@@ -493,9 +493,9 @@
           },
           "is_archive": false,
           "checksums": {
-            "8.4-1.12.4": "bbb35196099399a9acd6d9f7a60ecbfa2c8cd1c74e3b6bbc590bb242b04a100a",
-            "8.3-1.12.4": "7b95941381f218240b30d9ff1e6e724538d5a052d731b1d8dd65217a94a9bade",
-            "8.5-1.12.4": "3e39a44dd9fe02a1580bfce8361149cd68e11ec2a091df8c79a488367a975f4e"
+            "8.4-1.12.4": "e40ffc2319e2d3196e464654657daa0f9d76ee0a34a17ef1d9da97041786ba4d",
+            "8.3-1.12.4": "9299874b06ed2077212dda2f3e98207bedc65b7c314881c5ceb35c64ed97829d",
+            "8.5-1.12.4": "e10339f5fdf4ca41d3a940b73d56822edacf694c4bdd69bb8c8492e97b540135"
           }
         },
         "linux-x64": {
@@ -532,7 +532,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mariadbd",
           "checksums": {
-            "12.3.2": "44c1db7c07cde061bee185897cdf3ece2db7e10ca4f9363ca6faabfa9489cf87"
+            "12.3.2": "da2ca25158714292b4d183f6d477e105a9ba3f11a778db293b592e23ea255fe4"
           }
         },
         "darwin-x64": {
@@ -543,7 +543,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mariadbd",
           "checksums": {
-            "12.3.2": "54187da74db22a05d2ba5cecfe45acb7fd22143e98f34e254a833c33eff61e1d"
+            "12.3.2": "50da27a0f4bc11ca8e43234e9be05597121f7656c23c26af0d046f7be3d84113"
           }
         }
       }
@@ -573,7 +573,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mysqld",
           "checksums": {
-            "9.7.1": "597ec29272416d048ddb351f2552a403108fe85ab0098a42d00b085b5e51f3f8"
+            "9.7.1": "e56c4a8fce7b2dd40f5113014ac75f3425c07d3dbafd5fdffc73262f5e61817e"
           }
         },
         "darwin-x64": {
@@ -584,7 +584,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mysqld",
           "checksums": {
-            "9.7.1": "5faa8b0c9f74e96468c2c9733030a42ad442d4e5633e780c39f7a60438b6595c"
+            "9.7.1": "7e7c230bf0f45bd3398dae76ab32a33d260257ed4d7ec1670ba547ed0bb5de85"
           }
         }
       }
@@ -614,7 +614,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/postgres",
           "checksums": {
-            "17.10": "256afacc09a053d27b25d6e7e2f1a1ddcdbcae37037feb5d14ef25db7e63025a"
+            "17.10": "53e15288445c018a250bff0cfb0c6164dc66a70d6daf9dd8dc0f34e55d2f0bf4"
           }
         },
         "darwin-x64": {
@@ -625,7 +625,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/postgres",
           "checksums": {
-            "17.10": "003022ec1bfbeeecb5e5a5193f321a0f97263074ca3e088c3fd5307ef6479eec"
+            "17.10": "3a56384a43c943915b85d26bb8a94aed88955ff0f3837452d58ad17c36e1d9b5"
           }
         }
       }
@@ -678,7 +678,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/redis-server",
           "checksums": {
-            "8.8.0": "0f2a164aee3a8e96f1851267847fedf196fbdf49d34bae7237e7d5e0f97503e9"
+            "8.8.0": "e3e044ba4f38a0b88b2da8de2b1537fe7cd807444b84ec012b4d116ea9c0abd3"
           }
         },
         "darwin-x64": {
@@ -820,7 +820,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mailpit",
           "checksums": {
-            "1.30.4": "857632eea69dac92b85fcdadb377d33e3dcc1f8ed5034cae59ada2fec8e75eb2"
+            "1.30.4": "de44d71690aa0707169f04e4e9ba459ad4ed2cf11327ed5ad5e9a65876ce10c6"
           }
         },
         "darwin-x64": {
@@ -831,7 +831,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mailpit",
           "checksums": {
-            "1.30.4": "653a93a5e68a73a5e1fc3a04641f6889203e68e4a3dcea7565270854398405b4"
+            "1.30.4": "a12a89919cbeed99d2346ba1488317ca36f2eaefa73e27d6bc1b66d2d690bff8"
           }
         }
       }
@@ -866,7 +866,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/beanstalkd",
           "checksums": {
-            "1.13": "a274da18a5915e3c80d5eaa2d70859ef3b9581a7de051aa731c3ae78ba4f0b6f"
+            "1.13": "29e52834858bb5e53892892ef9d8728d57043c3a95765ff825d84e9afe04d632"
           }
         },
         "darwin-x64": {
@@ -877,7 +877,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/beanstalkd",
           "checksums": {
-            "1.13": "91c881fb243dc93ce4d940830df95073065abda16dcb838ba582845503104aad"
+            "1.13": "738718c56f4c29541fd33b478930f26fcd48d61c7f9434c523c5c025c482b06b"
           }
         }
       }
@@ -979,7 +979,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/frpc",
           "checksums": {
-            "0.70.0": "dcaed81f88ec86c4ead903a2b55dc4805f0c49759e79919abcda778552f9f213"
+            "0.70.0": "0cb338addeff0b61770609aac5dd0cbd7f672f8c9318a67868000439cc4d0c56"
           }
         },
         "darwin-x64": {
@@ -990,7 +990,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/frpc",
           "checksums": {
-            "0.70.0": "5f0f915dfa72c35ea590c76bac9590f7b9decc133ed03880e75eeb8605ff6e51"
+            "0.70.0": "2043af95983dbdd2e88775a14ddba2c77929add6b8ec6910122ba5e204690009"
           }
         },
         "linux-x64": {
