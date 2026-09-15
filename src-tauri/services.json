@@ -234,45 +234,29 @@
       "versions": {
         "source": "static",
         "versions": [
-          "latest",
-          "RELEASE.2024-12-18T13-15-44Z",
-          "RELEASE.2024-11-07T00-52-20Z",
-          "RELEASE.2024-10-02T17-50-41Z"
+          "RELEASE.2025-10-15T17-29-55Z"
         ]
       },
       "platforms": {
         "darwin-arm64": {
           "download": {
             "type": "direct",
-            "url_template": "https://dl.min.io/server/minio/release/darwin-arm64/minio",
-            "url_template_versioned": "https://dl.min.io/server/minio/release/darwin-arm64/archive/minio.{version}"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/minio-{version}/minio-{version}-arm64"
           },
-          "is_archive": false
+          "is_archive": false,
+          "checksums": {
+            "RELEASE.2025-10-15T17-29-55Z": "b107901fd1afe7b36165c6aa66bb027f96e2ec2b690eebe8c9376746d9a9b0df"
+          }
         },
         "darwin-x64": {
           "download": {
             "type": "direct",
-            "url_template": "https://dl.min.io/server/minio/release/darwin-amd64/minio",
-            "url_template_versioned": "https://dl.min.io/server/minio/release/darwin-amd64/archive/minio.{version}"
-          },
-          "is_archive": false
-        },
-        "linux-x64": {
-          "download": {
-            "type": "direct",
-            "url_template": "https://dl.min.io/server/minio/release/linux-amd64/minio",
-            "url_template_versioned": "https://dl.min.io/server/minio/release/linux-amd64/archive/minio.{version}"
-          },
-          "is_archive": false
-        },
-        "windows-x64": {
-          "download": {
-            "type": "direct",
-            "url_template": "https://dl.min.io/server/minio/release/windows-amd64/minio.exe",
-            "url_template_versioned": "https://dl.min.io/server/minio/release/windows-amd64/archive/minio.{version}.exe"
+            "url_template": "https://github.com/digitalnodecom/burd-binaries/releases/download/minio-{version}/minio-{version}-x86_64"
           },
           "is_archive": false,
-          "binary_name": "minio.exe"
+          "checksums": {
+            "RELEASE.2025-10-15T17-29-55Z": "003d8da2a01849cd5b590270d9c0c35799d01ed7dec56df223639f867ac3e540"
+          }
         }
       }
     },

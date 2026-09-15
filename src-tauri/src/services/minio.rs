@@ -22,26 +22,26 @@ impl ServiceDefinition for MinIOService {
     }
 
     fn version_source(&self) -> VersionSource {
-        // MinIO uses date-based releases, provide static list of recent ones
-        VersionSource::Static(vec![
-            "RELEASE.2024-12-18T13-15-44Z",
-            "RELEASE.2024-11-07T00-52-20Z",
-            "RELEASE.2024-10-02T17-50-41Z",
-        ])
+        // MinIO uses date-based releases. Note: this trait impl is only a
+        // fallback — services.json is the source of truth for MinIO downloads.
+        // MinIO discontinued its dl.min.io binary CDN (now 410), so binaries are
+        // mirrored to the burd-binaries GitHub releases.
+        VersionSource::Static(vec!["RELEASE.2025-10-15T17-29-55Z"])
     }
 
     fn download_method(&self, version: &str, arch: &str) -> DownloadMethod {
-        let arch_suffix = if arch == "aarch64" { "arm64" } else { "amd64" };
-        // Direct download from MinIO CDN
-        // For specific: https://dl.min.io/server/minio/release/darwin-arm64/archive/minio.RELEASE.2024-12-18T13-15-44Z
+        let arch_suffix = if arch == "aarch64" { "arm64" } else { "x86_64" };
         let url = format!(
-            "https://dl.min.io/server/minio/release/darwin-{}/archive/minio.{}",
-            arch_suffix, version
+            "https://github.com/digitalnodecom/burd-binaries/releases/download/minio-{version}/minio-{version}-{arch_suffix}"
         );
+        let checksum = match arch_suffix {
+            "arm64" => Some("b107901fd1afe7b36165c6aa66bb027f96e2ec2b690eebe8c9376746d9a9b0df"),
+            _ => Some("003d8da2a01849cd5b590270d9c0c35799d01ed7dec56df223639f867ac3e540"),
+        };
         DownloadMethod::Direct {
             url,
             is_archive: false,
-            checksum: None, // TODO: Add SHA256 checksums for binary verification
+            checksum,
         }
     }
 
