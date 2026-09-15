@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.2] - 2026-09-15
+
+### Changed
+
+- **MinIO now flows through the automated binary mirror.** MinIO was added to
+  the `burd-binaries` bottle pipeline, which re-mirrors it from Homebrew weekly
+  and auto-syncs its checksum into Burd — so MinIO stays available without the
+  discontinued `dl.min.io` CDN and without manual checksum updates. Burd now
+  downloads the portable `.tar.gz` package (verified by SHA256), matching how
+  PostgreSQL/MariaDB/Redis are distributed.
+
+---
+
 ## [1.14.1] - 2026-09-15
 
 ### Fixed
