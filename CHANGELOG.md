@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.1] - 2026-09-15
+
+### Fixed
+
+- **MinIO downloads work again.** MinIO discontinued its `dl.min.io` binary CDN
+  (it now returns 410 Gone for every platform), so every MinIO version failed to
+  download. Burd now pulls the macOS binaries from its own `burd-binaries`
+  mirror with SHA256 verification (RELEASE.2025-10-15T17-29-55Z), the same way
+  FrankenPHP binaries are distributed.
+
+---
+
 ## [1.14.0] - 2026-08-23
 
 ### Added
