@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Modal from "$lib/components/Modal.svelte";
   import { Info, Play, SquareTerminal, X } from '@lucide/svelte';
   import { onMount } from "svelte";
   import { createTinkerState, type TinkerProject, type TinkerExecution } from "$lib/composables/useTinker.svelte";
@@ -283,8 +284,8 @@ echo "PHP " . phpversion();`,
 
   <!-- Clear History Confirmation -->
   {#if showClearHistoryConfirm}
-    <div class="modal-overlay" onclick={() => showClearHistoryConfirm = false} onkeydown={(e) => e.key === 'Escape' && (showClearHistoryConfirm = false)} role="dialog" aria-modal="true" tabindex="-1">
-      <div class="modal confirm-modal" onclick={(e) => e.stopPropagation()} role="document">
+    <Modal onClose={() => showClearHistoryConfirm = false} overlayClass="modal-overlay">
+      <div class="modal confirm-modal"  role="document">
         <h3>Clear All History?</h3>
         <p>This will permanently delete all {tinker.history.length} history items. This action cannot be undone.</p>
         <div class="modal-actions">
@@ -294,7 +295,7 @@ echo "PHP " . phpversion();`,
           <button class="btn-secondary" onclick={() => showClearHistoryConfirm = false}>Cancel</button>
         </div>
       </div>
-    </div>
+    </Modal>
   {/if}
 </div>
 
@@ -408,7 +409,6 @@ echo "PHP " . phpversion();`,
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
-
 
   .project-path {
     font-size: 12px;
@@ -789,7 +789,7 @@ echo "PHP " . phpversion();`,
     gap: 12px;
   }
 
-  .empty-state svg {
+  .empty-state :global(svg) {
     opacity: 0.5;
   }
 

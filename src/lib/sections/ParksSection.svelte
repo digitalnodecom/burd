@@ -262,7 +262,7 @@
     <div class="parked-list">
       {#each parkedDirectories as dir (dir.id)}
         <div class="parked-item">
-          <div class="parked-header" onclick={() => toggleExpand(dir.id)} role="button" tabindex="0" onkeypress={(e) => e.key === 'Enter' && toggleExpand(dir.id)}>
+          <div class="parked-header" onclick={(event) => { if (!(event.target as HTMLElement).closest(".parked-actions")) toggleExpand(dir.id); }} role="button" tabindex="0" onkeypress={(e) => e.key === 'Enter' && toggleExpand(dir.id)}>
             <div class="parked-main">
               <span class="expand-icon" class:expanded={expandedDirs[dir.id]}>
                 <ChevronRight size={16} strokeWidth={2} />
@@ -281,7 +281,7 @@
                 </span>
               </div>
             </div>
-            <div class="parked-actions" role="group" aria-label="Directory actions" onclick={(e) => e.stopPropagation()}>
+            <div class="parked-actions" role="group" aria-label="Directory actions">
               <button class="icon-btn" onclick={() => refreshDirectory(dir)} disabled={refreshing[dir.id]} title="Refresh">
                 <RefreshCw size={16} strokeWidth={2} />
               </button>

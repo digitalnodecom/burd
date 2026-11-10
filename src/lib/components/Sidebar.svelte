@@ -330,11 +330,11 @@
     color: white;
   }
 
-  .nav-item.active svg {
+  .nav-item.active :global(svg) {
     stroke: white;
   }
 
-  .nav-item svg {
+  .nav-item :global(svg) {
     flex-shrink: 0;
     stroke: #636366;
   }
@@ -399,7 +399,7 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
-    .nav-item svg {
+    .nav-item :global(svg) {
       stroke: #98989d;
     }
 
@@ -451,7 +451,7 @@
     background: rgba(255, 255, 255, 0.1);
   }
 
-  :global(:root[data-theme="dark"]) .nav-item svg {
+  :global(:root[data-theme="dark"]) .nav-item :global(svg) {
     stroke: #98989d;
   }
 
@@ -498,7 +498,7 @@
     background: rgba(0, 0, 0, 0.05);
   }
 
-  :global(:root[data-theme="light"]) .nav-item svg {
+  :global(:root[data-theme="light"]) .nav-item :global(svg) {
     stroke: #636366;
   }
 
@@ -511,7 +511,7 @@
     color: white;
   }
 
-  :global(:root[data-theme="light"]) .nav-item.active svg {
+  :global(:root[data-theme="light"]) .nav-item.active :global(svg) {
     stroke: white;
   }
 

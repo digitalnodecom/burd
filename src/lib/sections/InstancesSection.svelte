@@ -1,4 +1,9 @@
 <script lang="ts">
+  import InstanceRow from "$lib/components/InstanceRow.svelte";
+  import CreateInstanceForm from "$lib/components/CreateInstanceForm.svelte";
+  import Modal from "$lib/components/Modal.svelte";
+  import type { Instance, ServiceInfo, ConfigFieldInfo } from "$lib/types";
+  import { onMount } from "svelte";
   import { invoke } from '@tauri-apps/api/core';
   import { confirm } from '@tauri-apps/plugin-dialog';
   import ExtensionsModal from '$lib/components/ExtensionsModal.svelte';
@@ -9,48 +14,12 @@
     Check, Copy,
   } from '@lucide/svelte';
 
-  interface Instance {
-    id: string;
-    name: string;
-    port: number;
-    service_type: string;
-    version: string;
-    running: boolean;
-    pid: number | null;
-    healthy: boolean | null;
-    has_config: boolean;
-    domain: string;
-    domain_enabled: boolean;
-    process_manager: string;
-    stack_id: string | null;
-    mapped_domains: string[];
-    auto_start: boolean;
-  }
-
   interface Stack {
     id: string;
     name: string;
     description: string | null;
     created_at: string;
     updated_at: string;
-  }
-
-  interface ServiceInfo {
-    id: string;
-    display_name: string;
-    default_port: number;
-    config_fields: ConfigFieldInfo[];
-    available: boolean;
-    is_homebrew: boolean;
-    process_manager: string;
-  }
-
-  interface ConfigFieldInfo {
-    key: string;
-    label: string;
-    field_type: string;
-    required: boolean;
-    default: string | null;
   }
 
   interface BinaryStatus {
@@ -93,6 +62,7 @@
     onOpenDomain,
     onServiceTypeChange,
     onRefresh,
+    onNavigateToServices,
     // Stack event handlers
     onCreateStack,
     onDeleteStack,
@@ -123,6 +93,7 @@
     onOpenDomain: (instance: Instance) => void;
     onServiceTypeChange: (serviceType: string) => { port: number };
     onRefresh: () => void;
+    onNavigateToServices: () => void;
     // Stack event handlers
     onCreateStack?: (name: string, description: string | null, instanceIds: string[]) => void;
     onDeleteStack?: (id: string) => void;
@@ -131,6 +102,16 @@
     onStartStack?: (id: string) => void;
     onStopStack?: (id: string) => void;
   } = $props();
+
+  async function reorderWithKeyboard(instance: Instance, direction: number) {
+    const ids = instances.map(i => i.id);
+    const from = ids.indexOf(instance.id);
+    const to = Math.max(0, Math.min(ids.length - 1, from + direction));
+    if (from === to) return;
+    [ids[from], ids[to]] = [ids[to], ids[from]];
+    try { await invoke("reorder_instances", { instanceIds: ids }); await onRefresh(); }
+    catch (e) { errorMessage = String(e); }
+  }
 
   // Mouse-based drag state (HTML5 DnD doesn't work in Tauri WebView)
   let isDragging = $state(false);
@@ -143,36 +124,27 @@
   // Per-instance data-directory size (bytes), loaded lazily after the list
   // renders so the walk never blocks the instance list. null = still loading.
   let diskUsage = $state<Record<string, number | null>>({});
+  const measuredAt = new Map<string, number>();
+  let diskRefresh = $state(0);
+  onMount(() => {
+    const timer = setInterval(() => { diskRefresh++; }, 60000);
+    return () => clearInterval(timer);
+  });
 
   // DB service types that expose a per-database size view (have a db_manager).
-  const DB_TYPES = new Set(["postgresql", "mariadb"]);
-  const isDbInstance = (t: string) => DB_TYPES.has(t);
-
-  function formatBytes(n: number | null | undefined): string {
-    if (n == null) return "…";
-    if (n < 1024) return `${n} B`;
-    const units = ["KB", "MB", "GB", "TB"];
-    let value = n / 1024;
-    let i = 0;
-    while (value >= 1024 && i < units.length - 1) {
-      value /= 1024;
-      i++;
-    }
-    return `${value.toFixed(value < 10 ? 1 : 0)} ${units[i]}`;
-  }
-
-  // Fetch disk usage for any instance we haven't measured yet whenever the
-  // instance set changes. Failures fall back to 0 rather than blocking the row.
+  // Refresh sizes when the list changes and once a minute; report failures explicitly.
   $effect(() => {
+    void diskRefresh;
     for (const inst of instances) {
-      if (!(inst.id in diskUsage)) {
+      if (Date.now() - (measuredAt.get(inst.id) ?? 0) >= 60000) {
+        measuredAt.set(inst.id, Date.now());
         diskUsage[inst.id] = null;
         invoke<number>("get_instance_disk_usage", { instanceId: inst.id })
           .then((bytes) => {
             diskUsage[inst.id] = bytes;
           })
           .catch(() => {
-            diskUsage[inst.id] = 0;
+            diskUsage[inst.id] = -1;
           });
       }
     }
@@ -372,71 +344,6 @@
   }
 
   // Service icons from simple-icons (hardcoded for ESM compatibility)
-  const serviceStyles: Record<string, { color: string; icon: string }> = {
-    meilisearch: {
-      color: "#FF5CAA",
-      icon: `<path d="m6.505 18.998 4.434-11.345a4.168 4.168 0 0 1 3.882-2.651h2.674l-4.434 11.345a4.169 4.169 0 0 1-3.883 2.651H6.505Zm6.505 0 4.434-11.345a4.169 4.169 0 0 1 3.883-2.651H24l-4.434 11.345a4.168 4.168 0 0 1-3.882 2.651H13.01Zm-13.01 0L4.434 7.653a4.168 4.168 0 0 1 3.882-2.651h2.674L6.556 16.347a4.169 4.169 0 0 1-3.883 2.651H0Z"/>`
-    },
-    typesense: {
-      color: "#D52E63",
-      icon: `<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>`
-    },
-    mongodb: {
-      color: "#47A248",
-      icon: `<path d="M17.193 9.555c-1.264-5.58-4.252-7.414-4.573-8.115-.28-.394-.53-.954-.735-1.44-.036.495-.055.685-.523 1.184-.723.566-4.438 3.682-4.74 10.02-.282 5.912 4.27 9.435 4.888 9.884l.07.05A73.49 73.49 0 0111.91 24h.481c.114-1.032.284-2.056.51-3.07.417-.296.604-.463.85-.693a11.342 11.342 0 003.639-8.464c.01-.814-.103-1.662-.197-2.218zm-5.336 8.195s0-8.291.275-8.29c.213 0 .49 10.695.49 10.695-.381-.045-.765-1.76-.765-2.405z"/>`
-    },
-    minio: {
-      color: "#C72E49",
-      icon: `<path d="M13.2072.006c-.6216-.0478-1.2.1943-1.6211.582a2.15 2.15 0 0 0-.0938 3.0352l3.4082 3.5507a3.042 3.042 0 0 1-.664 4.6875l-.463.2383V7.2853a15.4198 15.4198 0 0 0-8.0174 10.4862v.0176l6.5487-3.3281v7.621L13.7794 24V13.6817l.8965-.4629a4.4432 4.4432 0 0 0 1.2207-7.0292l-3.371-3.5254a.7489.7489 0 0 1 .037-1.0547.7522.7522 0 0 1 1.0567.0371l.4668.4863-.006.0059 4.0704 4.2441a.0566.0566 0 0 0 .082 0 .06.06 0 0 0 0-.0703l-3.1406-5.1425-.1484.1425.1484-.1445C14.4945.3926 13.8287.0538 13.2072.006Zm-.9024 9.8652v2.9941l-4.1523 2.1484a13.9787 13.9787 0 0 1 2.7676-3.9277 14.1784 14.1784 0 0 1 1.3847-1.2148z"/>`
-    },
-    frankenphp: {
-      color: "#777BB4",
-      icon: `<path d="M7.01 10.207h-.944l-.515 2.648h.838c.556 0 .97-.105 1.242-.314.272-.21.455-.559.55-1.049.092-.47.05-.802-.124-.995-.175-.193-.523-.29-1.047-.29zM12 5.688C5.373 5.688 0 8.514 0 12s5.373 6.313 12 6.313S24 15.486 24 12c0-3.486-5.373-6.312-12-6.312zm-3.26 7.451c-.261.25-.575.438-.917.551-.336.108-.765.164-1.285.164H5.357l-.327 1.681H3.652l1.23-6.326h2.65c.797 0 1.378.209 1.744.628.366.418.476 1.002.33 1.752a2.836 2.836 0 0 1-.305.847c-.143.255-.33.49-.561.703zm4.024.715l.543-2.799c.063-.318.039-.536-.068-.651-.107-.116-.336-.174-.687-.174H11.46l-.704 3.625H9.388l1.23-6.327h1.367l-.327 1.682h1.218c.767 0 1.295.134 1.586.401s.378.7.263 1.299l-.572 2.944h-1.389zm7.597-2.265a2.782 2.782 0 0 1-.305.847c-.143.255-.33.49-.561.703a2.44 2.44 0 0 1-.917.551c-.336.108-.765.164-1.286.164h-1.18l-.327 1.682h-1.378l1.23-6.326h2.649c.797 0 1.378.209 1.744.628.366.417.477 1.001.331 1.751zM17.766 10.207h-.943l-.516 2.648h.838c.557 0 .971-.105 1.242-.314.272-.21.455-.559.551-1.049.092-.47.049-.802-.125-.995s-.524-.29-1.047-.29z"/>`
-    },
-    mariadb: {
-      color: "#003545",
-      icon: `<path d="M23.157 4.412c-.676.284-.79.31-1.673.372-.65.045-.757.057-1.212.209-.75.246-1.395.75-2.02 1.59-.296.398-1.249 1.913-1.249 1.988 0 .057-.65.998-.915 1.32-.574.713-1.08 1.079-2.14 1.59-.77.36-1.224.524-4.102 1.477-1.073.353-2.133.738-2.367.864-.852.449-1.515 1.036-2.203 1.938-1.003 1.32-.972 1.313-3.042.947a12.264 12.264 0 00-.675-.063c-.644-.05-1.023.044-1.332.334L0 17.193l.177.088c.094.05.353.234.561.398.215.17.461.347.55.391.088.044.17.088.183.101.012.013-.089.17-.228.353-.435.581-.593.871-.574 1.048.019.164.032.17.43.17.517-.006.826-.056 1.261-.208.65-.233 2.058-.94 2.784-1.4.776-.5 1.717-.998 1.956-1.042.082-.02.354-.07.594-.114.58-.107 1.464-.095 2.587.05.108.013.373.045.6.064.227.025.43.057.454.076.026.012.474.037.998.056.934.026 1.104.007 1.3-.189.126-.133.385-.631.498-.985.209-.643.417-.921.366-.492-.113.966-.322 1.692-.713 2.411-.259.499-.663 1.092-.934 1.395-.322.347-.315.36.088.315.619-.063 1.471-.397 2.096-.82.827-.562 1.647-1.691 2.19-3.03.107-.27.22-.22.183.083-.013.094-.038.315-.057.498l-.031.328.353-.202c.833-.48 1.414-1.262 2.127-2.884.227-.518.877-2.922 1.073-3.976a9.64 9.64 0 01.271-1.042c.127-.429.196-.555.48-.858.183-.19.625-.555.978-.808.72-.505.953-.75 1.187-1.205.208-.417.284-1.13.132-1.357-.132-.202-.284-.196-.763.006Z"/>`
-    },
-    postgresql: {
-      color: "#4169E1",
-      icon: `<path d="M23.5594 14.7228a.5269.5269 0 0 0-.0563-.1191c-.139-.2632-.4768-.3418-1.0074-.2321-1.6533.3411-2.2935.1312-2.5256-.0191 1.342-2.0482 2.445-4.522 3.0411-6.8297.2714-1.0507.7982-3.5237.1222-4.7316a1.5641 1.5641 0 0 0-.1509-.235C21.6931.9086 19.8007.0248 17.5099.0005c-1.4947-.0158-2.7705.3461-3.1161.4794a9.449 9.449 0 0 0-.5159-.0816 8.044 8.044 0 0 0-1.3114-.1278c-1.1822-.0184-2.2038.2642-3.0498.8406-.8573-.3211-4.7888-1.645-7.2219.0788C.9359 2.1526.3086 3.8733.4302 6.3043c.0409.818.5069 3.334 1.2423 5.7436.4598 1.5065.9387 2.7019 1.4334 3.582.553.9942 1.1259 1.5933 1.7143 1.7895.4474.1491 1.1327.1441 1.8581-.7279.8012-.9635 1.5903-1.8258 1.9446-2.2069.4351.2355.9064.3625 1.39.3772a.0569.0569 0 0 0 .0004.0041 11.0312 11.0312 0 0 0-.2472.3054c-.3389.4302-.4094.5197-1.5002.7443-.3102.064-1.1344.2339-1.1464.8115-.0025.1224.0329.2309.0919.3268.2269.4231.9216.6097 1.015.6331 1.3345.3335 2.5044.092 3.3714-.6787-.017 2.231.0775 4.4174.3454 5.0874.2212.5529.7618 1.9045 2.4692 1.9043.2505 0 .5263-.0291.8296-.0941 1.7819-.3821 2.5557-1.1696 2.855-2.9059.1503-.8707.4016-2.8753.5388-4.1012.0169-.0703.0357-.1207.057-.1362.0007-.0005.0697-.0471.4272.0307a.3673.3673 0 0 0 .0443.0068l.2539.0223.0149.001c.8468.0384 1.9114-.1426 2.5312-.4308.6438-.2988 1.8057-1.0323 1.5951-1.6698z"/>`
-    },
-    redis: {
-      color: "#FF4438",
-      icon: `<path d="M22.71 13.145c-1.66 2.092-3.452 4.483-7.038 4.483-3.203 0-4.397-2.825-4.48-5.12.701 1.484 2.073 2.685 4.214 2.63 4.117-.133 6.94-3.852 6.94-7.239 0-4.05-3.022-6.972-8.268-6.972-3.752 0-8.4 1.428-11.455 3.685C2.59 6.937 3.885 9.958 4.35 9.626c2.648-1.904 4.748-3.13 6.784-3.744C8.12 9.244.886 17.05 0 18.425c.1 1.261 1.66 4.648 2.424 4.648.232 0 .431-.133.664-.365a100.49 100.49 0 0 0 5.54-6.765c.222 3.104 1.748 6.898 6.014 6.898 3.819 0 7.604-2.756 9.33-8.965.2-.764-.73-1.361-1.261-.73zm-4.349-5.013c0 1.959-1.926 2.922-3.685 2.922-.941 0-1.664-.247-2.235-.568 1.051-1.592 2.092-3.225 3.21-4.973 1.972.334 2.71 1.43 2.71 2.619z"/>`
-    },
-    valkey: {
-      color: "#00A89D",
-      icon: `<path d="M12 2L3 7v10l9 5 9-5V7l-9-5zm0 2.18l6.37 3.53L12 11.24 5.63 7.71 12 4.18zM5 9.23l6 3.33v6.22l-6-3.33V9.23zm8 9.55v-6.22l6-3.33v6.22l-6 3.33z"/>`
-    },
-    mailpit: {
-      color: "#0891b2",
-      icon: `<path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>`
-    },
-    beanstalkd: {
-      color: "#22c55e",
-      icon: `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>`
-    },
-    memcached: {
-      color: "#059669",
-      icon: `<path d="M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2z"/>`
-    },
-    frpc: {
-      color: "#00ADD8",
-      icon: `<path d="M1.811 10.231c-.047 0-.058-.023-.035-.059l.246-.315c.023-.035.081-.058.128-.058h4.172c.046 0 .058.035.035.07l-.199.303c-.023.036-.082.07-.117.07zM.047 11.306c-.047 0-.059-.023-.035-.058l.245-.316c.023-.035.082-.058.129-.058h5.328c.047 0 .07.035.058.07l-.093.28c-.012.047-.058.07-.105.07zm2.828 1.075c-.047 0-.059-.035-.035-.07l.163-.292c.023-.035.07-.07.117-.07h2.337c.047 0 .07.035.07.082l-.023.28c0 .047-.047.082-.082.082zm12.129-2.36c-.736.187-1.239.327-1.963.514-.176.046-.187.058-.34-.117-.174-.199-.303-.327-.548-.444-.737-.362-1.45-.257-2.115.175-.795.514-1.204 1.274-1.192 2.22.011.935.654 1.706 1.577 1.835.795.105 1.46-.175 1.987-.77.105-.13.198-.27.315-.434H10.47c-.245 0-.304-.152-.222-.35.152-.362.432-.97.596-1.274a.315.315 0 01.292-.187h4.253c-.023.316-.023.631-.07.947a4.983 4.983 0 01-.958 2.29c-.841 1.11-1.94 1.8-3.33 1.986-1.145.152-2.209-.07-3.143-.77-.865-.655-1.356-1.52-1.484-2.595-.152-1.274.222-2.419.993-3.424.83-1.086 1.928-1.776 3.272-2.02 1.098-.2 2.15-.07 3.096.571.62.41 1.063.97 1.356 1.648.07.105.023.164-.117.2m3.868 6.461c-1.064-.024-2.034-.328-2.852-1.029a3.665 3.665 0 01-1.262-2.255c-.21-1.32.152-2.489.947-3.529.853-1.122 1.881-1.706 3.272-1.95 1.192-.21 2.314-.095 3.33.595.923.63 1.496 1.484 1.648 2.605.198 1.578-.257 2.863-1.344 3.962-.771.783-1.718 1.273-2.805 1.495-.315.06-.63.07-.934.106zm2.78-4.72c-.011-.153-.011-.27-.034-.387-.21-1.157-1.274-1.81-2.384-1.554-1.087.245-1.788.935-2.045 2.033-.21.912.234 1.835 1.075 2.21.643.28 1.285.244 1.905-.07.923-.48 1.425-1.228 1.484-2.233z"/>`
-    },
-    caddy: {
-      color: "#1F88C0",
-      icon: `<path d="M11.094.47c-.842 0-1.696.092-2.552.288a11.37 11.37 0 0 0-4.87 2.423 10.632 10.632 0 0 0-2.36 2.826A10.132 10.132 0 0 0 .305 8.582c-.398 1.62-.4 3.336-.043 5.048.085.405.183.809.31 1.212a11.85 11.85 0 0 0 1.662 3.729 3.273 3.273 0 0 0-.086.427 3.323 3.323 0 0 0 2.848 3.71 3.279 3.279 0 0 0 1.947-.346c1.045.51 2.17.864 3.339 1.04a11.66 11.66 0 0 0 4.285-.155 11.566 11.566 0 0 0 4.936-2.485 10.643 10.643 0 0 0 2.352-2.894 11.164 11.164 0 0 0 1.356-4.424 11.214 11.214 0 0 0-.498-4.335c.175-.077.338-.175.486-.293a.444.444 89.992 0 0 .001 0c.402-.322.693-.794.777-1.342a2.146 2.146 0 0 0-1.79-2.434 2.115 2.115 0 0 0-1.205.171c-.038-.043-.078-.086-.113-.13a11.693 11.693 0 0 0-3.476-2.93 13.348 13.348 0 0 0-1.76-.81 13.55 13.55 0 0 0-2.06-.613A12.121 12.121 0 0 0 11.093.47Zm.714.328c.345-.004.688.01 1.028.042a9.892 9.892 0 0 1 2.743.639c.984.39 1.89.958 2.707 1.632.803.662 1.502 1.45 2.091 2.328.026.039.048.08.07.12a2.12 2.12 0 0 0-.435 2.646c-.158.114-.97.692-1.634 1.183-.414.308-.733.557-.733.557l.581.68s.296-.276.665-.638c.572-.562 1.229-1.233 1.395-1.403a2.122 2.122 0 0 0 1.907.677 11.229 11.229 0 0 1-.013 4.046 11.41 11.41 0 0 1-1.475 3.897 12.343 12.343 0 0 1-2.079 2.587c-1.19 1.125-2.633 2.022-4.306 2.531a10.826 10.826 0 0 1-3.973.484 11.04 11.04 0 0 1-3.057-.652 3.304 3.304 0 0 0 1.417-2.294 3.275 3.275 0 0 0-.294-1.842c.18-.162.403-.363.656-.6 1.015-.955 2.353-2.303 2.353-2.303l-.47-.599s-1.63.972-2.801 1.728c-.307.198-.573.378-.777.517a3.273 3.273 0 0 0-1.516-.611c-1.507-.198-2.927.672-3.487 2.017a10.323 10.323 0 0 1-.695-1.078A10.92 10.92 0 0 1 .728 14.8a10.35 10.35 0 0 1-.2-1.212c-.164-1.653.103-3.258.629-4.754a12.95 12.95 0 0 1 1.087-2.288c.57-.968 1.248-1.872 2.069-2.656A11.013 11.013 0 0 1 11.808.797Zm-.147 3.257a3.838 3.838 0 0 0-3.82 3.82v2.36h-.94c-.751 0-1.377.625-1.377 1.377v3.8h1.46v-3.718h9.354v6.264H10.02v1.46h6.4c.751 0 1.377-.625 1.377-1.377v-6.43c0-.751-.626-1.377-1.377-1.377h-.94v-2.36a3.838 3.838 0 0 0-3.82-3.819zm0 1.46a2.371 2.371 0 0 1 2.36 2.36v2.36H9.3v-2.36a2.372 2.372 0 0 1 2.36-2.36zm10.141.392a1.253 1.253 0 0 1 1.296 1.434c-.049.319-.217.59-.453.78-.266.213-.61.318-.968.264a1.253 1.253 0 0 1-1.045-1.42 1.255 1.255 0 0 1 1.17-1.058zM5.384 17.425a2.02 2.02 0 0 1 1.917 1.298c.116.3.159.628.114.967a2.015 2.015 0 0 1-2.249 1.728 2.016 2.016 0 0 1-1.727-2.25 2.017 2.017 0 0 1 1.945-1.743z"/>`
-    }
-  };
-
-  function getServiceStyle(serviceId: string) {
-    // Normalize: "Meilisearch" -> "meilisearch", "frp Client" -> "frpc"
-    const normalized = serviceId.toLowerCase().replace(/[\s-]+/g, '').replace('frpclient', 'frpc');
-    return serviceStyles[normalized] || { color: '#6b7280', icon: '<circle cx="12" cy="12" r="10"/>' };
-  }
-
   // Local form state
   let showCreateForm = $state(false);
   let copiedId = $state<string | null>(null);
@@ -540,7 +447,7 @@
       if (!confirmed) return;
 
       // Extract subdomain from full domain (remove TLD)
-      const subdomain = fullDomain.split('.')[0];
+      const subdomain = fullDomain.endsWith(`.${tld}`) ? fullDomain.slice(0, -(tld.length + 1)) : fullDomain;
 
       // Find the domain ID by subdomain
       const domains = await invoke<DomainInfo[]>("list_domains");
@@ -566,78 +473,12 @@
     }
   }
 
-  let newName = $state("");
-  let newServiceType = $state("");
-  let newPort = $state(7700);
-  let newVersion = $state("");
-  let newConfigValue = $state("");
-  let newDomain = $state("");  // Custom domain subdomain
-  let creating = $state(false);
-
-  // Initialize form with first service type
-  $effect(() => {
-    if (serviceTypes.length > 0 && !newServiceType) {
-      newServiceType = serviceTypes[0].id;
-      newPort = serviceTypes[0].default_port;
-    }
-  });
-
-  // Update version when service type or installed versions change
-  $effect(() => {
-    const versions = installedVersions[newServiceType] || [];
-    if (versions.length > 0 && !versions.includes(newVersion)) {
-      newVersion = versions[0];
-    }
-  });
-
-  function getSelectedServiceMeta(): ServiceInfo | undefined {
-    return serviceTypes.find(s => s.id === newServiceType);
-  }
-
   function getBinaryStatus(serviceType: string): BinaryStatus | undefined {
     return binaryStatuses.find(b => b.service_type === serviceType);
   }
 
   function hasWebUI(serviceType: string): boolean {
     return ['meilisearch', 'frankenphp', 'minio'].includes(serviceType.toLowerCase());
-  }
-
-  function handleServiceTypeChange() {
-    const result = onServiceTypeChange(newServiceType);
-    newPort = result.port;
-    newConfigValue = "";
-    // Update version
-    const versions = installedVersions[newServiceType] || [];
-    newVersion = versions.length > 0 ? versions[0] : "";
-  }
-
-  async function handleCreate() {
-    // Validate subdomain format if provided
-    if (newDomain && !/^[a-z0-9.-]+$/.test(newDomain)) {
-      alert("Domain must contain only lowercase letters, numbers, hyphens, and periods");
-      return;
-    }
-
-    creating = true;
-    try {
-      const configObj: Record<string, string> = {};
-      const meta = getSelectedServiceMeta();
-      if (meta?.config_fields?.[0] && newConfigValue) {
-        configObj[meta.config_fields[0].key] = newConfigValue;
-      }
-      await onCreate(newName, newPort, newServiceType, newVersion, configObj, newDomain || null);
-      // Reset form
-      newName = "";
-      newConfigValue = "";
-      newDomain = "";
-      showCreateForm = false;
-    } finally {
-      creating = false;
-    }
-  }
-
-  function hasInstalledVersions(): boolean {
-    return binaryStatuses.some(b => b.installed);
   }
 
   // Get the reason why the start button is disabled (if any)
@@ -691,7 +532,7 @@
       <button
         class="btn primary small"
         onclick={() => (showCreateForm = !showCreateForm)}
-        disabled={!hasInstalledVersions()}
+
       >
         {showCreateForm ? "Cancel" : "+ New Instance"}
       </button>
@@ -699,83 +540,7 @@
   </div>
 
   {#if showCreateForm}
-    <form class="create-form" onsubmit={(e) => { e.preventDefault(); handleCreate(); }}>
-      <div class="form-row">
-        <label>
-          <span>Service Type</span>
-          <select bind:value={newServiceType} onchange={handleServiceTypeChange}>
-            {#each serviceTypes as svc (svc.id)}
-              <option value={svc.id}>{svc.display_name}</option>
-            {/each}
-          </select>
-        </label>
-        <label>
-          <span>Version</span>
-          {#if installedVersions[newServiceType]?.length > 0}
-            <select bind:value={newVersion}>
-              {#each installedVersions[newServiceType] as ver (ver)}
-                <option value={ver}>{ver}</option>
-              {/each}
-            </select>
-          {:else}
-            <select disabled>
-              <option>No versions installed</option>
-            </select>
-          {/if}
-        </label>
-        <label>
-          <span>Name</span>
-          <input
-            type="text"
-            bind:value={newName}
-            placeholder="Development"
-            required
-          />
-        </label>
-        <label>
-          <span>Domain <span class="optional-label">(optional)</span></span>
-          <div class="domain-input-group">
-            <input
-              type="text"
-              bind:value={newDomain}
-              placeholder="my-app"
-              class="domain-input"
-              pattern="[a-z0-9-]+"
-            />
-            <span class="domain-suffix">.{tld}</span>
-          </div>
-          <span class="field-hint">
-            Leave empty to use instance name. Only lowercase letters, numbers, hyphens, and periods.
-          </span>
-        </label>
-        <label>
-          <span>Port</span>
-          <input
-            type="number"
-            bind:value={newPort}
-            min="1024"
-            max="65535"
-            required
-          />
-        </label>
-        {#if getSelectedServiceMeta()?.config_fields?.[0]}
-          <label>
-            <span>{getSelectedServiceMeta()?.config_fields[0].label} (optional)</span>
-            <input
-              type={getSelectedServiceMeta()?.config_fields[0].field_type === 'password' ? 'password' : 'text'}
-              bind:value={newConfigValue}
-              placeholder="Leave empty for default"
-            />
-          </label>
-        {/if}
-      </div>
-      <button class="btn primary" type="submit" disabled={creating || !newVersion || installedVersions[newServiceType]?.length === 0}>
-        {creating ? "Creating..." : "Create Instance"}
-      </button>
-      {#if installedVersions[newServiceType]?.length === 0}
-        <p class="form-hint">Download a {getSelectedServiceMeta()?.display_name} version first.</p>
-      {/if}
-    </form>
+    <CreateInstanceForm {serviceTypes} {installedVersions} {tld} {onCreate} {onServiceTypeChange} {onNavigateToServices} onCreated={() => showCreateForm = false} />
   {/if}
 
   <!-- Selection mode floating bar -->
@@ -797,11 +562,11 @@
 
   <!-- Create Stack Modal -->
   {#if showCreateStackModal}
-    <div class="modal-overlay" onclick={() => showCreateStackModal = false} onkeydown={(e) => e.key === 'Escape' && (showCreateStackModal = false)} role="dialog" aria-modal="true" tabindex="-1">
-      <div class="modal" onclick={(e) => e.stopPropagation()} role="document">
+    <Modal onClose={() => showCreateStackModal = false} overlayClass="modal-overlay">
+      <div class="modal"  role="document">
         <div class="modal-header">
           <h3 class="modal-title">Create Stack</h3>
-          <button class="modal-close" onclick={() => showCreateStackModal = false}><X size={16} strokeWidth={2} /></button>
+          <button aria-label="Close" class="modal-close" onclick={() => showCreateStackModal = false}><X size={16} strokeWidth={2} /></button>
         </div>
         <div class="modal-body">
           <label>
@@ -829,14 +594,14 @@
           <button class="btn primary" onclick={handleCreateStack} disabled={!newStackName.trim()}>Create Stack</button>
         </div>
       </div>
-    </div>
+    </Modal>
   {/if}
 
   <!-- Error notification for drag-drop -->
   {#if errorMessage}
     <div class="dnd-error">
       <span>{errorMessage}</span>
-      <button class="modal-close" onclick={() => errorMessage = null}><X size={16} strokeWidth={2} /></button>
+      <button aria-label="Close" class="modal-close" onclick={() => errorMessage = null}><X size={16} strokeWidth={2} /></button>
     </div>
   {/if}
 
@@ -943,7 +708,7 @@
             <span class="stack-description">{stack.description}</span>
           {/if}
         </div>
-        <div class="stack-actions" role="group" aria-label="Stack actions" onclick={(e) => e.stopPropagation()}>
+        <div class="stack-actions" role="group" aria-label="Stack actions">
           {#if onStartStack && !isStackFullyRunning(stack.id)}
             <button class="icon-btn success" onclick={() => onStartStack?.(stack.id)} title="Start All">
               <Play size={14} fill="currentColor" strokeWidth={0} />
@@ -996,183 +761,15 @@
 {/if}
 
 {#snippet instanceRow(instance: Instance, showCheckbox: boolean = false, index: number = 0)}
-            <div
-              class="grid-row"
-              class:dragging={draggedInstanceId === instance.id}
-              class:drag-over={dragOverInstanceId === instance.id && draggedInstanceId !== instance.id}
-              data-index={index}
-              data-instance-id={instance.id}
-            >
-              {#if showCheckbox && selectionMode}
-                <div class="grid-cell checkbox-col">
-                  <input
-                    type="checkbox"
-                    checked={selectedInstances.has(instance.id)}
-                    onchange={() => toggleInstanceSelection(instance.id)}
-                  />
-                </div>
-              {/if}
-              {#if !selectionMode}
-                <div class="grid-cell drag-col">
-                  <div
-                    class="drag-handle"
-                    role="button"
-                    tabindex="0"
-                    onmousedown={(e) => handleMouseDragStart(e, instance.id)}
-                    title="Drag to reorder instance"
-                    aria-label="Drag to reorder instance"
-                  >
-                    <GripVertical size={14} strokeWidth={2} />
-                  </div>
-                </div>
-              {/if}
-              <div class="grid-cell status-cell">
-                {#if instance.running}
-                  {#if instance.healthy}
-                    <span class="status-dot running" title="Running"></span>
-                  {:else if instance.healthy === false}
-                    <span class="status-dot unhealthy" title="Unhealthy"></span>
-                  {:else}
-                    <span class="status-dot starting" title="Starting"></span>
-                  {/if}
-                {:else}
-                  <span class="status-dot stopped" title="Stopped"></span>
-                {/if}
-              </div>
-              <div class="grid-cell name">
-                <div class="service-icon" style="--brand-color: {getServiceStyle(instance.service_type).color}" title="{instance.service_type}">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    {@html getServiceStyle(instance.service_type).icon}
-                  </svg>
-                </div>
-                <span class="instance-name">{instance.name}</span>
-              </div>
-              <div class="grid-cell domain">
-                {#if instance.mapped_domains && instance.mapped_domains.length > 0}
-                  <div class="mapped-domains">
-                    {#each instance.mapped_domains as domain}
-                      <div class="url-cell">
-                        {#if instance.running && resolverInstalled}
-                          <a
-                            href="https://{domain}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="url-link"
-                            title={domain}
-                          >
-                            {domain}
-                          </a>
-                        {:else}
-                          <span class="domain-inactive">{domain}</span>
-                        {/if}
-                        <button
-                          class="copy-btn"
-                          onclick={() => copyToClipboard(domain, `${instance.id}-${domain}`)}
-                          title="Copy domain"
-                        >
-                          {#if copiedId === `${instance.id}-${domain}`}<Check size={13} strokeWidth={2.5} />{:else}<Copy size={13} strokeWidth={2} />{/if}
-                        </button>
-                        <button
-                          class="delete-domain-btn icon-btn danger"
-                          onclick={() => handleDeleteDomain(domain, instance.id)}
-                          title="Remove this domain"
-                        >
-                          <X size={12} strokeWidth={2} />
-                        </button>
-                      </div>
-                    {/each}
-                  </div>
-                {:else}
-                  <span class="domain-disabled">—</span>
-                {/if}
-              </div>
-              <div class="grid-cell pid" title="Process ID">{instance.pid ?? "-"}</div>
-              <div class="grid-cell port" title="Port">{instance.port}</div>
-              <div class="grid-cell disk" title="Data directory size on disk">{formatBytes(diskUsage[instance.id])}</div>
-              <div class="grid-cell actions">
-                {#if instance.running}
-                  <button
-                    class="icon-btn danger"
-                    onclick={() => onStop(instance.id)}
-                    disabled={actionLoading[instance.id]}
-                    title="Stop"
-                  >
-                    <Square size={14} fill="currentColor" strokeWidth={2} />
-                  </button>
-                {:else}
-                  {@const disabledReason = getStartDisabledReason(instance)}
-                  <button
-                    class="icon-btn {disabledReason && !actionLoading[instance.id] ? 'warning' : 'success'}"
-                    onclick={() => onStart(instance.id)}
-                    disabled={isStartDisabled(instance)}
-                    title={disabledReason || "Start"}
-                  >
-                    {#if disabledReason && !actionLoading[instance.id]}
-                      <CircleAlert size={14} strokeWidth={2} />
-                    {:else}
-                      <Play size={14} fill="currentColor" strokeWidth={0} />
-                    {/if}
-                  </button>
-                {/if}
-                <button
-                  class="icon-btn"
-                  onclick={() => onOpenSettings(instance)}
-                  title="Settings"
-                >
-                  <Settings size={14} strokeWidth={2} />
-                </button>
-                {#if isDbInstance(instance.service_type) && instance.running}
-                  <button
-                    class="icon-btn"
-                    onclick={() => (databasesInstance = instance)}
-                    title="Databases and their sizes"
-                  >
-                    <Database size={14} strokeWidth={2} />
-                  </button>
-                {/if}
-                {#if instance.service_type === "postgresql" && instance.running}
-                  <button
-                    class="icon-btn"
-                    onclick={() => (extensionsInstance = instance)}
-                    title="Extensions (pgvector, pg_partman, …)"
-                  >
-                    <Puzzle size={14} strokeWidth={2} />
-                  </button>
-                {/if}
-                <button
-                  class="icon-btn"
-                  onclick={() => onViewLogs(instance.id, instance.name)}
-                  title="View Logs"
-                >
-                  <FileText size={14} strokeWidth={2} />
-                </button>
-                <button
-                  class="icon-btn"
-                  onclick={() => onViewEnv(instance.id, instance.name, instance.service_type)}
-                  title="View ENV Variables"
-                >
-                  <CodeXml size={14} strokeWidth={2} />
-                </button>
-                <button
-                  class="icon-btn"
-                  onclick={() => onViewInfo(instance.id, instance.name, instance.service_type)}
-                  title="View Information"
-                >
-                  <Info size={14} strokeWidth={2} />
-                </button>
-                <button
-                  class="icon-btn danger"
-                  onclick={() => onDelete(instance.id, instance.name)}
-                  disabled={actionLoading[instance.id]}
-                  title="Delete"
-                >
-                  <Trash2 size={14} strokeWidth={2} />
-                </button>
-              </div>
-            </div>
+  <InstanceRow {instance} {showCheckbox} {index} {selectionMode} {selectedInstances} {draggedInstanceId} {dragOverInstanceId} {resolverInstalled} {copiedId}
+    busy={!!actionLoading[instance.id]} diskUsage={diskUsage[instance.id]} disabledReason={getStartDisabledReason(instance)}
+    actions={{ onSelect: toggleInstanceSelection, onDragStart: handleMouseDragStart, onReorder: reorderWithKeyboard, onCopy: copyToClipboard,
+      onDeleteDomain: handleDeleteDomain, onStart, onStop, onSettings: onOpenSettings, onLogs: onViewLogs, onEnv: onViewEnv,
+      onInfo: onViewInfo, onDelete, onDatabases: (instance) => databasesInstance = instance, onExtensions: (instance) => extensionsInstance = instance }} />
 {/snippet}
 
 <style>
+
   .instances-section {
     display: flex;
     flex-direction: column;
@@ -1234,20 +831,6 @@
     overflow-x: auto;
   }
 
-  .create-form {
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: var(--sp-6);
-    border: 1px solid var(--border);
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
   label {
     display: flex;
     flex-direction: column;
@@ -1259,7 +842,7 @@
     font-weight: 500;
   }
 
-  input, select {
+  input {
     padding: 0.5rem;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
@@ -1269,76 +852,25 @@
   }
 
   @media (prefers-color-scheme: dark) {
-    input, select {
+    input {
       background: #1c1c1e;
       border-color: #3a3a3c;
     }
   }
 
-  input:focus, select:focus {
+  input:focus {
     outline: none;
     border-color: #007aff;
-  }
-
-  .form-hint {
-    margin: 0.5rem 0 0;
-    font-size: 0.875rem;
-    color: #ff9500;
-  }
-
-  .domain-input-group {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .domain-input {
-    flex: 1;
-  }
-
-  .domain-suffix {
-    color: var(--text-muted);
-    font-size: 0.875rem;
-    font-family: monospace;
-  }
-
-  .optional-label {
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    font-weight: 400;
-  }
-
-  .field-hint {
-    display: block;
-    margin-top: 0.25rem;
-    font-size: 0.75rem;
-    color: var(--text-muted);
   }
 
   .instances-grid {
     width: 100%;
     font-size: 0.875rem;
-    --grid-columns: 32px auto 1fr 2fr auto auto auto auto;
+    --grid-columns: 24px 20px minmax(140px, 1.4fr) minmax(100px, 1fr) auto auto auto;
   }
 
   .grid-body {
     display: contents;
-  }
-
-  .grid-row {
-    display: grid;
-    grid-template-columns: var(--grid-columns);
-    gap: 0;
-    transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
-  }
-
-  .drag-handle {
-    cursor: grab;
-    user-select: none;
-  }
-
-  .drag-handle:active {
-    cursor: grabbing;
   }
 
   :global(body.dragging-instance) {
@@ -1346,187 +878,13 @@
     user-select: none;
   }
 
-  .grid-cell {
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid #f0f0f0;
-    display: flex;
-    align-items: center;
-    min-height: 36px;
-    overflow: hidden;
-  }
+  @media (prefers-color-scheme: dark) {
 
-  .grid-row:last-child .grid-cell {
-    border-bottom: none;
-  }
-
-  .grid-row:hover {
-    background: rgba(0, 0, 0, 0.04);
   }
 
   @media (prefers-color-scheme: dark) {
-    .grid-cell {
-      border-bottom-color: #38383a;
-    }
-    .grid-row:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-  }
 
-  .grid-cell.name {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
   }
-
-  .grid-cell.name .service-icon {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: color-mix(in srgb, var(--brand-color) 15%, transparent);
-    color: var(--brand-color);
-    flex-shrink: 0;
-  }
-
-  .grid-cell.name .service-icon svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .grid-cell.name .instance-name {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .grid-cell.domain {
-    min-width: 0;
-    overflow: hidden;
-  }
-
-  .grid-cell.port {
-    font-family: monospace;
-    white-space: nowrap;
-    justify-content: flex-start;
-  }
-
-  .grid-cell.pid {
-    font-family: monospace;
-    color: var(--text-muted);
-    white-space: nowrap;
-    justify-content: flex-start;
-  }
-
-  .grid-cell.disk {
-    font-family: monospace;
-    color: var(--text-muted);
-    white-space: nowrap;
-    justify-content: flex-start;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .url-cell {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .url-link {
-    color: #007aff;
-    text-decoration: none;
-    font-size: 0.8125rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .url-link:hover {
-    text-decoration: underline;
-  }
-
-  .copy-btn {
-    background: none;
-    border: none;
-    padding: 0.125rem 0.25rem;
-    cursor: pointer;
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    border-radius: 3px;
-    transition: all 0.15s ease;
-  }
-
-  .copy-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--text);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .copy-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #f5f5f7;
-    }
-  }
-
-  .delete-domain-btn {
-    padding: 0.25rem;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-    background: none;
-    border: none;
-    cursor: pointer;
-    border-radius: 3px;
-  }
-
-  .url-cell:hover .delete-domain-btn {
-    opacity: 1;
-  }
-
-  .delete-domain-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
-  }
-
-  .delete-domain-btn svg {
-    color: #ef4444;
-  }
-
-  .domain-inactive, .domain-disabled {
-    color: var(--text-muted);
-    font-size: 0.8125rem;
-  }
-
-  .grid-cell.actions {
-    white-space: nowrap;
-    display: flex;
-    gap: 0.25rem;
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-  }
-
-  .status-cell {
-    justify-content: center;
-  }
-
-  .status-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    cursor: default;
-  }
-
-  .status-dot.running { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.5); }
-  .status-dot.stopped { background: #9ca3af; }
-  .status-dot.starting { background: #f59e0b; animation: pulse 1.5s ease-in-out infinite; }
-  .status-dot.unhealthy { background: #ef4444; animation: pulse 1s ease-in-out infinite; }
 
   @keyframes pulse {
     0%, 100% { opacity: 1; }
@@ -1618,22 +976,9 @@
     color: #16a34a;
   }
 
-  .icon-btn.warning {
-    color: #f59e0b;
-  }
-
-  .icon-btn.warning:hover {
-    background: rgba(245, 158, 11, 0.1);
-    color: #d97706;
-  }
-
   .icon-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-
-  .spinning {
-    animation: spin 1s linear infinite;
   }
 
   @keyframes spin {
@@ -1660,13 +1005,7 @@
       background: rgba(74, 222, 128, 0.2);
       color: #86efac;
     }
-    .icon-btn.warning {
-      color: #fbbf24;
-    }
-    .icon-btn.warning:hover {
-      background: rgba(251, 191, 36, 0.2);
-      color: #fcd34d;
-    }
+
   }
 
   .loading, .empty {
@@ -1679,23 +1018,6 @@
   :global(:root[data-theme="light"]) .card {
     background: var(--surface) !important;
   }
-
-  :global(:root[data-theme="light"]) .create-form {
-    background: var(--surface) !important;
-  }
-
-  :global(:root[data-theme="light"]) .grid-cell {
-    border-bottom-color: #f0f0f0 !important;
-  }
-
-  :global(:root[data-theme="light"]) .grid-row:hover {
-    background: rgba(0, 0, 0, 0.04) !important;
-  }
-
-  :global(:root[data-theme="light"]) .status-dot.running { background: #22c55e !important; }
-  :global(:root[data-theme="light"]) .status-dot.stopped { background: #9ca3af !important; }
-  :global(:root[data-theme="light"]) .status-dot.starting { background: #f59e0b !important; }
-  :global(:root[data-theme="light"]) .status-dot.unhealthy { background: #ef4444 !important; }
 
   :global(:root[data-theme="light"]) .refresh-btn {
     color: var(--text-muted) !important;
@@ -1724,37 +1046,11 @@
     color: #16a34a !important;
   }
 
-  :global(:root[data-theme="light"]) .copy-btn {
-    color: var(--text-muted) !important;
-  }
-  :global(:root[data-theme="light"]) .copy-btn:hover {
-    background: rgba(0, 0, 0, 0.05) !important;
-    color: var(--text) !important;
-  }
-
   /* Dark mode explicit overrides */
   :global(:root[data-theme="dark"]) .card {
     background: #2c2c2e !important;
     border-color: #38383a !important;
   }
-
-  :global(:root[data-theme="dark"]) .create-form {
-    background: #2c2c2e !important;
-    border-color: #38383a !important;
-  }
-
-  :global(:root[data-theme="dark"]) .grid-cell {
-    border-bottom-color: #38383a !important;
-  }
-
-  :global(:root[data-theme="dark"]) .grid-row:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
-  }
-
-  :global(:root[data-theme="dark"]) .status-dot.running { background: #22c55e !important; }
-  :global(:root[data-theme="dark"]) .status-dot.stopped { background: #6b7280 !important; }
-  :global(:root[data-theme="dark"]) .status-dot.starting { background: #f59e0b !important; }
-  :global(:root[data-theme="dark"]) .status-dot.unhealthy { background: #ef4444 !important; }
 
   :global(:root[data-theme="dark"]) .refresh-btn {
     color: #98989d !important;
@@ -1783,21 +1079,12 @@
     color: #86efac !important;
   }
 
-  :global(:root[data-theme="dark"]) .copy-btn {
-    color: #98989d !important;
-  }
-  :global(:root[data-theme="dark"]) .copy-btn:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: #f5f5f7 !important;
-  }
-
   :global(:root[data-theme="dark"]) .btn.secondary {
     background: #3a3a3c !important;
     color: #f5f5f7 !important;
   }
 
-  :global(:root[data-theme="dark"]) input,
-  :global(:root[data-theme="dark"]) select {
+  :global(:root[data-theme="dark"]) input {
     background: #1c1c1e !important;
     border-color: #3a3a3c !important;
   }
@@ -1854,7 +1141,7 @@
     align-items: center;
   }
 
-  .stack-toggle svg.rotated {
+  .stack-toggle :global(svg.rotated) {
     transform: rotate(90deg);
   }
 
@@ -1928,17 +1215,6 @@
   }
 
   /* Checkbox column */
-  .checkbox-col {
-    width: 32px;
-    justify-content: center;
-  }
-
-  .checkbox-col input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-    accent-color: #007aff;
-  }
 
   /* Modal styles */
 
@@ -1951,11 +1227,6 @@
     overflow-y: auto;
     box-shadow: var(--shadow-modal);
   }
-
-
-
-
-
 
   .modal-body textarea {
     min-height: 80px;
@@ -2018,10 +1289,6 @@
     border-bottom-color: #38383a !important;
   }
 
-  :global(:root[data-theme="dark"]) .close-btn:hover {
-    color: #f5f5f7 !important;
-  }
-
   :global(:root[data-theme="dark"]) .modal-footer {
     border-top-color: #38383a !important;
   }
@@ -2041,56 +1308,11 @@
   }
 
   /* Mapped domains display */
-  .mapped-domains {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    width: 100%;
-    overflow: hidden;
-  }
-
-  .mapped-domains .url-cell {
-    font-size: 0.8125rem;
-  }
 
   /* Drag and Drop Styles */
-  .drag-col {
-    width: 32px;
-    justify-content: center;
-    padding: 0.5rem 0.25rem !important;
-  }
-
-  .drag-handle {
-    padding: 0.25rem;
-    cursor: grab;
-    color: var(--text-muted);
-    opacity: 0.3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: all 0.15s ease;
-    user-select: none;
-  }
-
-  .drag-handle:hover {
-    opacity: 0.6;
-    background: rgba(0, 0, 0, 0.05);
-  }
-
-  .drag-handle:active {
-    cursor: grabbing;
-  }
-
-  .dragging .drag-handle {
-    cursor: grabbing !important;
-    opacity: 1;  /* Full opacity to show it's the active handle */
-  }
 
   @media (prefers-color-scheme: dark) {
-    .drag-handle:hover {
-      background: rgba(255, 255, 255, 0.1);
-    }
+
   }
 
   .drop-target-active {
@@ -2127,26 +1349,8 @@
     font-weight: 500;
   }
 
-  .grid-row.dragging {
-    opacity: 0.6;  /* Slightly less transparent to remain visible */
-    transform: scale(0.98);  /* Slight shrink effect */
-    background: rgba(59, 130, 246, 0.08) !important;  /* Light blue tint */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);  /* Elevation shadow */
-    border: 2px dashed #3b82f6 !important;  /* Blue dashed border */
-    cursor: grabbing !important;  /* Maintain grabbing cursor */
-  }
-
   @media (prefers-color-scheme: dark) {
-    .grid-row.dragging {
-      opacity: 0.7;  /* Better visibility in dark mode */
-      background: rgba(59, 130, 246, 0.12) !important;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);  /* Stronger shadow for dark */
-    }
-  }
 
-  .grid-row.drag-over {
-    border-top: 3px solid #3b82f6;
-    border-bottom: 3px solid #3b82f6;
   }
 
   /* DnD Error notification */
@@ -2171,16 +1375,6 @@
       transform: translateY(0);
       opacity: 1;
     }
-  }
-
-  .dnd-error .close-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.25rem;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
   }
 
   @media (prefers-color-scheme: dark) {

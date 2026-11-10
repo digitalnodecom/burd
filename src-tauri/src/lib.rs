@@ -37,6 +37,7 @@ mod nvm;
 pub mod park;
 mod park_watcher;
 mod process;
+pub use process::ProcessManager;
 mod proxy;
 mod pvm;
 mod resolver;
@@ -169,6 +170,7 @@ use commands::{
     restart_instance,
     restart_proxy_daemon,
     restart_proxy_for_certs,
+    save_instance_settings,
     set_database_extension,
     set_default_node_version,
     set_default_php_version,
@@ -207,7 +209,6 @@ use config::ConfigStore;
 use dns::DnsServer;
 use mail_notifier::MailNotifierState;
 use park_watcher::ParkWatcherState;
-use process::ProcessManager;
 use proxy::ProxyServer;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -503,6 +504,7 @@ pub fn run() {
             get_resolver_status,
             // Instance config commands
             get_instance_config,
+            save_instance_settings,
             update_instance_config,
             change_instance_version,
             get_instance_env,

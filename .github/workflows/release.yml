@@ -351,7 +351,7 @@ jobs:
   # Publish the GitHub release (remove draft status)
   publish-release:
     needs: [prepare, build-tauri-aarch64, build-tauri-x64, build-cli, publish-updates]
-    if: ${{ always() && needs.publish-updates.result == 'success' }}
+    if: ${{ success() && needs.publish-updates.result == 'success' }}
     runs-on: ubuntu-latest
 
     steps:

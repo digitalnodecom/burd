@@ -1,6 +1,7 @@
 <script lang="ts">
   import "../app.css";
+  import { dialogs } from "$lib/actions/dialogs";
   let { children } = $props();
 </script>
 
-{@render children()}
+<div use:dialogs style="display: contents">{@render children()}</div>

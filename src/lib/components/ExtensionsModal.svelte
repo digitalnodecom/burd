@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Modal from "$lib/components/Modal.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { X } from "@lucide/svelte";
 
@@ -98,8 +99,8 @@
   });
 </script>
 
-<div class="modal-overlay" onclick={onClose} onkeydown={(e) => e.key === "Escape" && onClose()} role="dialog" aria-modal="true" tabindex="-1">
-  <div class="modal" onclick={(e) => e.stopPropagation()} role="document">
+<Modal onClose={onClose} overlayClass="modal-overlay">
+  <div class="modal"  role="document">
     <div class="modal-header">
       <h2 class="modal-title">PostgreSQL Extensions</h2>
       <span class="modal-subtitle">{instanceName}</span>
@@ -161,7 +162,7 @@
       {/if}
     </div>
   </div>
-</div>
+</Modal>
 
 <style>
   /* Modal shell comes from app.css. */

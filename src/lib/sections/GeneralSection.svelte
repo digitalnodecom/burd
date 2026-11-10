@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Modal from "$lib/components/Modal.svelte";
   import { X } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { RefreshCw } from "@lucide/svelte";
@@ -713,11 +714,11 @@
 </div>
 
 {#if showConfigModal && proxyConfig}
-  <div class="modal-overlay" onclick={() => showConfigModal = false} onkeydown={(e) => e.key === 'Escape' && (showConfigModal = false)} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="modal-content" onclick={(e) => e.stopPropagation()} role="document">
+  <Modal onClose={() => showConfigModal = false} overlayClass="modal-overlay">
+    <div class="modal-content"  role="document">
       <div class="modal-header">
         <h3 class="modal-title">Reverse Proxy Configuration</h3>
-        <button class="modal-close" onclick={() => showConfigModal = false}><X size={16} strokeWidth={2} /></button>
+        <button aria-label="Close" class="modal-close" onclick={() => showConfigModal = false}><X size={16} strokeWidth={2} /></button>
       </div>
       <div class="modal-body">
         <div class="config-section">
@@ -765,7 +766,7 @@
         {/if}
       </div>
     </div>
-  </div>
+  </Modal>
 {/if}
 
 <style>
@@ -1329,16 +1330,11 @@
     }
   }
 
-
   @media (prefers-color-scheme: dark) {
   }
 
-
-
-
   @media (prefers-color-scheme: dark) {
   }
-
 
   .config-section {
     margin-bottom: 1.5rem;

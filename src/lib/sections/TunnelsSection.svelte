@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Modal from "$lib/components/Modal.svelte";
   import { X, RefreshCw } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { confirm } from "@tauri-apps/plugin-dialog";
@@ -547,11 +548,11 @@
 
 <!-- View Config Modal -->
 {#if showConfigModal}
-  <div class="modal-overlay" onclick={() => (showConfigModal = false)} onkeydown={(e) => e.key === 'Escape' && (showConfigModal = false)} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="modal wide" onclick={(e) => e.stopPropagation()} role="document">
+  <Modal onClose={() => (showConfigModal = false)} overlayClass="modal-overlay">
+    <div class="modal wide"  role="document">
       <div class="modal-header">
         <h3 class="modal-title">frpc Configuration</h3>
-        <button class="modal-close" onclick={() => (showConfigModal = false)}><X size={16} strokeWidth={2} /></button>
+        <button aria-label="Close" class="modal-close" onclick={() => (showConfigModal = false)}><X size={16} strokeWidth={2} /></button>
       </div>
       <div class="modal-content">
         <div class="code-block config-block">
@@ -562,7 +563,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </Modal>
 {/if}
 
 <style>
@@ -868,10 +869,8 @@
     }
   }
 
-
   @media (prefers-color-scheme: dark) {
   }
-
 
   .modal-close {
     background: none;

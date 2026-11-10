@@ -56,8 +56,28 @@ jobs:
           cd src-tauri
           cargo test
 
+      - name: Native service smoke test
+        run: |
+          brew list redis >/dev/null 2>&1 || brew install redis
+          cd src-tauri
+          BURD_TEST_REDIS_BINARY="$(brew --prefix redis)/bin/redis-server" cargo test --test native_lifecycle -- --ignored
+
       - name: Check Svelte
         run: npm run check
 
       - name: Build frontend
         run: npm run build
+
+      - name: Install browser test runner
+        run: |
+          npm install --no-save agent-browser
+          npx agent-browser install
+      - name: Test browser interactions
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/burd-preview.log 2>&1 &
+          for attempt in {1..30}; do
+            curl -sf http://127.0.0.1:1420/ > /dev/null && break
+            sleep 1
+          done
+          export PATH="$PWD/node_modules/.bin:$PATH"
+          npm run test:ui

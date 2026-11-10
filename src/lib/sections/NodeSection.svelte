@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Modal from "$lib/components/Modal.svelte";
   import { Info, Star, Trash2 } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { confirm } from "@tauri-apps/plugin-dialog";
@@ -272,11 +273,11 @@
 </div>
 
 {#if showInstallDialog}
-  <div class="dialog-overlay" onclick={() => (showInstallDialog = false)} onkeydown={(e) => e.key === 'Escape' && (showInstallDialog = false)} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="dialog" onclick={(e) => e.stopPropagation()} role="document">
+  <Modal onClose={() => (showInstallDialog = false)} overlayClass="dialog-overlay">
+    <div class="dialog"  role="document">
       <div class="dialog-header">
         <h3>Install Node.js Version</h3>
-        <button class="dialog-close" onclick={() => (showInstallDialog = false)}>&times;</button>
+        <button aria-label="Close" class="dialog-close" onclick={() => (showInstallDialog = false)}>&times;</button>
       </div>
       <div class="dialog-content">
         {#if loadingRemote}
@@ -309,7 +310,7 @@
         {/if}
       </div>
     </div>
-  </div>
+  </Modal>
 {/if}
 
 <style>
@@ -331,39 +332,8 @@
     font-weight: 600;
   }
 
-  .title-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .refresh-btn {
-    background: none;
-    border: none;
-    padding: 0.375rem;
-    border-radius: 6px;
-    cursor: pointer;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s ease;
-  }
-
-  .refresh-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--text);
-  }
-
   @media (prefers-color-scheme: dark) {
-    .refresh-btn {
-      color: #98989d;
-    }
 
-    .refresh-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #f5f5f7;
-    }
   }
 
   .card {
@@ -442,7 +412,7 @@
     margin-bottom: 1rem;
   }
 
-  .not-installed-icon svg {
+  .not-installed-icon :global(svg) {
     stroke: #ff9500;
   }
 
@@ -676,18 +646,6 @@
   }
 
   /* Dialog styles */
-  .dialog-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
 
   .dialog {
     background: var(--surface);
@@ -789,14 +747,6 @@
     background: var(--surface) !important;
   }
 
-  :global(:root[data-theme="light"]) .refresh-btn {
-    color: var(--text-muted) !important;
-  }
-  :global(:root[data-theme="light"]) .refresh-btn:hover {
-    background: rgba(0, 0, 0, 0.05) !important;
-    color: var(--text) !important;
-  }
-
   :global(:root[data-theme="light"]) .icon-btn {
     color: var(--text-muted) !important;
   }
@@ -838,14 +788,6 @@
   :global(:root[data-theme="dark"]) .card {
     background: #2c2c2e !important;
     border-color: #38383a !important;
-  }
-
-  :global(:root[data-theme="dark"]) .refresh-btn {
-    color: #98989d !important;
-  }
-  :global(:root[data-theme="dark"]) .refresh-btn:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: #f5f5f7 !important;
   }
 
   :global(:root[data-theme="dark"]) .icon-btn {

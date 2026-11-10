@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Modal from "$lib/components/Modal.svelte";
   import { X } from '@lucide/svelte';
   import { TriangleAlert } from '@lucide/svelte';
   interface Stack {
@@ -35,6 +36,7 @@
   type DeleteOption = "keep" | "delete";
   let deleteOption = $state<DeleteOption>("keep");
   let confirmText = $state("");
+  let deleting = $state(false);
 
   // Derived
   let stackInstances = $derived(
@@ -55,12 +57,13 @@
   });
 
   function handleClose() {
-    onClose();
+    if (!deleting) onClose();
   }
 
-  function handleConfirm() {
-    if (!stack || !confirmationValid) return;
-    onConfirm(stack.id, deleteOption === "delete");
+  async function handleConfirm() {
+    if (!stack || !confirmationValid || deleting) return;
+    deleting = true;
+    try { await onConfirm(stack.id, deleteOption === "delete"); } finally { deleting = false; }
   }
 
   function formatServiceType(type: string): string {
@@ -69,8 +72,8 @@
 </script>
 
 {#if show && stack}
-  <div class="modal-overlay" onclick={handleClose} onkeydown={(e) => e.key === 'Escape' && handleClose()} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="modal" onclick={(e) => e.stopPropagation()} role="document">
+  <Modal onClose={handleClose} overlayClass="modal-overlay">
+    <div class="modal"  role="document">
       <div class="modal-header">
         <h3 class="modal-title">Delete Stack</h3>
         <button class="modal-close" onclick={handleClose} aria-label="Close"><X size={16} strokeWidth={2} /></button>
@@ -122,7 +125,7 @@
               />
               <div class="option-content">
                 <span class="option-title">Delete all instances</span>
-                <span class="option-desc">Permanently remove all instances and their data</span>
+                <span class="option-desc">Stop and remove instances and domains. Data remains on disk.</span>
               </div>
             </label>
           </div>
@@ -161,7 +164,7 @@
         <button
           class="btn {deleteOption === 'delete' ? 'danger' : 'primary'}"
           onclick={handleConfirm}
-          disabled={!confirmationValid}
+          disabled={!confirmationValid || deleting}
         >
           {#if deleteOption === "delete"}
             Delete Stack & Instances
@@ -171,11 +174,10 @@
         </button>
       </div>
     </div>
-  </div>
+  </Modal>
 {/if}
 
 <style>
-
 
   .delete-prompt {
     margin: 0 0 1rem 0;
@@ -308,7 +310,7 @@
     margin-bottom: 1rem;
   }
 
-  .warning-banner svg {
+  .warning-banner :global(svg) {
     flex-shrink: 0;
     margin-top: 0.125rem;
   }
@@ -385,7 +387,6 @@
 
   /* Dark mode */
   @media (prefers-color-scheme: dark) {
-
 
     .instance-list {
       background: #1c1c1e;

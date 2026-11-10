@@ -15,6 +15,7 @@ use super::{
 
 pub struct ConfigStore {
     config_path: PathBuf,
+    revision: std::sync::Mutex<Option<String>>,
 }
 
 impl ConfigStore {
@@ -25,16 +26,26 @@ impl ConfigStore {
 
         Ok(Self {
             config_path: app_dir.join("config.json"),
+            revision: std::sync::Mutex::new(None),
         })
     }
 
     pub fn load(&self) -> Result<Config, String> {
         if !self.config_path.exists() {
+            *self
+                .revision
+                .lock()
+                .map_err(|_| "Config revision lock poisoned")? = None;
             return Ok(Config::default());
         }
 
         let content = fs::read_to_string(&self.config_path)
             .map_err(|e| format!("Failed to read config: {}", e))?;
+
+        *self
+            .revision
+            .lock()
+            .map_err(|_| "Config revision lock poisoned")? = Some(content.clone());
 
         // Pre-process: remove instances with removed service types (e.g., nodered)
         let content = Self::migrate_removed_services(&content);
@@ -91,6 +102,25 @@ impl ConfigStore {
         let content = serde_json::to_string_pretty(config)
             .map_err(|e| format!("Failed to serialize config: {}", e))?;
 
+        use std::os::fd::AsRawFd;
+        let lock_file = fs::OpenOptions::new()
+            .create(true)
+            .truncate(false)
+            .write(true)
+            .open(self.config_path.with_extension("lock"))
+            .map_err(|e| e.to_string())?;
+        // flock is released when this descriptor closes, including error returns.
+        if unsafe { libc::flock(lock_file.as_raw_fd(), libc::LOCK_EX) } != 0 {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+        let current = fs::read_to_string(&self.config_path).ok();
+        let mut revision = self
+            .revision
+            .lock()
+            .map_err(|_| "Config revision lock poisoned")?;
+        if current != *revision {
+            return Err("Configuration changed in another process. Reload and retry.".into());
+        }
         // Atomic write: write to temp file, then rename
         // This prevents data corruption if process crashes mid-write
         let temp_path = self.config_path.with_extension("json.tmp");
@@ -99,7 +129,9 @@ impl ConfigStore {
             .map_err(|e| format!("Failed to write temp config: {}", e))?;
 
         fs::rename(&temp_path, &self.config_path)
-            .map_err(|e| format!("Failed to rename config: {}", e))
+            .map_err(|e| format!("Failed to rename config: {}", e))?;
+        *revision = Some(content);
+        Ok(())
     }
 
     // ========================================================================
@@ -1454,5 +1486,30 @@ impl ConfigStore {
         self.save(&config)?;
 
         Ok(removed)
+    }
+}
+
+#[cfg(test)]
+mod concurrency_tests {
+    use super::*;
+
+    #[test]
+    fn stale_writer_cannot_overwrite_another_process() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        let first = ConfigStore {
+            config_path: path.clone(),
+            revision: std::sync::Mutex::new(None),
+        };
+        let second = ConfigStore {
+            config_path: path,
+            revision: std::sync::Mutex::new(None),
+        };
+        let mut a = first.load().unwrap();
+        let b = second.load().unwrap();
+        a.tld = "example".into();
+        first.save(&a).unwrap();
+        assert!(second.save(&b).unwrap_err().contains("another process"));
+        assert_eq!(second.load().unwrap().tld, "example");
     }
 }

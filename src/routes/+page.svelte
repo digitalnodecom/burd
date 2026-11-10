@@ -1,8 +1,12 @@
 <script lang="ts">
-  import { X, Copy, Lock, LockOpen, Trash2, TriangleAlert } from '@lucide/svelte';
+  import InstanceSettingsModal from "$lib/components/InstanceSettingsModal.svelte";
+  import InstanceInspector from "$lib/components/InstanceInspector.svelte";
+  import Modal from "$lib/components/Modal.svelte";
+  import { deleteStack as removeStack } from "$lib/api/instances";
+  import { X } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
-  import { open, confirm, message } from "@tauri-apps/plugin-dialog";
+  import { confirm, message } from "@tauri-apps/plugin-dialog";
   import { onMount } from "svelte";
   import { useKonamiCode } from "$lib/composables/useKonamiCode.svelte";
   import { createUpdater } from "$lib/composables/useUpdater.svelte";
@@ -25,24 +29,8 @@
   import TinkerSection from "$lib/sections/TinkerSection.svelte";
   import MailSection from "$lib/sections/MailSection.svelte";
 
+  import type { Instance, ServiceInfo, ConfigFieldInfo } from "$lib/types";
   // === Type Definitions ===
-  interface Instance {
-    id: string;
-    name: string;
-    port: number;
-    service_type: string;
-    version: string;
-    running: boolean;
-    pid: number | null;
-    healthy: boolean | null;
-    has_config: boolean;
-    domain: string;
-    domain_enabled: boolean;
-    process_manager: string;
-    stack_id: string | null;
-    mapped_domains: string[];
-    auto_start: boolean;
-  }
 
   interface Stack {
     id: string;
@@ -121,53 +109,6 @@
     is_latest: boolean;
   }
 
-  interface ServiceInfo {
-    id: string;
-    display_name: string;
-    default_port: number;
-    config_fields: ConfigFieldInfo[];
-    available: boolean;
-    is_homebrew: boolean;
-    process_manager: string;
-  }
-
-  interface ConfigFieldInfo {
-    key: string;
-    label: string;
-    field_type: string;
-    required: boolean;
-    default: string | null;
-  }
-
-  interface InstanceConfigResponse {
-    id: string;
-    name: string;
-    service_type: string;
-    config: Record<string, unknown>;
-  }
-
-  interface InstanceInfo {
-    id: string;
-    name: string;
-    service_type: string;
-    version: string;
-    port: number;
-    running: boolean;
-    pid: number | null;
-    categories: InfoCategory[];
-  }
-
-  interface InfoCategory {
-    title: string;
-    items: InfoItem[];
-  }
-
-  interface InfoItem {
-    label: string;
-    value: string;
-    copyable: boolean;
-  }
-
   // === Navigation State ===
   let activeSection = $state("general");
   let pendingEmailId = $state<string | null>(null);
@@ -194,28 +135,7 @@
   // Action states
   let actionLoading = $state<Record<string, boolean>>({});
 
-  // Logs modal
-  let showLogs = $state(false);
-  let logsContent = $state("");
-  let logsInstanceName = $state("");
-  let logsLoading = $state(false);
-
-  // ENV modal
-  let showEnv = $state(false);
-  let envContent = $state("");
-  let envInstanceName = $state("");
-  let envServiceType = $state("");
-  let envLoading = $state(false);
-  let envCopied = $state(false);
-
-  // Info modal
-  let showInfo = $state(false);
-  let infoContent = $state<InstanceInfo | null>(null);
-  let infoInstanceName = $state("");
-  let infoServiceType = $state("");
-  let infoLoading = $state(false);
-  let infoError = $state<string | null>(null);
-
+  let inspector = $state<{ id: string; name: string; serviceType: string; mode: 'logs' | 'env' | 'info' } | null>(null);
   // Network status
   let networkStatus = $state<NetworkStatus | null>(null);
   let installingResolver = $state(false);
@@ -269,36 +189,19 @@
   let settingsTld = $state("");
   let savingSettings = $state(false);
 
-  // Instance Settings Modal
-  let showInstanceSettings = $state(false);
-  let instanceSettingsId = $state("");
-  let instanceSettingsName = $state("");
-  let instanceSettingsOriginalName = $state("");
-  let instanceSettingsPort = $state(0);
-  let instanceSettingsOriginalPort = $state(0);
-  let instanceSettingsServiceType = $state("");
-  let instanceSettingsVersion = $state("");
-  let instanceSettingsOriginalVersion = $state("");
-  let instanceSettingsInstalledVersions = $state<string[]>([]);
-  let instanceSettingsConfig = $state<Record<string, string>>({});
-  let instanceSettingsLoading = $state(false);
-  let instanceSettingsSaving = $state(false);
-  let instanceSettingsAutoStart = $state(false);
-  let instanceSettingsOriginalAutoStart = $state(false);
-
-  // Instance Settings - Domain Management
-  let instanceSettingsDomains = $state<string[]>([]);
-  let instanceSettingsAllDomains = $state<any[]>([]);
-  let showDomainForm = $state(false);
-  let newDomainSubdomain = $state("");
-  let newDomainSsl = $state(true);
+  let settingsInstance = $state<Instance | null>(null);
 
   // === Data Loading ===
-  async function loadData() {
+  let refreshTask: Promise<void> | null = null;
+  function loadData(): Promise<void> {
+    if (refreshTask) return refreshTask;
+    refreshTask = refreshData().finally(() => { refreshTask = null; });
+    return refreshTask;
+  }
+  async function refreshData() {
     try {
-      loading = true;
-      error = null;
-      const [instancesResult, stacksResult, binaryResult, servicesResult, networkResult, proxyResult, cliResult, helperResult, parkEnabledResult, caTrustResult] = await Promise.all([
+      loading = instances.length === 0;
+      const results = await Promise.allSettled([
         invoke<Instance[]>("list_instances"),
         invoke<Stack[]>("list_stacks"),
         invoke<BinaryStatus[]>("get_all_binary_statuses"),
@@ -310,18 +213,18 @@
         invoke<boolean>("is_park_enabled"),
         invoke<CATrustStatus>("get_ca_trust_status"),
       ]);
-      instances = instancesResult;
-      stacks = stacksResult;
-      binaryStatuses = binaryResult;
-      networkStatus = networkResult;
-      proxyStatus = proxyResult;
-      cliStatus = cliResult;
-      helperStatus = helperResult;
-      parkEnabled = parkEnabledResult;
-      caTrustStatus = caTrustResult;
-      if (servicesResult.length > 0) {
-        serviceTypes = servicesResult.filter(s => s.available);
-      }
+      if (results[0].status === "fulfilled") instances = results[0].value;
+      if (results[1].status === "fulfilled") stacks = results[1].value;
+      if (results[2].status === "fulfilled") binaryStatuses = results[2].value;
+      if (results[3].status === "fulfilled") serviceTypes = results[3].value.filter((s: ServiceInfo) => s.available);
+      if (results[4].status === "fulfilled") networkStatus = results[4].value;
+      if (results[5].status === "fulfilled") proxyStatus = results[5].value;
+      if (results[6].status === "fulfilled") cliStatus = results[6].value;
+      if (results[7].status === "fulfilled") helperStatus = results[7].value;
+      if (results[8].status === "fulfilled") parkEnabled = results[8].value;
+      if (results[9].status === "fulfilled") caTrustStatus = results[9].value;
+      const failures = results.filter(r => r.status === "rejected");
+      if (failures.length) error = failures.map(r => String((r as PromiseRejectedResult).reason)).join("; ");
       // Fetch installed versions for all services
       for (const svc of serviceTypes) {
         try {
@@ -491,79 +394,9 @@
     if (url) window.open(url, "_blank");
   }
 
-  async function viewLogs(id: string, name: string) {
-    try {
-      logsLoading = true;
-      logsInstanceName = name;
-      showLogs = true;
-      logsContent = await invoke<string>("get_instance_logs", { id });
-    } catch (e) {
-      logsContent = `Error loading logs: ${e}`;
-    } finally {
-      logsLoading = false;
-    }
-  }
-
-  async function refreshLogs(id: string) {
-    try {
-      logsLoading = true;
-      logsContent = await invoke<string>("get_instance_logs", { id });
-    } catch (e) {
-      logsContent = `Error loading logs: ${e}`;
-    } finally {
-      logsLoading = false;
-    }
-  }
-
-  async function viewEnv(id: string, name: string, serviceType: string) {
-    try {
-      envLoading = true;
-      envInstanceName = name;
-      envServiceType = serviceType;
-      envCopied = false;
-      showEnv = true;
-      envContent = await invoke<string>("get_instance_env", { id });
-    } catch (e) {
-      envContent = `Error loading ENV: ${e}`;
-    } finally {
-      envLoading = false;
-    }
-  }
-
-  async function viewInfo(id: string, name: string, serviceType: string) {
-    try {
-      infoLoading = true;
-      infoInstanceName = name;
-      infoServiceType = serviceType;
-      infoError = null;
-      showInfo = true;
-      infoContent = await invoke<InstanceInfo>("get_instance_info", { id });
-    } catch (e) {
-      infoError = String(e);
-      infoContent = null;
-    } finally {
-      infoLoading = false;
-    }
-  }
-
-  async function copyInfoValue(value: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-      // Show visual feedback (could enhance with a state variable if desired)
-    } catch (e) {
-      console.error("Failed to copy:", e);
-    }
-  }
-
-  async function copyEnvToClipboard() {
-    try {
-      await navigator.clipboard.writeText(envContent);
-      envCopied = true;
-      setTimeout(() => { envCopied = false; }, 2000);
-    } catch (e) {
-      error = `Failed to copy: ${e}`;
-    }
-  }
+  function viewLogs(id: string, name: string) { inspector = { id, name, serviceType: '', mode: 'logs' }; }
+  function viewEnv(id: string, name: string, serviceType: string) { inspector = { id, name, serviceType, mode: 'env' }; }
+  function viewInfo(id: string, name: string, serviceType: string) { inspector = { id, name, serviceType, mode: 'info' }; }
 
   function handleServiceTypeChange(serviceType: string): { port: number } {
     const meta = serviceTypes.find(s => s.id === serviceType);
@@ -603,7 +436,7 @@
   async function handleDeleteStackConfirm(stackId: string, deleteInstances: boolean) {
     try {
       error = null;
-      await invoke("delete_stack", { id: stackId, delete_instances: deleteInstances });
+      await removeStack(stackId, deleteInstances);
       showDeleteStackModal = false;
       deletingStack = null;
       await loadData();
@@ -646,8 +479,10 @@
         actionLoading = { ...actionLoading, [instance.id]: true };
       }
       // Start all instances in parallel
-      await Promise.all(stackInstances.map(instance => invoke("start_instance", { id: instance.id })));
+      const results = await Promise.allSettled(stackInstances.map(instance => invoke("start_instance", { id: instance.id })));
       await loadData();
+      const failures = results.flatMap((result, index) => result.status === "rejected" ? [`${stackInstances[index].name}: ${result.reason}`] : []);
+      if (failures.length) error = failures.join("; ");
     } catch (e) {
       error = String(e);
     } finally {
@@ -666,8 +501,10 @@
         actionLoading = { ...actionLoading, [instance.id]: true };
       }
       // Stop all instances in parallel
-      await Promise.all(stackInstances.map(instance => invoke("stop_instance", { id: instance.id })));
+      const results = await Promise.allSettled(stackInstances.map(instance => invoke("stop_instance", { id: instance.id })));
       await loadData();
+      const failures = results.flatMap((result, index) => result.status === "rejected" ? [`${stackInstances[index].name}: ${result.reason}`] : []);
+      if (failures.length) error = failures.join("; ");
     } catch (e) {
       error = String(e);
     } finally {
@@ -678,219 +515,7 @@
     }
   }
 
-  // === Instance Settings ===
-  async function openInstanceSettings(instance: Instance) {
-    try {
-      instanceSettingsLoading = true;
-      instanceSettingsId = instance.id;
-      instanceSettingsName = instance.name;
-      instanceSettingsOriginalName = instance.name;
-      instanceSettingsPort = instance.port;
-      instanceSettingsOriginalPort = instance.port;
-      instanceSettingsVersion = instance.version;
-      instanceSettingsOriginalVersion = instance.version;
-      instanceSettingsAutoStart = instance.auto_start;
-      instanceSettingsOriginalAutoStart = instance.auto_start;
-      showInstanceSettings = true;
-      const result = await invoke<InstanceConfigResponse>("get_instance_config", { id: instance.id });
-      instanceSettingsServiceType = result.service_type;
-
-      // Fetch installed versions for this service type
-      try {
-        instanceSettingsInstalledVersions = await invoke<string[]>("get_installed_versions", {
-          serviceType: result.service_type
-        });
-      } catch (e) {
-        console.error("Failed to fetch installed versions:", e);
-        instanceSettingsInstalledVersions = [instance.version]; // Fallback to current version
-      }
-
-      const config: Record<string, string> = {};
-      const serviceMeta = serviceTypes.find(s => s.id === result.service_type);
-      if (serviceMeta?.config_fields) {
-        for (const field of serviceMeta.config_fields) {
-          const value = result.config[field.key];
-          config[field.key] = value !== undefined && value !== null ? String(value) : (field.default || "");
-        }
-      }
-      instanceSettingsConfig = config;
-
-      // Load domains for this instance
-      instanceSettingsDomains = instance.mapped_domains;
-      const allDomains = await invoke<any[]>("list_domains");
-      instanceSettingsAllDomains = allDomains.filter(d =>
-        instance.mapped_domains.includes(d.full_domain)
-      );
-    } catch (e) {
-      error = String(e);
-      showInstanceSettings = false;
-    } finally {
-      instanceSettingsLoading = false;
-    }
-  }
-
-  async function saveInstanceSettings() {
-    try {
-      instanceSettingsSaving = true;
-      error = null;
-
-      const instance = instances.find(i => i.id === instanceSettingsId);
-
-      // Change version if different
-      if (instanceSettingsVersion !== instanceSettingsOriginalVersion) {
-        // Stop instance first if running
-        if (instance?.running) {
-          await invoke("stop_instance", { id: instanceSettingsId });
-        }
-
-        await invoke("change_instance_version", {
-          id: instanceSettingsId,
-          newVersion: instanceSettingsVersion
-        });
-      }
-
-      // Rename if name changed
-      if (instanceSettingsName.trim() !== instanceSettingsOriginalName) {
-        await invoke("rename_instance", { id: instanceSettingsId, newName: instanceSettingsName.trim() });
-      }
-
-      // Port change requires the instance to be stopped first
-      if (instanceSettingsPort !== instanceSettingsOriginalPort) {
-        if (instance?.running) {
-          await invoke("stop_instance", { id: instanceSettingsId });
-        }
-        await invoke("update_instance_port", {
-          id: instanceSettingsId,
-          newPort: instanceSettingsPort,
-        });
-      }
-
-      await invoke("update_instance_config", { id: instanceSettingsId, config: instanceSettingsConfig });
-
-      // Persist the auto-start toggle if it changed
-      if (instanceSettingsAutoStart !== instanceSettingsOriginalAutoStart) {
-        await invoke("set_instance_auto_start", {
-          id: instanceSettingsId,
-          autoStart: instanceSettingsAutoStart,
-        });
-        if (instance) instance.auto_start = instanceSettingsAutoStart;
-      }
-
-      // Clear domain form state
-      clearDomainForm();
-      showInstanceSettings = false;
-
-      if (instance?.running) {
-        await message("Settings saved! Restart the instance for changes to take effect.", {
-          title: "Settings Saved",
-          kind: "info"
-        });
-      }
-
-      await loadData();
-    } catch (e) {
-      error = String(e);
-    } finally {
-      instanceSettingsSaving = false;
-    }
-  }
-
-  // === Instance Settings - Domain Management Functions ===
-  async function createDomainForInstance() {
-    try {
-      const subdomain = newDomainSubdomain.trim().toLowerCase();
-      if (!subdomain) {
-        await message("Please enter a subdomain", { title: "Invalid Input", kind: "error" });
-        return;
-      }
-
-      const request = {
-        subdomain: subdomain,
-        target_type: "instance",
-        target_value: instanceSettingsId,
-        ssl_enabled: newDomainSsl
-      };
-
-      await invoke("create_domain", { request });
-      await refreshInstanceSettings();
-      clearDomainForm();
-    } catch (e) {
-      await message(String(e), { title: "Error Creating Domain", kind: "error" });
-    }
-  }
-
-  async function deleteDomainFromInstance(domainName: string) {
-    try {
-      const domain = instanceSettingsAllDomains.find(d => d.full_domain === domainName);
-      if (!domain) return;
-
-      const confirmed = await confirm(`Delete ${domainName}?`, {
-        title: "Delete Domain",
-        kind: "warning"
-      });
-      if (!confirmed) return;
-
-      await invoke("delete_domain", { id: domain.id });
-      await refreshInstanceSettings();
-    } catch (e) {
-      await message(String(e), { title: "Error Deleting Domain", kind: "error" });
-    }
-  }
-
-  async function toggleDomainSsl(domainName: string) {
-    try {
-      const domain = instanceSettingsAllDomains.find(d => d.full_domain === domainName);
-      if (!domain) return;
-
-      await invoke("update_domain_ssl", {
-        id: domain.id,
-        sslEnabled: !domain.ssl_enabled
-      });
-      await refreshInstanceSettings();
-    } catch (e) {
-      await message(String(e), { title: "Error Toggling SSL", kind: "error" });
-    }
-  }
-
-  async function refreshInstanceSettings() {
-    try {
-      // Reload instance data
-      const allInstances = await invoke<Instance[]>("list_instances");
-      const instance = allInstances.find(i => i.id === instanceSettingsId);
-      if (!instance) return;
-
-      instanceSettingsDomains = instance.mapped_domains;
-
-      // Reload all domains to get IDs
-      const allDomains = await invoke<any[]>("list_domains");
-      instanceSettingsAllDomains = allDomains.filter(d =>
-        instance.mapped_domains.includes(d.full_domain)
-      );
-    } catch (e) {
-      console.error("Failed to refresh instance settings:", e);
-    }
-  }
-
-  function clearDomainForm() {
-    showDomainForm = false;
-    newDomainSubdomain = "";
-    newDomainSsl = true;
-  }
-
-  async function browseFolder(fieldKey: string) {
-    try {
-      const selected = await open({ directory: true, multiple: false, title: "Select Folder" });
-      if (selected && typeof selected === "string") {
-        instanceSettingsConfig = { ...instanceSettingsConfig, [fieldKey]: selected };
-      }
-    } catch (e) {
-      error = String(e);
-    }
-  }
-
-  function getInstanceServiceMeta(): ServiceInfo | undefined {
-    return serviceTypes.find(s => s.id === instanceSettingsServiceType);
-  }
+  function openInstanceSettings(instance: Instance) { settingsInstance = instance; }
 
   // === Network/DNS Functions ===
   async function installResolver() {
@@ -1237,6 +862,7 @@
       checkUpdatesUnlistenPromise.then((unlisten) => unlisten());
       newEmailUnlistenPromise.then((unlisten) => unlisten());
       konamiListener.destroy();
+      updater.stopAutoCheck();
     };
   });
 </script>
@@ -1248,7 +874,7 @@
     {#if error}
       <div class="error">
         <span>{error}</span>
-        <button class="modal-close" onclick={() => (error = null)}><X size={16} strokeWidth={2} /></button>
+        <button aria-label="Close" class="modal-close" onclick={() => (error = null)}><X size={16} strokeWidth={2} /></button>
       </div>
     {/if}
 
@@ -1305,6 +931,7 @@
       />
     {:else if activeSection === "instances"}
       <InstancesSection
+        onNavigateToServices={() => { activeSection = "services"; }}
         {instances}
         {stacks}
         {serviceTypes}
@@ -1363,137 +990,19 @@
   </main>
 </div>
 
-<!-- Logs Modal -->
-{#if showLogs}
-  <div class="modal-overlay" onclick={() => (showLogs = false)} onkeydown={(e) => e.key === 'Escape' && (showLogs = false)} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="modal" onclick={(e) => e.stopPropagation()} role="document">
-      <div class="modal-header">
-        <h3 class="modal-title">Logs: {logsInstanceName}</h3>
-        <button class="modal-close" onclick={() => (showLogs = false)}><X size={16} strokeWidth={2} /></button>
-      </div>
-      <div class="modal-body">
-        {#if logsLoading}
-          <p class="loading">Loading logs...</p>
-        {:else}
-          <pre class="logs-content">{logsContent}</pre>
-        {/if}
-      </div>
-      <div class="modal-footer">
-        <button
-          class="btn small secondary"
-          onclick={() => {
-            const inst = instances.find(i => i.name === logsInstanceName);
-            if (inst) refreshLogs(inst.id);
-          }}
-          disabled={logsLoading}
-        >
-          Refresh Logs
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
-
-<!-- ENV Modal -->
-{#if showEnv}
-  <div class="modal-overlay" onclick={() => (showEnv = false)} onkeydown={(e) => e.key === 'Escape' && (showEnv = false)} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="modal" onclick={(e) => e.stopPropagation()} role="document">
-      <div class="modal-header">
-        <div class="modal-title-row">
-          <h3>ENV Variables</h3>
-          <span class="modal-badge">{envServiceType}</span>
-        </div>
-        <button class="modal-close" onclick={() => (showEnv = false)}><X size={16} strokeWidth={2} /></button>
-      </div>
-      <div class="modal-body">
-        {#if envLoading}
-          <p class="loading">Loading ENV variables...</p>
-        {:else}
-          <pre class="env-content">{envContent}</pre>
-        {/if}
-      </div>
-      <div class="modal-footer">
-        <button class="btn secondary" onclick={() => (showEnv = false)}>
-          Close
-        </button>
-        <button
-          class="btn primary"
-          onclick={copyEnvToClipboard}
-          disabled={envLoading}
-        >
-          {envCopied ? "Copied!" : "Copy to Clipboard"}
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
-
-<!-- Instance Info Modal -->
-{#if showInfo}
-  <div class="modal-overlay" onclick={() => (showInfo = false)} onkeydown={(e) => e.key === 'Escape' && (showInfo = false)} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="modal info-modal" onclick={(e) => e.stopPropagation()} role="document">
-      <div class="modal-header">
-        <div class="modal-title-row">
-          <h3>{infoInstanceName} - Information</h3>
-          <span class="modal-badge">{infoServiceType}</span>
-          <span class="modal-badge {infoContent?.running ? 'success' : 'warning'}">
-            {infoContent?.running ? 'Running' : 'Stopped'}
-          </span>
-        </div>
-        <button class="modal-close" onclick={() => (showInfo = false)}><X size={16} strokeWidth={2} /></button>
-      </div>
-
-      <div class="modal-body">
-        {#if infoLoading}
-          <p class="loading">Loading information...</p>
-        {:else if infoError}
-          <div class="error-message">
-            <strong>Error:</strong> {infoError}
-          </div>
-        {:else if infoContent}
-          {#each infoContent.categories as category}
-            <div class="info-category">
-              <h4 class="category-title">{category.title}</h4>
-              <div class="info-grid">
-                {#each category.items as item}
-                  <div class="info-item">
-                    <span class="info-label">{item.label}</span>
-                    <div class="info-value-row">
-                      <span class="info-value">{item.value}</span>
-                      {#if item.copyable}
-                        <button
-                          class="copy-btn"
-                          onclick={() => copyInfoValue(item.value)}
-                          title="Copy"
-                        >
-                          <Copy size={12} strokeWidth={2} />
-                        </button>
-                      {/if}
-                    </div>
-                  </div>
-                {/each}
-              </div>
-            </div>
-          {/each}
-        {/if}
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn secondary" onclick={() => (showInfo = false)}>
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
+{#if inspector}
+  {#key inspector.id + inspector.mode}
+    <InstanceInspector target={inspector} onClose={() => inspector = null} />
+  {/key}
 {/if}
 
 <!-- Settings Modal -->
 {#if showSettings}
-  <div class="modal-overlay" onclick={() => (showSettings = false)} onkeydown={(e) => e.key === 'Escape' && (showSettings = false)} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="modal settings-modal" onclick={(e) => e.stopPropagation()} role="document">
+  <Modal onClose={() => (showSettings = false)} overlayClass="modal-overlay">
+    <div class="modal settings-modal"  role="document">
       <div class="modal-header">
         <h3 class="modal-title">Settings</h3>
-        <button class="modal-close" onclick={() => (showSettings = false)}><X size={16} strokeWidth={2} /></button>
+        <button aria-label="Close" class="modal-close" onclick={() => (showSettings = false)}><X size={16} strokeWidth={2} /></button>
       </div>
       <div class="modal-body">
         <form onsubmit={(e) => { e.preventDefault(); saveSettings(); }}>
@@ -1519,200 +1028,14 @@
         </form>
       </div>
     </div>
-  </div>
+  </Modal>
 {/if}
 
 <!-- Instance Settings Modal -->
-{#if showInstanceSettings}
-  <div class="modal-overlay" onclick={() => (showInstanceSettings = false)} onkeydown={(e) => e.key === 'Escape' && (showInstanceSettings = false)} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="modal settings-modal" onclick={(e) => e.stopPropagation()} role="document">
-      <div class="modal-header">
-        <h3 class="modal-title">Settings: {instanceSettingsName}</h3>
-        <button class="modal-close" onclick={() => (showInstanceSettings = false)}><X size={16} strokeWidth={2} /></button>
-      </div>
-      <div class="modal-body">
-        {#if instanceSettingsLoading}
-          <p class="loading">Loading configuration...</p>
-        {:else}
-          <div class="settings-row">
-            <div class="settings-group">
-              <label>
-                <span class="settings-label">Name</span>
-                <input
-                  type="text"
-                  bind:value={instanceSettingsName}
-                  placeholder="Instance name..."
-                />
-              </label>
-            </div>
-            <div class="settings-group port-group">
-              <label>
-                <span class="settings-label">Port</span>
-                <input
-                  type="number"
-                  min="1024"
-                  max="65535"
-                  bind:value={instanceSettingsPort}
-                  placeholder="Port..."
-                />
-              </label>
-            </div>
-          </div>
-          {#if instanceSettingsPort !== instanceSettingsOriginalPort}
-            <p class="version-warning"><TriangleAlert size={13} strokeWidth={2} /> Port change requires the instance to be stopped — Burd stops it automatically before applying.</p>
-          {/if}
-
-          <label class="setting-toggle">
-            <input
-              type="checkbox"
-              checked={instanceSettingsAutoStart}
-              onchange={(e) => (instanceSettingsAutoStart = e.currentTarget.checked)}
-            />
-            <span class="setting-toggle-title">Start automatically when Burd launches</span>
-          </label>
-
-          <!-- Version Selector -->
-          <div class="settings-group">
-            <label>
-              <span class="settings-label">Version</span>
-              <select bind:value={instanceSettingsVersion}>
-                {#each instanceSettingsInstalledVersions as ver}
-                  <option value={ver}>
-                    {ver}{ver === instanceSettingsOriginalVersion ? " (current)" : ""}
-                  </option>
-                {/each}
-              </select>
-            </label>
-            {#if instanceSettingsVersion !== instanceSettingsOriginalVersion}
-              <p class="version-warning"><TriangleAlert size={13} strokeWidth={2} /> Changing version requires restart. Data compatibility not guaranteed.</p>
-            {/if}
-          </div>
-
-          {@const serviceMeta = getInstanceServiceMeta()}
-          {#if serviceMeta?.config_fields && serviceMeta.config_fields.length > 0}
-            <form onsubmit={(e) => { e.preventDefault(); saveInstanceSettings(); }}>
-              {#each serviceMeta.config_fields as field (field.key)}
-                <div class="settings-group">
-                  <label>
-                    <span class="settings-label">
-                      {field.label}
-                      {#if field.required}
-                        <span class="required">*</span>
-                      {/if}
-                    </span>
-                    {#if field.field_type === "folder"}
-                      <div class="folder-input-group">
-                        <input
-                          type="text"
-                          value={instanceSettingsConfig[field.key] || ""}
-                          oninput={(e) => { instanceSettingsConfig = { ...instanceSettingsConfig, [field.key]: e.currentTarget.value }; }}
-                          placeholder={field.default || "Select a folder..."}
-                          class="folder-input"
-                        />
-                        <button type="button" class="btn secondary small browse-btn" onclick={() => browseFolder(field.key)}>
-                          Browse
-                        </button>
-                      </div>
-                    {:else if field.field_type === "password"}
-                      <input
-                        type="password"
-                        value={instanceSettingsConfig[field.key] || ""}
-                        oninput={(e) => { instanceSettingsConfig = { ...instanceSettingsConfig, [field.key]: e.currentTarget.value }; }}
-                        placeholder={field.default ? "(using default)" : "Enter value..."}
-                      />
-                    {:else}
-                      <input
-                        type="text"
-                        value={instanceSettingsConfig[field.key] || ""}
-                        oninput={(e) => { instanceSettingsConfig = { ...instanceSettingsConfig, [field.key]: e.currentTarget.value }; }}
-                        placeholder={field.default || "Enter value..."}
-                      />
-                    {/if}
-                  </label>
-                </div>
-              {/each}
-            </form>
-          {:else}
-            <p class="settings-empty">No configurable settings for this service type.</p>
-          {/if}
-
-          <!-- Domains Section -->
-          {#if !instanceSettingsLoading}
-            <div class="domains-section">
-              <div class="domains-head">
-                <h4 class="domains-title">Domains</h4>
-                {#if !showDomainForm}
-                  <button class="btn secondary small" onclick={() => showDomainForm = true}>+ Add</button>
-                {/if}
-              </div>
-
-              {#if instanceSettingsDomains.length > 0}
-                <div class="domains-list">
-                  {#each instanceSettingsDomains as domainName}
-                    {@const domain = instanceSettingsAllDomains.find(d => d.full_domain === domainName)}
-                    <div class="domain-row">
-                      <span class="domain-name">{domainName}</span>
-                      {#if domain?.ssl_enabled}<span class="ssl-badge">SSL</span>{/if}
-                      <span class="domain-spacer"></span>
-                      <button
-                        class="domain-action"
-                        class:ssl-on={domain?.ssl_enabled}
-                        onclick={() => toggleDomainSsl(domainName)}
-                        title={domain?.ssl_enabled ? "Disable SSL" : "Enable SSL"}
-                      >
-                        {#if domain?.ssl_enabled}<Lock size={14} strokeWidth={2} />{:else}<LockOpen size={14} strokeWidth={2} />{/if}
-                      </button>
-                      <button
-                        class="domain-action danger"
-                        onclick={() => deleteDomainFromInstance(domainName)}
-                        title="Delete domain"
-                      >
-                        <Trash2 size={14} strokeWidth={2} />
-                      </button>
-                    </div>
-                  {/each}
-                </div>
-              {:else if !showDomainForm}
-                <p class="settings-empty">No domains attached.</p>
-              {/if}
-
-              {#if showDomainForm}
-                <div class="domain-form">
-                  <div class="domain-form-field">
-                    <input
-                      type="text"
-                      bind:value={newDomainSubdomain}
-                      placeholder="subdomain"
-                      class="domain-sub-input"
-                    />
-                    <span class="domain-tld">.{networkStatus?.tld || 'burd'}</span>
-                  </div>
-                  <label class="domain-ssl-check">
-                    <input type="checkbox" bind:checked={newDomainSsl} />
-                    <span>SSL</span>
-                  </label>
-                  <button class="btn primary small" onclick={createDomainForInstance}>Create</button>
-                  <button class="btn secondary small" onclick={clearDomainForm}>Cancel</button>
-                </div>
-              {/if}
-            </div>
-          {/if}
-        {/if}
-      </div>
-      <div class="modal-footer">
-        <button class="btn secondary" onclick={() => (showInstanceSettings = false)}>
-          Cancel
-        </button>
-        <button
-          class="btn primary"
-          onclick={saveInstanceSettings}
-          disabled={instanceSettingsSaving || instanceSettingsLoading}
-        >
-          {instanceSettingsSaving ? "Saving..." : "Save Settings"}
-        </button>
-      </div>
-    </div>
-  </div>
+{#if settingsInstance}
+  {#key settingsInstance.id}
+    <InstanceSettingsModal instance={settingsInstance} {instances} {serviceTypes} tld={networkStatus?.tld || 'burd'} onClose={() => settingsInstance = null} onRefresh={loadData} />
+  {/key}
 {/if}
 
 <!-- Easter Egg: The Burd Nest Terminal -->
@@ -1798,16 +1121,6 @@
     align-items: center;
   }
 
-  .error .close {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-  }
-
   @media (prefers-color-scheme: dark) {
     .error {
       background: #dc2626;
@@ -1825,11 +1138,6 @@
     transition: all 0.15s ease;
   }
 
-  .btn.small {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.8125rem;
-  }
-
   .btn.primary {
     background: linear-gradient(135deg, #ff6b6b, #ee5a24);
     color: white;
@@ -1839,29 +1147,13 @@
     filter: brightness(1.1);
   }
 
-  .btn.secondary {
-    background: #e5e5e5;
-    color: var(--text);
-  }
-
-  .btn.secondary:hover:not(:disabled) {
-    background: #d1d1d6;
-  }
-
   .btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
 
   @media (prefers-color-scheme: dark) {
-    .btn.secondary {
-      background: #3a3a3c;
-      color: #f5f5f7;
-    }
 
-    .btn.secondary:hover:not(:disabled) {
-      background: #48484a;
-    }
   }
 
   /* Modal styles */
@@ -1883,203 +1175,29 @@
     }
   }
 
-
   @media (prefers-color-scheme: dark) {
   }
 
+  @media (prefers-color-scheme: dark) {
 
-  .modal-header .close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: var(--text-muted);
-    padding: 0;
-    line-height: 1;
-  }
-
-  .modal-header .close:hover {
-    color: var(--text);
   }
 
   @media (prefers-color-scheme: dark) {
-    .modal-header .close:hover {
-      color: #f5f5f7;
-    }
-  }
 
-
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--border);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .modal-footer {
-      border-top-color: #38383a;
-    }
-  }
-
-  .logs-content {
-    background: #1c1c1e;
-    color: #f5f5f7;
-    padding: 1rem;
-    border-radius: 8px;
-    font-family: monospace;
-    font-size: 0.75rem;
-    line-height: 1.5;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-break: break-all;
-    margin: 0;
-    max-height: 400px;
-    overflow-y: auto;
-  }
-
-  .env-content {
-    background: #1c1c1e;
-    color: #a8e6cf;
-    padding: 1rem;
-    border-radius: 8px;
-    font-family: monospace;
-    font-size: 0.8125rem;
-    line-height: 1.6;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-break: break-all;
-    margin: 0;
-    max-height: 400px;
-    overflow-y: auto;
-  }
-
-  .modal-title-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .modal-title-row h3 {
-    margin: 0;
-  }
-
-  .modal-badge {
-    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-    color: white;
-    font-size: 0.6875rem;
-    font-weight: 600;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    text-transform: uppercase;
-  }
-
-  .modal-badge.success {
-    background: linear-gradient(135deg, #16a34a, #15803d);
-  }
-
-  .modal-badge.warning {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
   }
 
   /* Info Modal Styles */
-  .info-modal {
-    max-width: 700px;
-    max-height: 80vh;
-  }
 
-  .info-category {
-    margin-bottom: 1.5rem;
-  }
+  @media (prefers-color-scheme: dark) {
 
-  .info-category:last-child {
-    margin-bottom: 0;
-  }
-
-  .category-title {
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .info-grid {
-    display: grid;
-    gap: 0.75rem;
-  }
-
-  .info-item {
-    display: grid;
-    grid-template-columns: 140px 1fr;
-    gap: 1rem;
-    padding: 0.625rem 0.75rem;
-    background: var(--surface-2);
-    border-radius: 6px;
-    align-items: center;
   }
 
   @media (prefers-color-scheme: dark) {
-    .info-item {
-      background: #2c2c2e;
-    }
-  }
 
-  .info-label {
-    font-weight: 500;
-    color: var(--text-muted);
-    font-size: 0.875rem;
-  }
-
-  .info-value-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 0;
-  }
-
-  .info-value {
-    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
-    font-size: 0.8125rem;
-    word-break: break-all;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .copy-btn {
-    padding: 4px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    opacity: 0.6;
-    color: #007aff;
-    transition: opacity 0.15s ease;
-    flex-shrink: 0;
-  }
-
-  .copy-btn:hover {
-    opacity: 1;
   }
 
   @media (prefers-color-scheme: dark) {
-    .copy-btn {
-      color: #0a84ff;
-    }
-  }
 
-  .error-message {
-    background: #ff3b30;
-    color: white;
-    padding: 1rem;
-    border-radius: 8px;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .error-message {
-      background: #dc2626;
-    }
   }
 
   /* Settings form styles */
@@ -2088,30 +1206,6 @@
   }
 
   /* Name + Port side by side */
-  .settings-row {
-    display: grid;
-    grid-template-columns: 1fr 0.5fr;
-    gap: 0.75rem;
-  }
-  .settings-row .settings-group {
-    margin-bottom: 0.85rem;
-  }
-  .port-group input {
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .version-warning {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    margin: -0.35rem 0 0.85rem;
-    font-size: 0.8rem;
-    color: var(--warning, #d97706);
-  }
-  .version-warning :global(svg) {
-    flex: none;
-  }
 
   .settings-group label {
     display: flex;
@@ -2125,140 +1219,9 @@
     color: var(--text-muted);
   }
 
-  .settings-label .required {
-    color: var(--danger);
-  }
-
   /* Auto-start toggle — a plain inline row */
-  .setting-toggle {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 0.55rem;
-    cursor: pointer;
-    margin-bottom: 0.85rem;
-  }
-  .setting-toggle input {
-    margin: 0;
-    width: 16px;
-    height: 16px;
-    flex: none;
-    accent-color: var(--accent);
-  }
-  .setting-toggle-title {
-    font-size: 0.9rem;
-    color: var(--text);
-  }
-
-  .settings-empty {
-    font-size: 0.83rem;
-    color: var(--text-muted);
-    padding: 0.5rem 0;
-    margin: 0;
-  }
 
   /* Domains — compact */
-  .domains-section {
-    margin-top: 1rem;
-    padding-top: 0.9rem;
-    border-top: 1px solid var(--border);
-  }
-  .domains-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.6rem;
-  }
-  .domains-title {
-    margin: 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-  }
-  .domains-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-  }
-  .domain-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.4rem 0.6rem;
-    background: var(--surface-2);
-    border-radius: var(--radius-sm);
-  }
-  .domain-name {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.85rem;
-  }
-  .domain-spacer {
-    flex: 1;
-  }
-  .ssl-badge {
-    padding: 0.1rem 0.4rem;
-    background: var(--success);
-    color: #fff;
-    font-size: 0.68rem;
-    border-radius: 4px;
-    font-weight: 600;
-  }
-  .domain-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    color: var(--text-muted);
-    padding: 0.25rem;
-    border-radius: var(--radius-sm);
-    line-height: 1;
-  }
-  .domain-action:hover {
-    background: var(--border);
-    color: var(--text);
-  }
-  .domain-action.ssl-on {
-    color: var(--success);
-  }
-  .domain-action.danger:hover {
-    background: var(--danger-bg);
-    color: var(--danger);
-  }
-  .domain-form {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.6rem;
-    padding: 0.6rem;
-    background: var(--surface-2);
-    border-radius: var(--radius-sm);
-  }
-  .domain-form-field {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    flex: 1;
-    min-width: 140px;
-  }
-  .domain-sub-input {
-    flex: 1;
-    min-width: 0;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-  .domain-tld {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-  }
-  .domain-ssl-check {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.85rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
 
   .settings-hint {
     font-size: 0.75rem;
@@ -2305,17 +1268,7 @@
     border-radius: 0 6px 6px 0;
   }
 
-  .folder-input-group {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .folder-input {
-    flex: 1;
-  }
-
-  input,
-  select {
+  input {
     padding: 0.5rem;
     border: 1px solid var(--border-strong);
     border-radius: 6px;
@@ -2326,23 +1279,15 @@
   }
 
   @media (prefers-color-scheme: dark) {
-    input,
-    select {
+    input {
       background: #1c1c1e;
       border-color: #3a3a3c;
     }
   }
 
-  input:focus,
-  select:focus {
+  input:focus {
     outline: none;
     border-color: #007aff;
-  }
-
-  .loading, .empty {
-    text-align: center;
-    color: var(--text-muted);
-    padding: 2rem;
   }
 
   /* Explicit dark theme overrides via data-theme attribute */

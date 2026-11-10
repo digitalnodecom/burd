@@ -179,11 +179,30 @@ pub async fn delete_stack(
     id: String,
     delete_instances: bool,
     state: State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<String>, String> {
     let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid stack ID")?;
-    let config_store = lock!(state.config_store)?;
-
-    let deleted_instance_ids = config_store.delete_stack(uuid, delete_instances)?;
+    let ids: Vec<Uuid> = {
+        let store = lock!(state.config_store)?;
+        store
+            .load()?
+            .instances
+            .iter()
+            .filter(|i| i.stack_id == Some(uuid))
+            .map(|i| i.id)
+            .collect()
+    };
+    if delete_instances {
+        for instance_id in &ids {
+            super::instances::delete_instance(instance_id.to_string(), state.clone(), app.clone())
+                .await?;
+        }
+    }
+    let deleted_instance_ids = {
+        let store = lock!(state.config_store)?;
+        store.delete_stack(uuid, false)?;
+        ids
+    };
 
     Ok(deleted_instance_ids
         .iter()

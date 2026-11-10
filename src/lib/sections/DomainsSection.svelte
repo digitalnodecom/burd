@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Modal from "$lib/components/Modal.svelte";
   import { X } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { confirm } from "@tauri-apps/plugin-dialog";
@@ -641,11 +642,11 @@
 </div>
 
 {#if showConfigModal && proxyConfig}
-  <div class="modal-overlay" onclick={() => showConfigModal = false} onkeydown={(e) => e.key === 'Escape' && (showConfigModal = false)} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="modal-content" onclick={(e) => e.stopPropagation()} role="document">
+  <Modal onClose={() => showConfigModal = false} overlayClass="modal-overlay">
+    <div class="modal-content"  role="document">
       <div class="modal-header">
         <h3 class="modal-title">Proxy Configuration</h3>
-        <button class="modal-close" onclick={() => showConfigModal = false}><X size={16} strokeWidth={2} /></button>
+        <button aria-label="Close" class="modal-close" onclick={() => showConfigModal = false}><X size={16} strokeWidth={2} /></button>
       </div>
       <div class="modal-body">
         <div class="config-section">
@@ -680,7 +681,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </Modal>
 {/if}
 
 <style>
@@ -965,25 +966,6 @@
     .target-meta {
       color: #98989d;
     }
-  }
-
-  .ssl-badge {
-    display: inline-block;
-    padding: 0.125rem 0.375rem;
-    border-radius: 3px;
-    font-size: 0.625rem;
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-
-  .ssl-badge.enabled {
-    background: #34c759;
-    color: white;
-  }
-
-  .ssl-badge.disabled {
-    background: #8e8e93;
-    color: white;
   }
 
   /* Action buttons */
@@ -1299,10 +1281,6 @@
     }
   }
 
-  .spinning {
-    animation: spin 1s linear infinite;
-  }
-
   /* Modal styles */
 
   .modal-content {
@@ -1331,7 +1309,6 @@
     background: #2c2c2e !important;
   }
 
-
   @media (prefers-color-scheme: dark) {
   }
 
@@ -1339,12 +1316,8 @@
     border-bottom-color: #48484a !important;
   }
 
-
-
-
   @media (prefers-color-scheme: dark) {
   }
-
 
   .config-section {
     margin-bottom: 1.5rem;

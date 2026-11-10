@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Modal from "$lib/components/Modal.svelte";
   import { Info, RefreshCw, Star, Trash2 } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { confirm } from "@tauri-apps/plugin-dialog";
@@ -496,11 +497,11 @@
 
 <!-- Install Dialog -->
 {#if showInstallDialog}
-  <div class="dialog-overlay" onclick={() => (showInstallDialog = false)} onkeydown={(e) => e.key === 'Escape' && (showInstallDialog = false)} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="dialog" onclick={(e) => e.stopPropagation()} role="document">
+  <Modal onClose={() => (showInstallDialog = false)} overlayClass="dialog-overlay">
+    <div class="dialog"  role="document">
       <div class="dialog-header">
         <h3>Install PHP Version</h3>
-        <button class="dialog-close" onclick={() => (showInstallDialog = false)}>&times;</button>
+        <button aria-label="Close" class="dialog-close" onclick={() => (showInstallDialog = false)}>&times;</button>
       </div>
       <div class="dialog-content">
         {#if loadingRemote}
@@ -547,16 +548,16 @@
         {/if}
       </div>
     </div>
-  </div>
+  </Modal>
 {/if}
 
 <!-- Shell Warning Dialog -->
 {#if showShellWarning}
-  <div class="dialog-overlay" onclick={() => (showShellWarning = false)} onkeydown={(e) => e.key === 'Escape' && (showShellWarning = false)} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="dialog warning-dialog" onclick={(e) => e.stopPropagation()} role="document">
+  <Modal onClose={() => (showShellWarning = false)} overlayClass="dialog-overlay">
+    <div class="dialog warning-dialog"  role="document">
       <div class="dialog-header">
         <h3>Current PHP Configuration</h3>
-        <button class="dialog-close" onclick={() => (showShellWarning = false)}>&times;</button>
+        <button aria-label="Close" class="dialog-close" onclick={() => (showShellWarning = false)}>&times;</button>
       </div>
       <div class="dialog-content">
         {#if pvmStatus?.current_php}
@@ -584,7 +585,7 @@
         {/if}
       </div>
     </div>
-  </div>
+  </Modal>
 {/if}
 
 <style>
@@ -1036,18 +1037,6 @@
   }
 
   /* Dialog styles */
-  .dialog-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
 
   .dialog {
     background: var(--surface);
@@ -1174,7 +1163,7 @@
     margin-bottom: 1rem;
   }
 
-  .warning-icon svg {
+  .warning-icon :global(svg) {
     stroke: #f59e0b;
   }
 

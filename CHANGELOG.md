@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.3] - 2026-11-10
+
+### Fixed
+
+- Stack deletion now stops services and removes their domains, with accurate messaging that instance data is retained.
+- Instance settings are validated and saved together; running instances must be stopped before editing.
+- Concurrent configuration writes detect conflicts instead of silently overwriting another process's changes.
+- Background refreshes preserve successful status results, prevent overlapping requests, and retain action errors.
+- Bulk start and stop report individual failures after every operation finishes.
+- Dialogs consistently handle focus, keyboard navigation, Escape, and backdrop clicks.
+- Nested domains pass creation validation and are matched correctly during removal.
+- Instance names and status indicators remain visible at the default window size; secondary actions are grouped under More.
+- Disk usage refreshes periodically and reports unreadable data as unavailable.
+- Release publication waits for both signed app builds to succeed.
+
+### Changed
+
+- Extracted instance creation, settings, inspection, and row components and consolidated shared types and IPC helpers.
+- Removed unused modal implementations and stale styles; frontend checks now reject warnings.
+- Preview fixtures reject unsupported commands and model service state changes.
+
+### Added
+
+- Browser regression tests and an isolated real Redis lifecycle smoke test in CI.
+- `BURD_DATA_DIR` supports an isolated absolute data directory for automation.
+
+---
+
 ## [1.14.2] - 2026-09-15
 
 ### Changed

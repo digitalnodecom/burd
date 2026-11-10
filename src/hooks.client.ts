@@ -51,6 +51,11 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !("__TAURI_INTERNALS
 
   const handlers: Record<string, (args: any) => unknown> = {
     list_instances: () => instances,
+    start_instance: (a) => { const i = instances.find(i => i.id === a.id); if (!i) throw new Error("Instance not found"); i.running = true; return i.pid = 1000 + i.port; },
+    stop_instance: (a) => { const i = instances.find(i => i.id === a.id); if (!i) throw new Error("Instance not found"); i.running = false; i.pid = null; },
+    save_instance_settings: (a) => { const i = instances.find(i => i.id === a.id); if (!i) throw new Error("Instance not found"); if (i.running) throw new Error("Stop the instance first"); Object.assign(i, { name: a.name, port: a.port, version: a.version, auto_start: a.autoStart }); },
+    get_instance_logs: () => "Preview logs: service ready.",
+
     get_instance_disk_usage: (a) => (inst as any)._sizes?.[a?.instanceId] ?? 0,
     list_stacks: () => [],
     get_network_status: () => ({ dns_running: true, tld: "test", resolver_installed: true }),
@@ -81,7 +86,7 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !("__TAURI_INTERNALS
       svc("redis", "Redis", 6379),
       svc("mailpit", "Mailpit", 8025),
     ],
-    get_all_binary_statuses: () => [],
+    get_all_binary_statuses: () => ["frankenphp", "postgresql", "mariadb", "redis", "mailpit"].map(service_type => ({ service_type, installed: true, version: "preview", path: "/preview/bin" })),
     get_installed_versions: (a) => versionsFor(a?.serviceType),
     get_settings: () => ({ tld: "test", auto_start: true }),
     list_domains: () => [],
@@ -108,7 +113,7 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !("__TAURI_INTERNALS
         categories: [],
       };
     },
-    get_instance_env: () => ({ DATABASE_URL: "postgres://postgres@127.0.0.1:5432/app" }),
+    get_instance_env: () => "DATABASE_URL=postgres://postgres@127.0.0.1:5432/app",
     generate_env_for_service: () => "",
     check_instance_health: () => true,
     list_instance_databases: () => ["app", "app_test"],
@@ -155,7 +160,7 @@ if (import.meta.env.DEV && typeof window !== "undefined" && !("__TAURI_INTERNALS
       if (cmd in handlers) return handlers[cmd](args);
       // eslint-disable-next-line no-console
       console.warn("[tauri-mock] unhandled command:", cmd, args);
-      return null;
+      throw new Error(`Preview does not implement command: ${cmd}`);
     },
   };
   // eslint-disable-next-line no-console

@@ -578,6 +578,7 @@ pub async fn delete_instance(
 
     // Delete instance and associated domains from config
     let config_store = lock!(state.config_store)?;
+    config_store.delete_tunnels_for_instance(uuid)?;
     config_store.delete_domains_for_instance(uuid)?;
     let result = config_store.delete_instance(uuid);
     let _ = app.emit("instances-changed", ());
@@ -1597,4 +1598,54 @@ fn create_centrifugo_category(instance: &Instance) -> InfoCategory {
         title: "Centrifugo Configuration".to_string(),
         items,
     }
+}
+
+/// Validate settings together and persist them in one configuration write.
+#[tauri::command]
+pub fn save_instance_settings(
+    id: String,
+    name: String,
+    port: u16,
+    version: String,
+    config: serde_json::Value,
+    auto_start: bool,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let uuid = Uuid::parse_str(&id).map_err(|_| "Invalid instance ID")?;
+    validation::validate_instance_name(&name).map_err(|e| e.to_string())?;
+    validation::validate_port(port).map_err(|e| e.to_string())?;
+    let store = lock!(state.config_store)?;
+    let mut settings = store.load()?;
+    if settings
+        .instances
+        .iter()
+        .any(|i| i.id != uuid && i.port == port)
+    {
+        return Err(format!("Port {} is already assigned", port));
+    }
+    let instance = settings
+        .instances
+        .iter_mut()
+        .find(|i| i.id == uuid)
+        .ok_or("Instance not found")?;
+    let binaries = lock!(state.binary_manager)?;
+    if !binaries
+        .get_installed_versions_sync(instance.service_type)?
+        .contains(&version)
+    {
+        return Err("Selected version is not installed".into());
+    }
+    drop(binaries);
+    let processes = lock!(state.process_manager)?;
+    if processes.is_running(&uuid) {
+        return Err(
+            "Stop the instance before saving settings, then start it again after saving.".into(),
+        );
+    }
+    instance.name = name;
+    instance.port = port;
+    instance.version = version;
+    instance.config = config;
+    instance.auto_start = auto_start;
+    store.save(&settings)
 }

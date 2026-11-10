@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Modal from "$lib/components/Modal.svelte";
   import { onMount } from "svelte";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { createMailState, type MailMessageSummary } from "$lib/composables/useMail.svelte";
@@ -322,14 +323,14 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
 
   <!-- Email Detail Modal -->
   {#if mail.selectedEmail}
-    <div class="modal-overlay" onclick={() => mail.closeEmail()} onkeydown={(e) => e.key === 'Escape' && mail.closeEmail()} role="dialog" aria-modal="true" tabindex="-1">
-      <div class="modal email-modal" onclick={(e) => e.stopPropagation()} role="document">
+    <Modal onClose={() => mail.closeEmail()} overlayClass="modal-overlay">
+      <div class="modal email-modal"  role="document">
         <div class="modal-header">
           <button class="back-btn" onclick={() => mail.closeEmail()} title="Back to inbox">
             <ArrowLeft size={20} strokeWidth={2} />
           </button>
           <h3>{mail.selectedEmail.subject || "(No subject)"}</h3>
-          <button class="modal-close" onclick={() => mail.closeEmail()} title="Close">
+          <button aria-label="Close" class="modal-close" onclick={() => mail.closeEmail()} title="Close">
             <X size={20} strokeWidth={2} />
           </button>
         </div>
@@ -394,13 +395,13 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
           <button class="btn-secondary" onclick={() => mail.closeEmail()}>Close</button>
         </div>
       </div>
-    </div>
+    </Modal>
   {/if}
 
   <!-- Delete All Confirmation -->
   {#if showDeleteAllConfirm}
-    <div class="modal-overlay" onclick={() => showDeleteAllConfirm = false} onkeydown={(e) => e.key === 'Escape' && (showDeleteAllConfirm = false)} role="dialog" aria-modal="true" tabindex="-1">
-      <div class="modal confirm-modal" onclick={(e) => e.stopPropagation()} role="document">
+    <Modal onClose={() => showDeleteAllConfirm = false} overlayClass="modal-overlay">
+      <div class="modal confirm-modal"  role="document">
         <h3>Delete All Emails?</h3>
         <p>This will permanently delete all {mail.totalEmails} emails. This action cannot be undone.</p>
         <div class="modal-actions">
@@ -410,16 +411,16 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
           <button class="btn-secondary" onclick={() => showDeleteAllConfirm = false}>Cancel</button>
         </div>
       </div>
-    </div>
+    </Modal>
   {/if}
 
   <!-- SMTP Config Modal -->
   {#if showSmtpConfig && mail.smtpConfig}
-    <div class="modal-overlay" onclick={() => showSmtpConfig = false} onkeydown={(e) => e.key === 'Escape' && (showSmtpConfig = false)} role="dialog" aria-modal="true" tabindex="-1">
-      <div class="modal config-modal" onclick={(e) => e.stopPropagation()} role="document">
+    <Modal onClose={() => showSmtpConfig = false} overlayClass="modal-overlay">
+      <div class="modal config-modal"  role="document">
         <div class="modal-header">
           <h3 class="modal-title">SMTP Configuration</h3>
-          <button class="modal-close" onclick={() => showSmtpConfig = false} title="Close">
+          <button aria-label="Close" class="modal-close" onclick={() => showSmtpConfig = false} title="Close">
             <X size={20} strokeWidth={2} />
           </button>
         </div>
@@ -451,7 +452,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   {/if}
 </div>
 
@@ -547,10 +548,6 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
   .refresh-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-
-  .spinning {
-    animation: spin 1s linear infinite;
   }
 
   @keyframes spin {
@@ -790,7 +787,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     gap: 12px;
   }
 
-  .empty-state svg {
+  .empty-state :global(svg) {
     opacity: 0.5;
   }
 
@@ -963,9 +960,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     color: var(--text-muted);
   }
 
-
-
-  .close-btn, .back-btn {
+  .back-btn {
     background: transparent;
     border: none;
     padding: 4px;
@@ -975,7 +970,7 @@ MAIL_FROM_NAME="\${APP_NAME}"`;
     align-items: center;
   }
 
-  .close-btn:hover, .back-btn:hover {
+  .back-btn:hover {
     color: var(--text);
   }
 

@@ -189,6 +189,15 @@ cargo clippy -- -D warnings
 cargo test
 ```
 
+The native lifecycle smoke test uses a temporary profile and a real Redis binary:
+
+```bash
+cd src-tauri
+BURD_TEST_REDIS_BINARY="$(brew --prefix redis)/bin/redis-server" cargo test --test native_lifecycle -- --ignored
+```
+
+`BURD_DATA_DIR` can point Burd at a separate, absolute data directory for isolated automation. It controls configuration, downloaded binaries, instance data, logs, and PID files.
+
 ## Project Structure
 
 ```

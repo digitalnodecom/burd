@@ -50,7 +50,7 @@ pub async fn get_instance_disk_usage(
     // The directory walk hits the filesystem, so keep it off the async runtime.
     tokio::task::spawn_blocking(move || directory_size(&dir))
         .await
-        .map_err(|e| format!("Failed to compute disk usage: {e}"))
+        .map_err(|e| format!("Failed to compute disk usage: {e}"))?
 }
 
 /// List the databases in a DB instance with each database's size — backs the

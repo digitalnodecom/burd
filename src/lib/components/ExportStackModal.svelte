@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Modal from "$lib/components/Modal.svelte";
   import { X } from '@lucide/svelte';
   import { Copy, Download, Shield } from '@lucide/svelte';
   import { invoke } from "@tauri-apps/api/core";
@@ -146,8 +147,8 @@
 </script>
 
 {#if show && stack}
-  <div class="modal-overlay" onclick={handleClose} onkeydown={(e) => e.key === 'Escape' && handleClose()} role="dialog" aria-modal="true" tabindex="-1">
-    <div class="modal" onclick={(e) => e.stopPropagation()} role="document">
+  <Modal onClose={handleClose} overlayClass="modal-overlay">
+    <div class="modal"  role="document">
       <div class="modal-header">
         <h3 class="modal-title">Export Stack</h3>
         <button class="modal-close" onclick={handleClose} aria-label="Close"><X size={16} strokeWidth={2} /></button>
@@ -232,11 +233,10 @@
         </button>
       </div>
     </div>
-  </div>
+  </Modal>
 {/if}
 
 <style>
-
 
   .error-banner {
     background: #fee2e2;
@@ -308,7 +308,7 @@
     margin-top: 1rem;
   }
 
-  .secrets-warning svg {
+  .secrets-warning :global(svg) {
     flex-shrink: 0;
     margin-top: 0.125rem;
   }
@@ -395,7 +395,6 @@
 
   /* Dark mode */
   @media (prefers-color-scheme: dark) {
-
 
     .error-banner {
       background: #3d2020;
