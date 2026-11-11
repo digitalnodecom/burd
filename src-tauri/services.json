@@ -820,7 +820,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mailpit",
           "checksums": {
-            "1.30.4": "7f45339ace3434b763a5bc2d9ff2445a947e7d296d365b518242714255e0e798"
+            "1.30.4": "65b96421a1ae15397c53c1d581aa54a6ec51060c19170bf1c8336c72b3680e21"
           }
         },
         "darwin-x64": {
@@ -831,7 +831,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/mailpit",
           "checksums": {
-            "1.30.4": "f6543f0589e288260b52a483b664d6d489f1b756a2fa0cb0a2c4fdaaa9624d73"
+            "1.30.4": "caf971b8c18ecd8d855a7b14ca06780592827af924ea128bda17943c3dba93c4"
           }
         }
       }
@@ -979,7 +979,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/frpc",
           "checksums": {
-            "0.70.0": "feb98f36d03fbdbfad3e00c88bb670805fabf20566802c086bad883487c05a8f"
+            "0.70.0": "e1c43bb6cd16f57bf43bcb45c42c275d2653172c418cfa267d43530167f2129e"
           }
         },
         "darwin-x64": {
@@ -990,7 +990,7 @@
           "is_archive": true,
           "archive_binary_path": "bin/frpc",
           "checksums": {
-            "0.70.0": "ddbe75adac3bf711eba66e360d1a81a342b5aa510e01ea1bced74ab8cbaf9c8b"
+            "0.70.0": "471aea47572aad8f1d12b8d207f8e3aa9d7a359a78c38ec16641ee45db035bab"
           }
         },
         "linux-x64": {

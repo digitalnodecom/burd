@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.14.4] - 2026-11-11
+
+### Changed
+
+- Replaced the menu-bar app thumbnail with a dedicated bird-face silhouette, using a transparent background and native light/dark template coloring for clearer recognition at small sizes.
+
+### Fixed
+
+- Refreshed Mailpit and frpc checksums to match the current mirrored downloads.
+
+---
+
 ## [1.14.3] - 2026-11-10
 
 ### Fixed

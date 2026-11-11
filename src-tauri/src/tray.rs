@@ -45,8 +45,11 @@ impl Health {
 pub fn init(app: &AppHandle) -> tauri::Result<()> {
     let menu = build_menu(app)?;
 
+    // Dedicated, transparent bird glyph: the full app icon's rounded tile
+    // becomes a solid block when macOS treats it as a template image.
+    let icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-bird.png"))?;
     let _tray = TrayIconBuilder::with_id(TRAY_ID)
-        .icon(app.default_window_icon().unwrap().clone())
+        .icon(icon)
         .icon_as_template(true)
         .tooltip("Burd")
         .menu(&menu)
